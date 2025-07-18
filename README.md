@@ -1,4 +1,6 @@
 # VideoJoker
+
+## Overview
 VideoJoker is a Discord bot, inspired by and stylized after the Video Joker character from the Wakaliwood film *"Who Killed Captain Alex?"*. 
 This is for my own personal use, but feel free to fork and modify it for your own needs.
 
