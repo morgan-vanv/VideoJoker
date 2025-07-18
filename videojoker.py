@@ -9,7 +9,8 @@ from dotenv import load_dotenv
 
 
 class VideoJoker(discord.Client):
-    def __init__(self, intents: discord.Intents):
+    def __init__(self):
+        intents = discord.Intents.default()
         intents.message_content = True
         super().__init__(intents=intents)
         self.tree = app_commands.CommandTree(self)
@@ -39,11 +40,13 @@ class VideoJoker(discord.Client):
     async def start_bot(self):
         await self.start(self.token)
 
+
 bot = VideoJoker()
 
-@bot.command()
+
+@bot.tree.command()
 async def ping(ctx):
-    await ctx.send('pong')
+    await ctx.response.send_message('pong')
 
 
 if __name__ == "__main__":
