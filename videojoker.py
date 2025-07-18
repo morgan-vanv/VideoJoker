@@ -50,4 +50,16 @@ async def ping(ctx):
 
 
 if __name__ == "__main__":
+    # set up logging
+    logging.basicConfig(
+        level=logging.INFO,  # Set logging level
+        format='%(asctime)s - %(levelname)s - %(message)s',
+        handlers=[
+            logging.FileHandler(f"{Path(__file__).resolve().parent / 'bot_log.log'}", mode='w'),
+            logging.StreamHandler()
+        ]
+    )
+    logging.getLogger("discord").setLevel(logging.WARNING)
+
+    # running the bot
     asyncio.run(bot.start_bot())
