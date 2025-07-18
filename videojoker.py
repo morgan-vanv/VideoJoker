@@ -43,7 +43,7 @@ class VideoJoker(discord.Client):
 
 bot = VideoJoker()
 
-
+# Commands exposed to users
 @bot.tree.command()
 async def ping(ctx):
     await ctx.response.send_message('pong')
