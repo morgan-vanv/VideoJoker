@@ -10,6 +10,8 @@ from dotenv import load_dotenv
 
 # Importing Cogs
 from cogs.games import Games
+from cogs.fun import Fun
+from cogs.utility import Utility
 
 
 class VideoJoker(commands.Bot):
@@ -25,6 +27,8 @@ class VideoJoker(commands.Bot):
     async def setup_hook(self):
         # Loads cogs
         await bot.add_cog(Games(bot))
+        await bot.add_cog(Fun(bot)) # verified as working
+        await bot.add_cog(Utility(bot)) # TODO: the commands in this cog are not syncing/working yet
 
         # Sync commands on startup, after cogs are loaded
         await self.tree.sync()
@@ -66,13 +70,28 @@ async def sync(interaction: discord.Interaction):
 async def help(ctx):
     logging.info('/help command invoked')
     embed = discord.Embed(
-        title="List of all commands",
-        # color=discord.Colour.dark_gray, todo: figure this out later, not working atm
+        title="Help - List of Commands",
+        description="Here are all the available commands:",
+        # color=discord.Colour.blue() # TODO: figure out why this isn't working
     )
-    embed.add_field(name="/ping", value="Returns pong", inline=True)
+
+    # Root-level commands
     embed.add_field(name="/ping", value="Returns pong", inline=False)
-    embed.add_field(name="/ping", value="Returns pong", inline=False)
-    embed.add_field(name="/ping", value="Returns pong", inline=False)
+    embed.add_field(name="/sync", value="Admin only - Syncs the command tree.", inline=False)
+    embed.add_field(name="/help", value="Shows list of all commands", inline=False)
+
+    # Games cog commands
+    embed.add_field(name="/coinflip", value="Flips a coin.", inline=False)
+    embed.add_field(name="/diceroll", value="Rolls an N-sided die (defaults to 6).", inline=False)
+
+    # Fun cog commands
+    embed.add_field(name="/roast", value="Roast a user.", inline=False)
+    embed.add_field(name="/say", value="Repeat after me.", inline=False)
+
+    # Utility cog commands
+    embed.add_field(name="/userinfo", value="Displays information about a user.", inline=False)
+    embed.add_field(name="/serverinfo", value="Displays information about the server.", inline=False)
+
     await ctx.response.send_message(embed=embed, ephemeral=False)
 
 

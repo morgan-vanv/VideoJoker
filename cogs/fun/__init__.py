@@ -1,0 +1,2 @@
+from .fun import Fun
+
