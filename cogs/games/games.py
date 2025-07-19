@@ -46,17 +46,21 @@ class Games(Cog, name="Games"):
     async def rockpaperscissors(self, ctx, choice: str):
         """Play rock-paper-scissors against the bot"""
         choices = ['rock', 'paper', 'scissors']
-        if choice.lower() not in choices:
+        winning_conditions = {
+            'rock': 'scissors',
+            'paper': 'rock',
+            'scissors': 'paper'
+        }
+
+        choice = choice.lower()
+        if choice not in choices:
             await ctx.response.send_message(f"{ctx.user.name}, please choose rock, paper, or scissors.")
             return
 
         bot_choice = random.choice(choices)
-        result = ""
         if choice == bot_choice:
             result = "It's a tie!"
-        elif (choice == 'rock' and bot_choice == 'scissors') or \
-             (choice == 'paper' and bot_choice == 'rock') or \
-             (choice == 'scissors' and bot_choice == 'paper'):
+        elif winning_conditions[choice] == bot_choice:
             result = "You win!"
         else:
             result = "I win!"
