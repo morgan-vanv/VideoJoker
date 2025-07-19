@@ -8,6 +8,8 @@
 - List of Public APIs: https://github.com/public-apis/public-apis
 - List of Top Discord Bots: https://top.gg/
   - brainstorm more ideas using this list
+- SoundCloud API: https://developers.soundcloud.com/docs/api/guide
+- SpotifyAPI: https://developer.spotify.com/
 
 ## Examples:
 
@@ -41,6 +43,7 @@
 - raffle system 
   - randomly selects user of a role, or from a list of users, or from a list of people who react
 - role guard the bot commands (only certain roles can use certain commands)
+- reminders (user can set a reminder, bot DMs them when time is up, or sends to a channel)
 
 **Music:**
 - spotify, soundcloud, & youtube links
@@ -73,7 +76,11 @@
 
 **Longshots (unfeasable/difficult things, but could be cool down the line):**
 - currency system? idk if people would use that (might be fun with blackjack, robbing, etc.)
+- listens to the users for voice commands 
+  - like "play music", "stop music", "skip song", etc.
+  - or just server mute anyone who says "League of Legends"
 - a video bot, for streaming videos (from file upload?, youtube, etc.)
+  - if we have a `/lyrics` command we could combine with the music bot to do karaoke
 - integrations with other bots (like wise old man, etc.)
 - integrations with other services (like templeosrs or runeprofile)
 - Ai interactions (like chatgpt, dalle, etc.)
