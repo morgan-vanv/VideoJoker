@@ -10,6 +10,7 @@ Cool Examples & Resources:
 	discord.py Examples: https://github.com/Rapptz/discord.py/tree/master/examples
 	Python Music Bot: https://github.com/VenusMods/VenusBot
     List of a bunch of cool APIs: https://github.com/public-apis/public-apis
+    discord.py documentation: https://discordpy.readthedocs.io/en/stable/ext/commands/
 
 
 Name Ideas:
