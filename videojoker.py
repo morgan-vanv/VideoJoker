@@ -1,9 +1,14 @@
-import discord
+""" This is the main file for the VideoJoker Discord bot. """
+
+# standard imports
 import sys
 import os
 import asyncio
 import logging
 from pathlib import Path
+
+# third party imports
+import discord
 from discord import app_commands
 from discord.ext import commands
 from dotenv import load_dotenv
