@@ -42,6 +42,28 @@ class Games(Cog, name="Games"):
         logging.info("%s asked the 8 ball: '%s' and got: '%s'", ctx.user.name, question, answer)
         await ctx.response.send_message(f"{ctx.user.name} asked: '{question}'\n🎱 Magic 8 Ball says: **{answer}**")
 
+    @commands.command(name='rockpaperscissors', description='Play rock-paper-scissors against the bot')
+    async def rockpaperscissors(self, ctx, choice: str):
+        """Play rock-paper-scissors against the bot"""
+        choices = ['rock', 'paper', 'scissors']
+        if choice.lower() not in choices:
+            await ctx.response.send_message(f"{ctx.user.name}, please choose rock, paper, or scissors.")
+            return
+
+        bot_choice = random.choice(choices)
+        result = ""
+        if choice == bot_choice:
+            result = "It's a tie!"
+        elif (choice == 'rock' and bot_choice == 'scissors') or \
+             (choice == 'paper' and bot_choice == 'rock') or \
+             (choice == 'scissors' and bot_choice == 'paper'):
+            result = "You win!"
+        else:
+            result = "I win!"
+
+        logging.info("%s played %s against bot's %s: %s", ctx.user.name, choice, bot_choice, result)
+        await ctx.response.send_message(f"{ctx.user.name} chose **{choice}**. I chose **{bot_choice}**. {result}")
+
 
 async def setup(bot):
     """setup function required for loading the cog"""

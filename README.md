@@ -32,3 +32,21 @@ I don't even know why I spent so long on this README lol
 
 ## Features
 
+### Main Bot Commands
+- **/listcommands** (*Lists all available commands in the bot along with their descriptions.*)
+- **/ping** (*Checks the bot's latency and responsiveness.*)
+- **/sync** (*Syncs the bot's slash commands with Discord.*)
+
+### Utility Cog Commands
+- **/userinfo [user]** (*Displays information about a user, including their nickname, ID, and the date they joined Discord.*)
+- **/serverinfo** (*Displays information about the server, including its name, ID, member count, and creation date.*)
+
+### Fun Cog Commands
+- **/say [message]** (*The bot repeats the given message.*)
+- **/roast [user]** (*Roasts a user with a random humorous insult.*)
+
+### Games Cog Commands
+- **/coinflip** (*Flips a virtual coin, returning either "Heads" or "Tails."*)
+- **/roll [sides]** (*Rolls a virtual die with the specified number of sides (default is 6).*)
+- **/8ball [question]** (*Answers a yes/no question with a random response, mimicking a Magic 8-Ball.*)
+- **/rockpaperscissors [choice]** (*Plays a game of Rock-Paper-Scissors against the bot.*)
