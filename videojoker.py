@@ -9,7 +9,6 @@ from pathlib import Path
 
 # third party imports
 import discord
-from discord import app_commands
 from discord.ext import commands
 from dotenv import load_dotenv
 
@@ -20,35 +19,39 @@ from cogs.utility import Utility
 
 
 class VideoJoker(commands.Bot):
+    """ The main bot class for VideoJoker, a Discord bot with various commands and functionalities. """
     def __init__(self):
+        """ Initializes the VideoJoker bot with necessary intents and loads environment variables. """
         intents = discord.Intents.all()
         intents.message_content = True
         super().__init__(intents=intents, command_prefix="/")
 
-        # Loading environment variables
         load_dotenv()
         self.token = os.getenv('DISCORD_TOKEN')
 
     async def setup_hook(self):
-        # Loads cogs
+        """Called when the bot is setting up (load cogs, sync commands, etc.)"""
         await bot.add_cog(Games(bot))
         await bot.add_cog(Fun(bot))
         await bot.add_cog(Utility(bot))
 
-        # Sync commands on startup, after cogs are loaded
         await self.tree.sync()
         logging.info("Commands synced")
 
     def restart_bot(self):
+        """Restarts the bot by re-executing the current script."""
         os.execv(sys.executable, ['python'] + sys.argv)
 
     async def on_ready(self):
+        """Called when the bot is ready to start working"""
         logging.info("%s is now running and ready to serve!", self.user)
 
     async def on_connect(self):
+        """Called when the bot connects to Discord"""
         logging.info("%s has connected.", self.user)
 
     async def start_bot(self):
+        """Starts the bot with the provided token."""
         await self.start(self.token)
 
 
@@ -58,12 +61,14 @@ bot = VideoJoker()
 # Beginning of the Root level commands exposed to users, the rest are imported from cogs above
 @bot.tree.command()
 async def ping(ctx):
+    """A simple command to check if the bot is responsive."""
     logging.info('/ping command invoked by %s', ctx.user.name)
     await ctx.response.send_message('pong')
 
 
 @bot.tree.command(name='sync', description='Admin only - Syncs the command tree.')
 async def sync(interaction: discord.Interaction):
+    """Syncs the command tree with Discord. This is an admin-only command."""
     # note: adding new commands requires a client restart to show the new commands
     logging.info("%s has activated /sync", interaction.user.name)
     await bot.tree.sync()
@@ -73,6 +78,7 @@ async def sync(interaction: discord.Interaction):
 
 @bot.tree.command(name='help', description='Shows list of all commands')
 async def help(ctx):
+    """Displays a list of all available commands in the bot."""
     logging.info('/help command invoked by %s', ctx.user.name)
     embed = discord.Embed(
         title="Help - List of Commands",

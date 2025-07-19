@@ -1,13 +1,11 @@
 import logging
 import random
-import asyncio
-import discord
 from discord.app_commands import commands
 from discord.ext.commands import Cog
 
 
-# This cog provides simple games.
 class Games(Cog, name="Games"):
+    """A cog that provides simple game commands"""
     def __init__(self, bot):
         logging.info("Games cog initialized.")
         self.bot = bot
@@ -46,5 +44,6 @@ class Games(Cog, name="Games"):
 
 
 async def setup(bot):
+    """setup function required for loading the cog"""
     await bot.add_cog(Games(bot))
     logging.info("Games cog loaded.")

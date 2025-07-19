@@ -4,8 +4,8 @@ from discord.ext.commands import Cog
 from discord.app_commands import commands
 
 
-# This cog provides utility commands.
 class Utility(Cog, name="Utility"):
+    """A cog that provides utility commands"""
     def __init__(self, bot):
         logging.info("Utility cog initialized.")
         self.bot = bot
@@ -38,5 +38,6 @@ class Utility(Cog, name="Utility"):
         await ctx.response.send_message(embed=embed)
 
 async def setup(bot):
+    """setup function required for loading the cog"""
     await bot.add_cog(Utility(bot))
     logging.info("Utility cog loaded.")

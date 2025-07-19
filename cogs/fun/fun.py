@@ -5,8 +5,8 @@ from discord.app_commands import commands
 from discord.ext.commands import Cog
 
 
-# This cog provides fun commands.
 class Fun(Cog, name="Fun"):
+    """A cog that provides fun commands"""
     def __init__(self, bot):
         logging.info("Fun cog initialized.")
         self.bot = bot
@@ -32,5 +32,6 @@ class Fun(Cog, name="Fun"):
         await ctx.response.send_message(message)
 
 async def setup(bot):
+    """setup function required for loading the cog"""
     await bot.add_cog(Fun(bot))
     logging.info("Fun cog loaded.")
