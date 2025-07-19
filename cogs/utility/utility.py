@@ -13,10 +13,11 @@ class Utility(Cog, name="Utility"):
     @commands.command(name='userinfo', description='Displays information about a user')
     async def userinfo(self, ctx, user: discord.User):
         """Displays information about a user"""
-        # TODO: consider deprecating this command, or making it more useful
         embed = discord.Embed(
             title=f"User Info: {user.name}",
-            description=f"ID: {user.id}\nJoined Discord: {user.created_at.strftime('%Y-%m-%d')}",
+            description=f"Nickname: {user.display_name}\n"
+                        f"ID: {user.id}\n"
+                        f"Joined Discord: {user.created_at.strftime('%Y-%m-%d')}",
             color=discord.Colour.blue()
         )
         logging.info("User info requested for %s by %s", user.name, ctx.user.name)
@@ -25,10 +26,9 @@ class Utility(Cog, name="Utility"):
     @commands.command(name='serverinfo', description='Displays information about the server')
     async def serverinfo(self, ctx):
         """Displays information about the server"""
-        # TODO: change ID to name. fix member count as it is currently None.
         guild = ctx.guild
         embed = discord.Embed(
-            title=f"Server Info: {guild.name}",
+            title=f"Server Info: {guild.name}", # name is still not working, fix later
             description=f"ID: {guild.id}\n"
                         f"Member Count: {guild.member_count}\n"
                         f"Created: {guild.created_at.strftime('%Y-%m-%d')}",

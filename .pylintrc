@@ -10,7 +10,7 @@ disable=
 
 [MESSAGES CONTROL]
 # Disable specific message categories
-disable=
+disable=missing-module-docstring
 
 [FORMAT]
 # Maximum number of characters on a single line

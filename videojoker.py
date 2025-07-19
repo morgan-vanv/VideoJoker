@@ -76,12 +76,12 @@ async def sync(interaction: discord.Interaction):
     logging.info('Command tree synced.')
 
 
-@bot.tree.command(name='help', description='Shows list of all commands')
-async def help(ctx):
+@bot.tree.command(name='listcommands', description='Shows list of all commands')
+async def listcommands(ctx):
     """Displays a list of all available commands in the bot."""
-    logging.info('/help command invoked by %s', ctx.user.name)
+    logging.info('/listcommands command invoked by %s', ctx.user.name)
     embed = discord.Embed(
-        title="Help - List of Commands",
+        title="List of Commands",
         description="Here are all the available commands:",
         color=discord.Colour.dark_grey()
     )
@@ -89,7 +89,7 @@ async def help(ctx):
     # Root-level commands
     embed.add_field(name="/ping", value="Returns pong", inline=False)
     embed.add_field(name="/sync", value="Admin only - Syncs the command tree.", inline=False)
-    embed.add_field(name="/help", value="Shows list of all commands", inline=False)
+    embed.add_field(name="/listcommands", value="Shows list of all commands", inline=False)
 
     # Games cog commands
     embed.add_field(name="/coinflip", value="Flips a coin.", inline=False)

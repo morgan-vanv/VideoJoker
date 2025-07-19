@@ -14,7 +14,7 @@ class Fun(Cog, name="Fun"):
     @commands.command(name='roast', description='Roast a user')
     async def roast(self, ctx, user: discord.User):
         """Roasts a user"""
-        # TODO: Update these with better roasts, maybe use an API for that?
+        # Update these with better roasts, maybe use an API for that?
         roasts = [
             "You're as bright as a black hole, and twice as dense.",
             "You bring everyone so much joy... when you leave the room.",
