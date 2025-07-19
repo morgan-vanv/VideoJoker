@@ -20,4 +20,4 @@ jobs:
         pip install pylint discord.py python-dotenv
     - name: Analysing the code with pylint
       run: |
-        pylint --disable=convention $(git ls-files '*.py')
+        find . -name "*.py" -print0 | xargs -0 pylint --rcfile=.pylintrc --disable=convention

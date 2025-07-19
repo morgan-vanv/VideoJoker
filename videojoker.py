@@ -83,7 +83,7 @@ async def help(ctx):
     embed = discord.Embed(
         title="Help - List of Commands",
         description="Here are all the available commands:",
-        # color=discord.Colour.blue() # TODO: figure out why this isn't working
+        color=discord.Colour.dark_grey()
     )
 
     # Root-level commands

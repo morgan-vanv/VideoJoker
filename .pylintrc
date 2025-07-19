@@ -1,0 +1,25 @@
+[MASTER]
+# Specify the Python version used in the project
+py-version=3.11
+
+# List of directories or files to ignore
+ignore=venv, .github
+
+# Enable or disable specific Pylint checks
+disable=
+
+[MESSAGES CONTROL]
+# Disable specific message categories
+disable=
+
+[FORMAT]
+# Maximum number of characters on a single line
+max-line-length=120
+
+[REPORTS]
+# Disable the report output
+reports=yes
+
+[LOGGING]
+# Specify logging module names
+logging-modules=logging
