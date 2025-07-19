@@ -27,8 +27,8 @@ class VideoJoker(commands.Bot):
     async def setup_hook(self):
         # Loads cogs
         await bot.add_cog(Games(bot))
-        await bot.add_cog(Fun(bot)) # verified as working
-        await bot.add_cog(Utility(bot)) # TODO: the commands in this cog are not syncing/working yet
+        await bot.add_cog(Fun(bot))
+        await bot.add_cog(Utility(bot))
 
         # Sync commands on startup, after cogs are loaded
         await self.tree.sync()
