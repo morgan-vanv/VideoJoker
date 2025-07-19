@@ -5,34 +5,36 @@ import asyncio
 import logging
 from pathlib import Path
 from discord import app_commands
+from discord.ext import commands
 from dotenv import load_dotenv
 
+# Importing Cogs
+from cogs.games import Games
 
-class VideoJoker(discord.Client):
+
+class VideoJoker(commands.Bot):
     def __init__(self):
-        intents = discord.Intents.default()
+        intents = discord.Intents.all()
         intents.message_content = True
-        super().__init__(intents=intents)
-        self.tree = app_commands.CommandTree(self)
+        super().__init__(intents=intents, command_prefix="/")
 
         # Loading environment variables
         load_dotenv()
         self.token = os.getenv('DISCORD_TOKEN')
 
     async def setup_hook(self):
+        # Loads cogs
+        await bot.add_cog(Games(bot))
+
+        # Sync commands on startup, after cogs are loaded
         await self.tree.sync()
+        logging.info("Commands synced")
+
+    def restart_bot(self):
+        os.execv(sys.executable, ['python'] + sys.argv)
 
     async def on_ready(self):
-        print(f'Logged in as {self.user} (ID: {self.user.id})')
-
-    # this might be causing issue when restarting the plugin consistently. disabling for now
-    # def restart_bot(self):
-    #     os.execv(sys.executable, ['python'] + sys.argv)
-
-    async def on_ready(self):
-        logging.info(f"{self.user} is now running.")
-        await bot.tree.sync()
-        logging.info("commands synced")
+        logging.info(f"{self.user} is now running and ready to serve!")
 
     async def on_connect(self):
         logging.info(f"{self.user} has connected.")
@@ -43,13 +45,14 @@ class VideoJoker(discord.Client):
 
 bot = VideoJoker()
 
-# Commands exposed to users
+
+# Beginning of the Root level commands exposed to users, the rest are imported from cogs above
 @bot.tree.command()
 async def ping(ctx):
     logging.info('/ping command invoked')
     await ctx.response.send_message('pong')
 
-# Admin only command to sync the command tree
+
 @bot.tree.command(name='sync', description='Admin only - Syncs the command tree.')
 async def sync(interaction: discord.Interaction):
     # note: adding new commands requires a client restart to show the new commands
@@ -58,7 +61,7 @@ async def sync(interaction: discord.Interaction):
     await interaction.response.send_message('Command tree synced.', delete_after=5)
     logging.info('Command tree synced.')
 
-# List of all commands
+
 @bot.tree.command(name='help', description='Shows list of all commands')
 async def help(ctx):
     logging.info('/help command invoked')
