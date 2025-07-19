@@ -2,7 +2,8 @@
 
 ## Supported Versions
 
-The latest MASTER branch commit should be what is used
+The latest main branch commit should be what is used for production
+Use the latest dev branch to add features and do pull requests
 
 | Version | Supported          |
 | ------- | ------------------ |
