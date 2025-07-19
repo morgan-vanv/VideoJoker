@@ -30,7 +30,8 @@ I don't even know why I spent so long on this README lol
 
 ----
 
-## Features
+## Implemented Features
+_See `DESIGNDOCUMENT.md` for information on what might come in the future_
 
 ### Main Bot Commands
 - **/listcommands** (*Lists all available commands in the bot along with their descriptions.*)
