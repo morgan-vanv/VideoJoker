@@ -19,7 +19,7 @@ class Utility(Cog, name="Utility"):
             description=f"ID: {user.id}\nJoined Discord: {user.created_at.strftime('%Y-%m-%d')}",
             color=discord.Colour.blue()
         )
-        logging.info(f"User info requested for {user.name} by {ctx.user.name}")
+        logging.info("User info requested for %s by %s", user.name, ctx.user.name)
         await ctx.response.send_message(embed=embed)
 
     @commands.command(name='serverinfo', description='Displays information about the server')
@@ -34,7 +34,7 @@ class Utility(Cog, name="Utility"):
                         f"Created: {guild.created_at.strftime('%Y-%m-%d')}",
             color=discord.Colour.green()
         )
-        logging.info(f"Server info requested by {ctx.user.name}")
+        logging.info("Server info requested by %s", ctx.user.name)
         await ctx.response.send_message(embed=embed)
 
 async def setup(bot):

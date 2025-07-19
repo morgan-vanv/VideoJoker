@@ -19,14 +19,14 @@ class Games(Cog, name="Games"):
             result = 'Heads!'
         else:
             result = 'Tails!'
-        logging.info(f"{ctx.user.name} flipped a coin and got: {result}")
+        logging.info("%s flipped a coin and got: %s", ctx.user.name, result)
         await ctx.response.send_message(f"{ctx.user.name} flipped a coin and got: **{result}**")
 
     @commands.command(name='diceroll', description='Rolls an N sided die (defaults to 6)')
     async def diceroll(self, ctx, sides: int = 6):
         """Rolls a die, if no argument is given, defaults to 6 sides."""
         result = random.Random().randint(1, sides)
-        logging.info(f"{ctx.user.name} rolled a {result} on a {sides}-sided die.")
+        logging.info("%s rolled a %s on a %s-sided die.", ctx.user.name, result, sides)
         await ctx.response.send_message(f"{ctx.user.name} rolled a **{result}** on a {sides}-sided die.")
 
     @commands.command(name='8ball', description='Ask the magic 8 ball a question')
@@ -41,7 +41,7 @@ class Games(Cog, name="Games"):
             "Very doubtful."
         ]
         answer = random.choice(responses)
-        logging.info(f"{ctx.user.name} asked the 8 ball: '{question}' and got: '{answer}'")
+        logging.info("%s asked the 8 ball: '%s' and got: '%s'", ctx.user.name, question, answer)
         await ctx.response.send_message(f"{ctx.user.name} asked: '{question}'\n🎱 Magic 8 Ball says: **{answer}**")
 
 

@@ -22,13 +22,13 @@ class Fun(Cog, name="Fun"):
             "You're like a cloud. When you disappear, it's a beautiful day."
         ]
         roast = random.choice(roasts)
-        logging.info(f"{ctx.user.name} roasted {user.name}: '{roast}'")
+        logging.info("%s roasted %s: '%s'", ctx.user.name, user.name, roast)
         await ctx.response.send_message(f"{ctx.user.name} roasted {user.name}: **{roast}**")
 
     @commands.command(name='say', description='Repeat after me')
     async def say(self, ctx, *, message: str):
         """Repeats the given message"""
-        logging.info(f"{ctx.user.name} asked the bot to say: '{message}'")
+        logging.info("%s asked the bot to say: '%s'", ctx.user.name, message)
         await ctx.response.send_message(message)
 
 async def setup(bot):

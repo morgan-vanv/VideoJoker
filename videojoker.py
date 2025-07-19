@@ -43,10 +43,10 @@ class VideoJoker(commands.Bot):
         os.execv(sys.executable, ['python'] + sys.argv)
 
     async def on_ready(self):
-        logging.info(f"{self.user} is now running and ready to serve!")
+        logging.info("%s is now running and ready to serve!", self.user)
 
     async def on_connect(self):
-        logging.info(f"{self.user} has connected.")
+        logging.info("%s has connected.", self.user)
 
     async def start_bot(self):
         await self.start(self.token)
@@ -58,14 +58,14 @@ bot = VideoJoker()
 # Beginning of the Root level commands exposed to users, the rest are imported from cogs above
 @bot.tree.command()
 async def ping(ctx):
-    logging.info('/ping command invoked')
+    logging.info('/ping command invoked by %s', ctx.user.name)
     await ctx.response.send_message('pong')
 
 
 @bot.tree.command(name='sync', description='Admin only - Syncs the command tree.')
 async def sync(interaction: discord.Interaction):
     # note: adding new commands requires a client restart to show the new commands
-    logging.info(f"{interaction.user.name} has activated /sync")
+    logging.info("%s has activated /sync", interaction.user.name)
     await bot.tree.sync()
     await interaction.response.send_message('Command tree synced.', delete_after=5)
     logging.info('Command tree synced.')
@@ -73,7 +73,7 @@ async def sync(interaction: discord.Interaction):
 
 @bot.tree.command(name='help', description='Shows list of all commands')
 async def help(ctx):
-    logging.info('/help command invoked')
+    logging.info('/help command invoked by %s', ctx.user.name)
     embed = discord.Embed(
         title="Help - List of Commands",
         description="Here are all the available commands:",
