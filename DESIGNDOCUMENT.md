@@ -72,9 +72,10 @@
 
 
 **Longshots (unfeasable/difficult things, but could be cool down the line):**
-- a music bot, but for streaming videos (from file upload?, youtube, etc.)
-- integrations with other bots (like wise old man, etc.)
 - currency system? idk if people would use that (might be fun with blackjack, robbing, etc.)
+- a video bot, for streaming videos (from file upload?, youtube, etc.)
+- integrations with other bots (like wise old man, etc.)
+- integrations with other services (like templeosrs or runeprofile)
 - Ai interactions (like chatgpt, dalle, etc.)
 
 **stupid/funny/junk ideas**
