@@ -1,5 +1,6 @@
 pylint==3.3.7
 discord.py @ git+https://github.com/DA-344/d.py@398bdbecd97eb2e05f91ddbf121ff0d200c039b5
+aiofiles==24.1.0
 dotenv==0.9.9
 PyNaCl==1.5.0
 python-dotenv==1.1.0

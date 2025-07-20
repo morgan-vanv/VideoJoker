@@ -16,6 +16,7 @@ from dotenv import load_dotenv
 from cogs.games import Games
 from cogs.fun import Fun
 from cogs.utility import Utility
+from cogs.permissions import Permissions
 
 
 class VideoJoker(commands.Bot):
@@ -34,6 +35,7 @@ class VideoJoker(commands.Bot):
         await bot.add_cog(Games(bot))
         await bot.add_cog(Fun(bot))
         await bot.add_cog(Utility(bot))
+        await bot.add_cog(Permissions(bot))
 
         await self.tree.sync()
         logging.info("Commands synced")
