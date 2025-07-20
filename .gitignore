@@ -1,6 +1,11 @@
 .idea
 .env
-bot_log.log
+
+# Ignore contents of data directories but not the directories themselves
+data/**/*
+!data/
+!data/logs/
+!data/permissions/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
