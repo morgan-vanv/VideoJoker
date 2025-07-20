@@ -8,14 +8,15 @@ from dotenv import load_dotenv
 
 class VIPUsers:
     def __init__(self):
-        load_dotenv(dotenv_path=Path(__file__).resolve().parent.parent / ".env")
         self.owner_id = int(os.getenv("OWNER", "0"))
-        # Get root directory of script
-        root_dir = Path(__file__).resolve().parent
-        self.VIP_USERS_FILE = root_dir / "vip_users_list.json"
-        # Ensure file exists
+        root_dir = Path(__file__).resolve().parent.parent.parent
+        self.data_dir = root_dir / "data" / "permissions"
+        self.VIP_USERS_FILE = self.data_dir / "vip_users_list.json"
+
+        # Ensure the data directory and file exist
+        self.data_dir.mkdir(exist_ok=True)
         if not self.VIP_USERS_FILE.exists():
-            self.VIP_USERS_FILE.write_text(json.dumps([]))  # start with empty list
+            self.BANNED_USERS_FILE.write_text(json.dumps([]))  # start with empty list
 
     # Load user IDs
     async def loadVIPUserIDs(self):

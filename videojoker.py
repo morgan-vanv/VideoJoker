@@ -115,7 +115,7 @@ if __name__ == "__main__":
         level=logging.INFO,  # Set logging level
         format='%(asctime)s - %(levelname)s - %(message)s',
         handlers=[
-            logging.FileHandler(f"{Path(__file__).resolve().parent / 'bot_log.log'}", mode='w'),
+            logging.FileHandler(f"{Path(__file__).resolve().parent / 'data' / 'logs' / 'bot.log'}", mode='w'),
             logging.StreamHandler()
         ]
     )
