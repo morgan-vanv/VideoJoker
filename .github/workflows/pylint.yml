@@ -5,9 +5,13 @@ permissions:
 
 on:
   push:
-    branches: [ "main", "dev" ]
+    branches:
+      - dev
+      - main
   pull_request:
-    branches: [ "main", "dev" ]
+    branches:
+      - dev
+      - main
 
 jobs:
   build:
