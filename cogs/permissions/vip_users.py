@@ -3,10 +3,11 @@ import os
 from pathlib import Path
 import logging
 import aiofiles
-import asyncio
-from dotenv import load_dotenv
+
 
 class VIPUsers:
+    """Manages VIP user IDs stored in a JSON file. Provides methods to load, save, add, and remove VIP user IDs."""
+
     def __init__(self):
         self.owner_id = int(os.getenv("OWNER", "0"))
         root_dir = Path(__file__).resolve().parent.parent.parent
@@ -16,10 +17,13 @@ class VIPUsers:
         # Ensure the data directory and file exist
         self.data_dir.mkdir(exist_ok=True)
         if not self.VIP_USERS_FILE.exists():
-            self.BANNED_USERS_FILE.write_text(json.dumps([]))  # start with empty list
+            logging.info("VIP users file does not exist, creating a new one at %s", self.VIP_USERS_FILE.name)
+            self.VIP_USERS_FILE.write_text(json.dumps([]))  # start with empty list
 
     # Load user IDs
     async def loadVIPUserIDs(self):
+        """Loads VIP user IDs from the JSON file"""
+
         async with aiofiles.open(self.VIP_USERS_FILE, "r") as f:
             content = await f.read()
             user_ids = json.loads(content)
@@ -30,21 +34,34 @@ class VIPUsers:
 
         return user_ids
 
-    # Save user IDs
     async def saveVIPUserIDs(self, user_ids):
+        """Saves VIP user IDs to the JSON file"""
+
         async with aiofiles.open(self.VIP_USERS_FILE, "w") as f:
             await f.write(json.dumps(user_ids, indent=2))
 
-    # Add user ID if not already present
-    async def addVIPUserID(self, user_id: int):
-        user_ids = await self.loadVIPUserIDs()
-        if user_id not in user_ids:
-            user_ids.append(user_id)
-            await self.saveVIPUserIDs(user_ids)
+    async def addVIPUserID(self, user_id: int, ctx):
+        """Adds a VIP user ID if not already present"""
 
-    # Remove user ID if present
-    async def removeVIPUserID(self, user_id: int):
-        user_ids = await self.loadVIPUserIDs()
-        if user_id in user_ids:
-            user_ids.remove(user_id)
-            await self.saveVIPUserIDs(user_ids)
+        vip_user_ids = await self.loadVIPUserIDs()
+        if user_id not in vip_user_ids:
+            vip_user_ids.append(user_id)
+            await self.saveVIPUserIDs(vip_user_ids)
+            await ctx.response.send_message(f"User ID {user_id} has been granted VIP status.")
+            logging.info("Added VIP user ID: %d", user_id)
+        else:
+            await ctx.response.send_message(f"User ID {user_id} is already a VIP user.")
+            logging.info("User %d is already a VIP user", user_id)
+
+    async def removeVIPUserID(self, user_id: int, ctx):
+        """Removes a VIP user ID if present"""
+
+        vip_user_ids = await self.loadVIPUserIDs()
+        if user_id in vip_user_ids:
+            vip_user_ids.remove(user_id)
+            await self.saveVIPUserIDs(vip_user_ids)
+            await ctx.response.send_message(f"User ID {user_id} has been removed from VIP status.")
+            logging.info("Removed VIP user ID: %d", user_id)
+        else:
+            await ctx.response.send_message(f"User ID {user_id} is not a VIP user.")
+            logging.info("User ID %d not found in VIP users list", user_id)
