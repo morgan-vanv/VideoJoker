@@ -19,14 +19,14 @@ class Permissions(Cog, name="Permissions"):
         self.bot = bot
 
     @commands.command(name='checkpermissions', description='Checks the permissions of a user')
-    async def checkpermissions(self, ctx, user: discord.User):
+    async def check_permissions(self, ctx, user: discord.User):
         """Checks the permissions of a user"""
         logging.info("Permissions check requested for %s by %s", user.name, ctx.user.name)
 
         banned_users = BannedUsers()
         vip_users = VIPUsers()
-        banned_list = await banned_users.loadBannedUserIDs()
-        vip_list = await vip_users.loadVIPUserIDs()
+        banned_list = await banned_users.load_banned_ids_from_file()
+        vip_list = await vip_users.load_vip_ids_from_file()
 
         if user.id in banned_list:
             status = "BANNED"
@@ -47,12 +47,12 @@ class Permissions(Cog, name="Permissions"):
         await ctx.response.send_message(embed=embed)
 
     @commands.command(name='listbannedusers', description='Lists all banned users')
-    async def listbannedusers(self, ctx):
+    async def list_banned_users(self, ctx):
         """Lists all BANNED users"""
         logging.info("BANNED users list requested by %s", ctx.user.name)
 
         banned_users = BannedUsers()
-        content = await banned_users.loadBannedUserIDs()
+        content = await banned_users.load_banned_ids_from_file()
 
         embed = discord.Embed(
             title="BANNED Users",
@@ -67,15 +67,15 @@ class Permissions(Cog, name="Permissions"):
         logging.info("Grant BANNED Status requested for %s by %s", user.name, ctx.user.name)
 
         banned_users = BannedUsers()
-        await banned_users.addBannedUserID(user.id, ctx)
+        await banned_users.add_banned_user_id(user.id, ctx)
 
     @commands.command(name='listvipusers', description='Lists all VIP users')
-    async def listvipusers(self, ctx):
+    async def list_vip_users(self, ctx):
         """Lists all VIP users"""
         logging.info("VIP users list requested by %s", ctx.user.name)
 
         vip_users = VIPUsers()
-        content = await vip_users.loadVIPUserIDs()
+        content = await vip_users.load_vip_ids_from_file()
 
         embed = discord.Embed(
             title="VIP Users",
@@ -90,7 +90,7 @@ class Permissions(Cog, name="Permissions"):
         logging.info("Grant VIP Status requested for %s by %s", user.name, ctx.user.name)
 
         vip_users = VIPUsers()
-        await vip_users.addVIPUserID(user.id, ctx)
+        await vip_users.add_vip_user_id(user.id, ctx)
 
 
 async def setup(bot):

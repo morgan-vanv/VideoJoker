@@ -20,8 +20,7 @@ class VIPUsers:
             logging.info("VIP users file does not exist, creating a new one at %s", self.VIP_USERS_FILE.name)
             self.VIP_USERS_FILE.write_text(json.dumps([]))  # start with empty list
 
-    # Load user IDs
-    async def loadVIPUserIDs(self):
+    async def load_vip_ids_from_file(self):
         """Loads VIP user IDs from the JSON file"""
 
         async with aiofiles.open(self.VIP_USERS_FILE, "r") as f:
@@ -34,32 +33,32 @@ class VIPUsers:
 
         return user_ids
 
-    async def saveVIPUserIDs(self, user_ids):
+    async def save_vip_ids_to_file(self, user_ids):
         """Saves VIP user IDs to the JSON file"""
 
         async with aiofiles.open(self.VIP_USERS_FILE, "w") as f:
             await f.write(json.dumps(user_ids, indent=2))
 
-    async def addVIPUserID(self, user_id: int, ctx):
+    async def add_vip_user_id(self, user_id: int, ctx):
         """Adds a VIP user ID if not already present"""
 
-        vip_user_ids = await self.loadVIPUserIDs()
+        vip_user_ids = await self.load_vip_ids_from_file()
         if user_id not in vip_user_ids:
             vip_user_ids.append(user_id)
-            await self.saveVIPUserIDs(vip_user_ids)
+            await self.save_vip_ids_to_file(vip_user_ids)
             await ctx.response.send_message(f"User ID {user_id} has been granted VIP status.")
             logging.info("Added VIP user ID: %d", user_id)
         else:
             await ctx.response.send_message(f"User ID {user_id} is already a VIP user.")
             logging.info("User %d is already a VIP user", user_id)
 
-    async def removeVIPUserID(self, user_id: int, ctx):
+    async def remove_vip_user_id(self, user_id: int, ctx):
         """Removes a VIP user ID if present"""
 
-        vip_user_ids = await self.loadVIPUserIDs()
+        vip_user_ids = await self.load_vip_ids_from_file()
         if user_id in vip_user_ids:
             vip_user_ids.remove(user_id)
-            await self.saveVIPUserIDs(vip_user_ids)
+            await self.save_vip_ids_to_file(vip_user_ids)
             await ctx.response.send_message(f"User ID {user_id} has been removed from VIP status.")
             logging.info("Removed VIP user ID: %d", user_id)
         else:
