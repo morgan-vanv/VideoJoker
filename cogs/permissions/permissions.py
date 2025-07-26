@@ -24,23 +24,23 @@ class Permissions(Cog, name="Permissions"):
             permission_manager = PermissionManager()
             if await permission_manager.is_user_banned(interaction.user.id):
                 raise ExecutingUserBannedError(interaction.user)
-            else:
-                if await permission_manager.is_user_banned(user.id):
-                    status = "BANNED"
-                    color = discord.Colour.red()
-                elif await permission_manager.is_user_vip(user.id):
-                    status = "VIP"
-                    color = discord.Colour.green()
-                else:
-                    status = "No special permissions"
-                    color = discord.Colour.orange()
 
-                embed = discord.Embed(
-                    title=f"Permissions for: {user.name}",
-                    description=f"Status: {status}",
-                    color=color
-                )
-                await interaction.followup.send(embed=embed)
+            if await permission_manager.is_user_banned(user.id):
+                status = "BANNED"
+                color = discord.Colour.red()
+            elif await permission_manager.is_user_vip(user.id):
+                status = "VIP"
+                color = discord.Colour.green()
+            else:
+                status = "No special permissions"
+                color = discord.Colour.orange()
+
+            embed = discord.Embed(
+                title=f"Permissions for: {user.name}",
+                description=f"Status: {status}",
+                color=color
+            )
+            await interaction.followup.send(embed=embed)
 
         except ExecutingUserBannedError as e:
             logging.warning("BANNED User %s attempted to check permissions.", interaction.user.name)
@@ -60,14 +60,14 @@ class Permissions(Cog, name="Permissions"):
             permission_manager = PermissionManager()
             if await permission_manager.is_user_banned(interaction.user.id):
                 raise ExecutingUserBannedError(interaction.user)
-            else:
-                content = await permission_manager.read_banned_ids_from_file()
-                embed = discord.Embed(
-                    title="BANNED Users",
-                    description=content,
-                    color=discord.Colour.red()
-                )
-                await interaction.followup.send(embed=embed)
+
+            content = await permission_manager.read_banned_ids_from_file()
+            embed = discord.Embed(
+                title="BANNED Users",
+                description=content,
+                color=discord.Colour.red()
+            )
+            await interaction.followup.send(embed=embed)
 
         except ExecutingUserBannedError as e:
             logging.warning("BANNED User %s attempted to list BANNED users.", interaction.user.name)
@@ -86,10 +86,10 @@ class Permissions(Cog, name="Permissions"):
             permission_manager = PermissionManager()
             if await permission_manager.is_user_banned(interaction.user.id):
                 raise ExecutingUserBannedError(interaction.user)
-            elif not await permission_manager.is_user_vip(interaction.user.id):
+            if not await permission_manager.is_user_vip(interaction.user.id):
                 raise ExecutingUserNotVIPError(interaction.user)
-            else:
-                await permission_manager.add_banned_user_id(user, interaction)
+
+            await permission_manager.add_banned_user_id(user, interaction)
 
         except ExecutingUserBannedError as e:
             logging.warning("BANNED User %s attempted to grant BANNED Status.", interaction.user.name)
@@ -111,14 +111,14 @@ class Permissions(Cog, name="Permissions"):
             permission_manager = PermissionManager()
             if await permission_manager.is_user_banned(interaction.user.id):
                 raise ExecutingUserBannedError(interaction.user)
-            else:
-                content = await permission_manager.read_vip_ids_from_file()
-                embed = discord.Embed(
-                    title="VIP Users",
-                    description=content,
-                    color=discord.Colour.green()
-                )
-                await interaction.followup.send(embed=embed)
+
+            content = await permission_manager.read_vip_ids_from_file()
+            embed = discord.Embed(
+                title="VIP Users",
+                description=content,
+                color=discord.Colour.green()
+            )
+            await interaction.followup.send(embed=embed)
 
         except ExecutingUserBannedError as e:
             logging.warning("BANNED User %s attempted to list VIP users.", interaction.user.name)
@@ -137,10 +137,10 @@ class Permissions(Cog, name="Permissions"):
             permission_manager = PermissionManager()
             if await permission_manager.is_user_banned(interaction.user.id):
                 raise ExecutingUserBannedError(interaction.user)
-            elif not await permission_manager.is_user_vip(interaction.user.id):
+            if not await permission_manager.is_user_vip(interaction.user.id):
                 raise ExecutingUserNotVIPError(interaction.user)
-            else:
-                await permission_manager.add_vip_user_id(user, interaction)
+
+            await permission_manager.add_vip_user_id(user, interaction)
 
         except ExecutingUserBannedError as e:
             logging.warning("BANNED User %s attempted to grant VIP Status.", interaction.user.name)
@@ -163,13 +163,13 @@ class Permissions(Cog, name="Permissions"):
             permission_manager = PermissionManager()
             if await permission_manager.is_user_banned(interaction.user.id):
                 raise ExecutingUserBannedError(interaction.user)
-            elif not await permission_manager.is_user_vip(interaction.user.id):
+            if not await permission_manager.is_user_vip(interaction.user.id):
                 raise ExecutingUserNotVIPError(interaction.user)
-            else:
-                await permission_manager.remove_vip_user_id(user.id)
-                await permission_manager.remove_banned_user_id(user.id)
-                await interaction.followup.send(f"Permissions for user {user.name} have been reset.")
-                logging.info("Permissions reset for user: %s (ID: %d)", user.name, user.id)
+
+            await permission_manager.remove_vip_user_id(user.id)
+            await permission_manager.remove_banned_user_id(user.id)
+            await interaction.followup.send(f"Permissions for user {user.name} have been reset.")
+            logging.info("Permissions reset for user: %s (ID: %d)", user.name, user.id)
 
         except ExecutingUserBannedError as e:
             logging.warning("BANNED User %s attempted to reset permissions.", interaction.user.name)

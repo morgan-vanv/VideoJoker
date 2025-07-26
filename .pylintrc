@@ -10,7 +10,7 @@ disable=
 
 [MESSAGES CONTROL]
 # Disable specific message categories
-disable=missing-module-docstring,C
+disable=missing-module-docstring,broad-exception-caught,C
 
 [FORMAT]
 # Maximum number of characters on a single line
