@@ -9,7 +9,6 @@ from pathlib import Path
 
 # third party imports
 import discord
-from discord import app_commands
 from discord.ext import commands
 from dotenv import load_dotenv
 
@@ -40,6 +39,7 @@ class VideoJoker(commands.Bot):
         await self.add_cog(Utility(self))
         await self.add_cog(Permissions(self))
 
+        self.tree.interaction_check = self.global_interaction_check
         await self.tree.sync()
         logging.info("Commands synced")
 
@@ -59,12 +59,21 @@ class VideoJoker(commands.Bot):
         """Starts the bot with the provided token."""
         await self.start(self.token)
 
-    # async def on_interaction(self, interaction: discord.Interaction):
-    #     """Intercept interactions to enforce global checks."""
-    #     permission_manager = PermissionManager()
-    #     if await permission_manager.is_user_banned(interaction.user.id):
-    #         logging.warning("Banned user %s (ID: %s) attempted to use a command.", interaction.user.name,
-    #                         interaction.user.id)
+    async def global_interaction_check(self, interaction: discord.Interaction) -> bool:
+        """Global app command check to prevent banned users from using commands."""
+        permission_manager = PermissionManager()
+        if await permission_manager.is_user_banned(interaction.user.id):
+            logging.warning("Banned user %s (ID: %s) attempted to use a command.", interaction.user.name,
+                            interaction.user.id)
+            try:
+                await interaction.response.send_message(
+                    "🚫 You are banned from using this bot.",
+                    ephemeral=True
+                )
+            except discord.InteractionResponded:
+                pass
+            return False
+        return True
 
 
 bot = VideoJoker()
@@ -76,6 +85,7 @@ async def ping(ctx):
     """A simple command to check if the bot is responsive."""
     logging.info('/ping command invoked by %s', ctx.user.name)
     await ctx.response.send_message('pong')
+
 
 @bot.tree.command(name='listcommands', description='Shows list of all commands')
 async def listcommands(ctx):
