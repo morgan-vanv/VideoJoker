@@ -84,8 +84,8 @@ async def listcommands(ctx):
     # Permissions cog commands
     embed.add_field(name="/checkpermissions", value="Checks the permissions of a user.", inline=False)
     embed.add_field(name="/listbannedusers", value="Lists all banned users.", inline=False)
-    embed.add_field(name="/grantbanuser", value="Bans a user from using the bot.", inline=False)
     embed.add_field(name="/listvipusers", value="Lists all VIP users.", inline=False)
+    embed.add_field(name="/grantbanuser", value="Bans a user from using the bot.", inline=False)
     embed.add_field(name="/grantvipuser", value="Grants VIP status to a user.", inline=False)
     embed.add_field(name="/resetpermissions", value="Resets permissions for a user.", inline=False)
 

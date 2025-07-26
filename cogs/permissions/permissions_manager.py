@@ -8,7 +8,8 @@ import discord
 
 class PermissionManager:
     """
-    Manages user permissions, specifically BANNED and VIP statuses, storing in JSON files.
+    **Manages user permissions, specifically BANNED and VIP statuses, storing in JSON files.**
+
     This carries out the commands found in permissions.py
     """
 
@@ -30,7 +31,7 @@ class PermissionManager:
 
 
     async def read_vip_ids_from_file(self):
-        """Reads VIP user IDs from the JSON file"""
+        """**Reads VIP user IDs from the JSON file**"""
 
         async with aiofiles.open(self.VIP_USERS_FILE, "r") as f:
             content = await f.read()
@@ -42,39 +43,52 @@ class PermissionManager:
 
         return user_ids
 
-    async def save_vip_ids_to_file(self, user_ids):
-        """Saves VIP user IDs to the JSON file"""
+
+    async def save_vip_ids_to_file(self, user_ids: list[int]):
+        """**Saves list of VIP user IDs to the JSON file**"""
 
         async with aiofiles.open(self.VIP_USERS_FILE, "w") as f:
             await f.write(json.dumps(user_ids, indent=2))
 
-    async def is_user_vip(self, user_id: int) -> bool:
-        """Checks if a user ID is in the VIP list"""
-
-        vip_user_ids = await self.read_vip_ids_from_file()
-        return user_id in vip_user_ids
 
     async def read_banned_ids_from_file(self):
-        """Reads banned user IDs from the JSON file."""
+        """**Reads banned user IDs from the JSON file.**"""
 
         async with aiofiles.open(self.BANNED_USERS_FILE, "r") as f:
             content = await f.read()
             return json.loads(content)
 
+
     async def save_banned_ids_to_file(self, user_ids):
-        """Saves banned user IDs to the JSON file."""
+        """**Saves banned user IDs to the JSON file.**"""
 
         async with aiofiles.open(self.BANNED_USERS_FILE, "w") as f:
             await f.write(json.dumps(user_ids, indent=2))
 
+
+    async def is_user_vip(self, user_id: int) -> bool:
+        """**Checks if user ID is in the VIP list**"""
+
+        vip_user_ids = await self.read_vip_ids_from_file()
+        return user_id in vip_user_ids
+
+
     async def is_user_banned(self, user_id: int) -> bool:
-        """Checks if a user ID is in the banned list"""
+        """**Checks if user ID is in the banned list**"""
 
         banned_user_ids = await self.read_banned_ids_from_file()
         return user_id in banned_user_ids
 
+
     async def add_vip_user_id(self, user, interaction: discord.Interaction):
-        """Adds a VIP user ID if not already present or banned"""
+        """
+        **Adds user ID to VIP if not already present or banned**
+
+        :param user: The Discord user to add as VIP.
+        :type user: discord.User
+        :param interaction: The interaction context for sending responses.
+        :type interaction: discord.Interaction
+        """
 
         vip_users = await self.read_vip_ids_from_file()
         if await self.is_user_banned(user.id):
@@ -89,19 +103,16 @@ class PermissionManager:
             logging.info("Added VIP user ID to list: %d", user.id)
             await interaction.followup.send(f"User {user.name} has been granted VIP status.")
 
-    async def remove_vip_user_id(self, user_id: int):
-        """Removes a VIP user ID if present"""
-
-        vip_users = await self.read_vip_ids_from_file()
-        if user_id in vip_users:
-            vip_users.remove(user_id)
-            await self.save_vip_ids_to_file(vip_users)
-            logging.info("Removed VIP user ID from list: %d", user_id)
-        else:
-            logging.info("User ID %d is not a VIP user", user_id)
 
     async def add_banned_user_id(self, user, interaction: discord.Interaction):
-        """Adds a banned user ID if not already present or banned"""
+        """
+        **Adds user ID to banned list if not already present. Removes VIP status if applicable.**
+
+        :param user: The Discord user to ban.
+        :type user: discord.User
+        :param interaction: The interaction context for sending responses.
+        :type interaction: discord.Interaction
+        """
 
         banned_users = await self.read_banned_ids_from_file()
         if await self.is_user_vip(user.id):
@@ -117,8 +128,21 @@ class PermissionManager:
             logging.info("Added banned user ID to list: %d", user.id)
             await interaction.followup.send(f"User {user.name} has been banned from the bot.")
 
+
+    async def remove_vip_user_id(self, user_id: int):
+        """**Removes user ID from VIP if present.**"""
+
+        vip_users = await self.read_vip_ids_from_file()
+        if user_id in vip_users:
+            vip_users.remove(user_id)
+            await self.save_vip_ids_to_file(vip_users)
+            logging.info("Removed VIP user ID from list: %d", user_id)
+        else:
+            logging.info("User ID %d is not a VIP user", user_id)
+
+
     async def remove_banned_user_id(self, user_id: int):
-        """Removes a banned user ID if present"""
+        """**Removes user ID from banned list if present.**"""
 
         banned_users = await self.read_banned_ids_from_file()
         if user_id in banned_users:
@@ -127,5 +151,4 @@ class PermissionManager:
             logging.info("Removed banned user ID from list: %d", user_id)
         else:
             logging.info("User ID %d is not banned from the bot", user_id)
-
 

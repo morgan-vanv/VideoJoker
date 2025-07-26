@@ -8,7 +8,7 @@ from cogs.permissions.permissions_manager import PermissionManager
 
 
 class Permissions(Cog, name="Permissions"):
-    """A cog that provides permission-related commands"""
+    """**A cog that provides permission-related commands**"""
 
     def __init__(self, bot):
         logging.info("Permissions cog initialized.")
@@ -16,7 +16,18 @@ class Permissions(Cog, name="Permissions"):
 
     @app_commands.command(name='checkpermissions', description='Checks the permissions of a user')
     async def check_permissions(self, interaction: discord.Interaction, user: discord.User):
-        """Checks the permissions of a user"""
+        """
+        **Replies to the executing user with the permissions of the user provided**
+
+        Permissions Required: !BANNED
+
+        :param interaction: The interaction object from discord
+        :type interaction: discord.Interaction
+        :param user: The user whose permissions are to be checked
+        :type user: discord.User
+
+        Usage Example: `/checkpermissions @SomeUser`
+        """
         logging.info("Permissions check requested for %s by %s", user.name, interaction.user.name)
         await interaction.response.defer()
 
@@ -49,9 +60,19 @@ class Permissions(Cog, name="Permissions"):
             logging.error("An Unexpected Error occurred while checking permissions for user %s: %s", user.name, str(e))
             await interaction.followup.send("An Unexpected Error occurred. Please try again", ephemeral=True)
 
+
     @app_commands.command(name='listbannedusers', description='Lists all banned users')
     async def list_banned_users(self, interaction: discord.Interaction):
-        """Lists all BANNED users"""
+        """
+        **Replies to the executing user with a list of all BANNED users**
+
+        Permissions Required: !BANNED
+
+        :param interaction: The interaction object from discord
+        :type interaction: discord.Interaction
+
+        Usage Example: `/listbannedusers`
+        """
         logging.info("BANNED users list requested by %s", interaction.user.name)
         await interaction.response.defer()
 
@@ -75,34 +96,19 @@ class Permissions(Cog, name="Permissions"):
             logging.error("An Unexpected Error occurred while listing banned users: %s", str(e))
             await interaction.followup.send("An Unexpected Error occurred. Please try again", ephemeral=True)
 
-    @app_commands.command(name='grantbanuser', description='Bans a user from using the bot')
-    async def grant_ban_user(self, interaction: discord.Interaction, user: discord.User):
-        """Grants BANNED status to a user"""
-        logging.info("BANNED Status requested for %s by %s", user.name, interaction.user.name)
-        await interaction.response.defer()
-
-        try:
-            permission_manager = PermissionManager()
-            if await permission_manager.is_user_banned(interaction.user.id):
-                raise ExecutingUserBannedError(interaction.user)
-            if not await permission_manager.is_user_vip(interaction.user.id):
-                raise ExecutingUserNotVIPError(interaction.user)
-
-            await permission_manager.add_banned_user_id(user, interaction)
-
-        except ExecutingUserBannedError as e:
-            logging.warning("BANNED User %s attempted to grant BANNED Status.", interaction.user.name)
-            await interaction.followup.send(e.msg, ephemeral=True)
-        except ExecutingUserNotVIPError as e:
-            logging.warning("Non-VIP User %s attempted to grant BANNED status.", interaction.user.name)
-            await interaction.followup.send(e.msg, ephemeral=True)
-        except Exception as e:
-            logging.error("An Unexpected Error occurred while granting BANNED status to user %s: %s", user.name, str(e))
-            await interaction.followup.send("An Unexpected Error occurred. Please try again", ephemeral=True)
 
     @app_commands.command(name='listvipusers', description='Lists all VIP users')
     async def list_vip_users(self, interaction: discord.Interaction):
-        """Lists all VIP users"""
+        """
+        **Replies to the executing user with a list of all VIP users**
+
+        Permissions Required: !BANNED
+
+        :param interaction: The interaction object from discord
+        :type interaction: discord.Interaction
+
+        Usage Example: `/listvipusers`
+        """
         logging.info("VIP users list requested by %s", interaction.user.name)
         await interaction.response.defer()
 
@@ -126,9 +132,58 @@ class Permissions(Cog, name="Permissions"):
             logging.error("An Unexpected Error occurred while listing VIP users: %s", str(e))
             await interaction.followup.send("An Unexpected Error occurred. Please try again", ephemeral=True)
 
+
+    @app_commands.command(name='grantbanuser', description='Bans a user from using the bot')
+    async def grant_ban_user(self, interaction: discord.Interaction, user: discord.User):
+        """
+        **Grants BANNED status to the user provided**
+
+        Permissions Required: !BANNED & VIP
+
+        :param interaction: The interaction object from discord
+        :type interaction: discord.Interaction
+        :param user: The user to be granted BANNED status
+        :type user: discord.User
+
+        Usage Example: `/listvipusers`
+        """
+        logging.info("BANNED Status requested for %s by %s", user.name, interaction.user.name)
+        await interaction.response.defer()
+
+        try:
+            permission_manager = PermissionManager()
+            if await permission_manager.is_user_banned(interaction.user.id):
+                raise ExecutingUserBannedError(interaction.user)
+            if not await permission_manager.is_user_vip(interaction.user.id):
+                raise ExecutingUserNotVIPError(interaction.user)
+
+            await permission_manager.add_banned_user_id(user, interaction)
+
+        except ExecutingUserBannedError as e:
+            logging.warning("BANNED User %s attempted to grant BANNED Status.", interaction.user.name)
+            await interaction.followup.send(e.msg, ephemeral=True)
+        except ExecutingUserNotVIPError as e:
+            logging.warning("Non-VIP User %s attempted to grant BANNED status.", interaction.user.name)
+            await interaction.followup.send(e.msg, ephemeral=True)
+        except Exception as e:
+            logging.error("An Unexpected Error occurred while granting BANNED status to user %s: %s", user.name, str(e))
+            await interaction.followup.send("An Unexpected Error occurred. Please try again", ephemeral=True)
+
+
     @app_commands.command(name='grantvipuser', description='Grants VIP status to a user')
     async def grant_vip_user(self, interaction: discord.Interaction, user: discord.User):
-        """Grants VIP status to a user"""
+        """
+        **Grants VIP status to the user provided**
+
+        Permissions Required: !BANNED & VIP
+
+        :param interaction: The interaction object from discord
+        :type interaction: discord.Interaction
+        :param user: The user to be granted BANNED status
+        :type user: discord.User
+
+        Usage Example: `/grantvipuser @SomeUser`
+        """
         logging.info("VIP Status requested for %s by %s", user.name, interaction.user.name)
         await interaction.response.defer()
 
@@ -151,9 +206,21 @@ class Permissions(Cog, name="Permissions"):
             logging.error("An Unexpected Error occurred while granting VIP status to user %s: %s", user.name, str(e))
             await interaction.followup.send("An Unexpected Error occurred. Please try again", ephemeral=True)
 
+
     @app_commands.command(name='resetpermissions', description='Resets permissions for a user')
     async def reset_permissions(self, interaction: discord.Interaction, user: discord.User):
-        """Resets permissions for a user (removes from both VIP and BANNED lists)"""
+        """
+        **Resets the permissions of the user provided**
+
+        Permissions Required: !BANNED & VIP
+
+        :param interaction: The interaction object from discord
+        :type interaction: discord.Interaction
+        :param user: The user to be granted BANNED status
+        :type user: discord.User
+
+        Usage Example: `/resetpermissions @SomeUser`
+        """
         logging.info("Permissions reset requested for %s by %s", user.name, interaction.user.name)
         await interaction.response.defer()
 

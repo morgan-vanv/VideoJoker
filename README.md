@@ -40,8 +40,8 @@ _See `DESIGNDOCUMENT.md` for information on what might come in the future_
 ### Permissions Cog Commands
 - **/checkpermissions** (*Checks the permissions of a user.*)
 - **/listbannedusers** (*Lists all banned users.*)
-- **/grantbanuser [user]** (*Bans a user from using the bot.*)
 - **/listvipusers** (*Lists all VIP users.*)
+- **/grantbanuser [user]** (*Bans a user from using the bot.*)
 - **/grantvipuser [user]** (*Grants VIP status to a user.*)
 - **/resetpermissions [user]** (*Resets permissions for a user.*)
 
