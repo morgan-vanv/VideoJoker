@@ -52,4 +52,4 @@ jobs:
 
     - name: Run Pylint on changed files
       run: |
-        echo "${{ steps.changed-files.outputs.result }}" | xargs pylint --rcfile=.pylintrc --disable=convention
+        echo "${{ steps.changed-files.outputs.result }}" | xargs pylint --rcfile=.pylintrc --disable=C
