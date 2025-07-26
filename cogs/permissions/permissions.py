@@ -68,7 +68,17 @@ class Permissions(Cog, name="Permissions"):
         logging.info("BANNED Status requested for %s by %s", user.name, interaction.user.name)
         await interaction.response.defer()
 
-        await PermissionManager().add_banned_user_id(user, interaction)
+        try:
+            permission_manager = PermissionManager()
+            if not await permission_manager.is_user_vip(interaction.user.id):
+                logging.warning("User %s attempted to grant BANNED status without being VIP themselves.", interaction.user.name)
+                await interaction.followup.send("You must be a VIP user to grant BANNED status to others.", ephemeral=True)
+            else:
+                await permission_manager.add_banned_user_id(user, interaction)
+
+        except Exception as e:
+            logging.error("Error granting BANNED status to user %s: %s", user.name, str(e))
+            await interaction.followup.send(f"An error occurred while granting BANNED status to {user.name}.", ephemeral=True)
 
     @app_commands.command(name='listvipusers', description='Lists all VIP users')
     async def list_vip_users(self, interaction: discord.Interaction):
@@ -94,7 +104,17 @@ class Permissions(Cog, name="Permissions"):
         logging.info("VIP Status requested for %s by %s", user.name, interaction.user.name)
         await interaction.response.defer()
 
-        await PermissionManager().add_vip_user_id(user, interaction)
+        try:
+            permission_manager = PermissionManager()
+            if not await permission_manager.is_user_vip(interaction.user.id):
+                logging.warning("User %s attempted to grant VIP status without being VIP themselves.", interaction.user.name)
+                await interaction.followup.send("You must be a VIP user to grant VIP status to others.", ephemeral=True)
+            else:
+                await permission_manager.add_vip_user_id(user, interaction)
+
+        except Exception as e:
+            logging.error("Error granting VIP status to user %s: %s", user.name, str(e))
+            await interaction.followup.send(f"An error occurred while granting VIP status to {user.name}.", ephemeral=True)
 
     @app_commands.command(name='resetpermissions', description='Resets permissions for a user')
     async def reset_permissions(self, interaction: discord.Interaction, user: discord.User):
@@ -104,10 +124,14 @@ class Permissions(Cog, name="Permissions"):
 
         try:
             permission_manager = PermissionManager()
-            await permission_manager.remove_vip_user_id(user.id)
-            await permission_manager.remove_banned_user_id(user.id)
-            await interaction.followup.send(f"Permissions for user {user.name} have been reset.")
-            logging.info("Permissions reset for user: %s (ID: %d)", user.name, user.id)
+            if not await permission_manager.is_user_vip(interaction.user.id):
+                logging.warning("User %s attempted to reset permissions without being VIP themselves.", interaction.user.name)
+                await interaction.followup.send("You must be a VIP user to reset permissions for others.", ephemeral=True)
+            else:
+                await permission_manager.remove_vip_user_id(user.id)
+                await permission_manager.remove_banned_user_id(user.id)
+                await interaction.followup.send(f"Permissions for user {user.name} have been reset.")
+                logging.info("Permissions reset for user: %s (ID: %d)", user.name, user.id)
         except Exception as e:
             logging.error("Error resetting permissions for user %s: %s", user.name, str(e))
             await interaction.followup.send(f"An error occurred while resetting permissions for {user.name}.", ephemeral=True)

@@ -37,8 +37,8 @@ class PermissionManager:
             user_ids = json.loads(content)
 
         # Always include the owner ID
-        # if self.owner_id not in user_ids:
-        #     user_ids.append(self.owner_id)
+        if self.owner_id not in user_ids:
+            user_ids.append(self.owner_id)
 
         return user_ids
 
