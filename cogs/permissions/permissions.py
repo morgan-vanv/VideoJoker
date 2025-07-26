@@ -2,14 +2,12 @@ import logging
 import discord
 from discord.ext.commands import Cog
 from discord.app_commands import commands
-from .banned_users import BannedUsers
-from .vip_users import VIPUsers
+
+from .permissions_manager import PermissionManager
 
 
 # TODO BEFORE MERGING
-#   - make VIP & BANNED mutually exclusive
 #   - update listing methods to return user names rather than ids
-#   - ensure CRUD functionality for banned and VIP users is working before signoff
 
 class Permissions(Cog, name="Permissions"):
     """A cog that provides permission-related commands"""
@@ -23,15 +21,11 @@ class Permissions(Cog, name="Permissions"):
         """Checks the permissions of a user"""
         logging.info("Permissions check requested for %s by %s", user.name, ctx.user.name)
 
-        banned_users = BannedUsers()
-        vip_users = VIPUsers()
-        banned_list = await banned_users.load_banned_ids_from_file()
-        vip_list = await vip_users.load_vip_ids_from_file()
-
-        if user.id in banned_list:
+        permission_manager = PermissionManager()
+        if await permission_manager.is_user_banned(user.id):
             status = "BANNED"
             color = discord.Colour.red()
-        elif user.id in vip_list:
+        elif await permission_manager.is_user_vip(user.id):
             status = "VIP"
             color = discord.Colour.green()
         else:
@@ -51,9 +45,7 @@ class Permissions(Cog, name="Permissions"):
         """Lists all BANNED users"""
         logging.info("BANNED users list requested by %s", ctx.user.name)
 
-        banned_users = BannedUsers()
-        content = await banned_users.load_banned_ids_from_file()
-
+        content = await PermissionManager().read_banned_ids_from_file()
         embed = discord.Embed(
             title="BANNED Users",
             description=content,
@@ -66,17 +58,14 @@ class Permissions(Cog, name="Permissions"):
         """Grants BANNED status to a user"""
         logging.info("Grant BANNED Status requested for %s by %s", user.name, ctx.user.name)
 
-        banned_users = BannedUsers()
-        await banned_users.add_banned_user_id(user.id, ctx)
+        await PermissionManager().add_banned_user_id(user.id, ctx)
 
     @commands.command(name='listvipusers', description='Lists all VIP users')
     async def list_vip_users(self, ctx):
         """Lists all VIP users"""
         logging.info("VIP users list requested by %s", ctx.user.name)
 
-        vip_users = VIPUsers()
-        content = await vip_users.load_vip_ids_from_file()
-
+        content = await PermissionManager().read_vip_ids_from_file()
         embed = discord.Embed(
             title="VIP Users",
             description=content,
@@ -89,8 +78,18 @@ class Permissions(Cog, name="Permissions"):
         """Grants VIP status to a user"""
         logging.info("Grant VIP Status requested for %s by %s", user.name, ctx.user.name)
 
-        vip_users = VIPUsers()
-        await vip_users.add_vip_user_id(user.id, ctx)
+        await PermissionManager().add_vip_user_id(user.id, ctx)
+
+    @commands.command(name='resetpermissions', description='Resets permissions for a user')
+    async def reset_permissions(self, ctx, user: discord.User):
+        """Resets permissions for a user (removes from both VIP and BANNED lists)"""
+        logging.info("Reset permissions requested for %s by %s", user.name, ctx.user.name)
+
+        permission_manager = PermissionManager()
+        await permission_manager.remove_vip_user_id(user.id)
+        await permission_manager.remove_banned_user_id(user.id)
+        await ctx.response.send_message(f"Permissions for user ID {user.id} have been reset.")
+        logging.info("Permissions reset for user ID: %d", user.id)
 
 
 async def setup(bot):
