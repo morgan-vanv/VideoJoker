@@ -44,12 +44,14 @@ jobs:
     - name: Get changed Python files
       id: changed-files
       run: |
-        git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep '\.py$' || echo "No Python files changed."
+        files=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep '\.py$' || true)
+        echo "result=$files" >> $GITHUB_OUTPUT
 
     - name: Skip checks if no Python files changed
       if: steps.changed-files.outputs.result == ''
       run: echo "No Python files changed. Skipping Pylint checks." && exit 0
-
+    
     - name: Run Pylint on changed files
+      if: steps.changed-files.outputs.result != ''
       run: |
         echo "${{ steps.changed-files.outputs.result }}" | xargs pylint --rcfile=.pylintrc --disable=C
