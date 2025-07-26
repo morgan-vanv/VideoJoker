@@ -67,27 +67,24 @@ class VideoJoker(commands.Bot):
         # left for debugging purposes, uncomment if needed to add more handled exceptions
         # logging.error("Error in command '%s': %s", interaction.command.name, repr(error))
 
-        try:
-            if isinstance(error.original, ExecutingUserNotVIPError):
-                logging.warning("User %s (ID: %s) attempted to use a VIP-only command without VIP status.",
-                                interaction.user.name, interaction.user.id)
-                message = f"🚫👑 {interaction.user.name}, you lack the VIP status required for this command."
-            elif isinstance(error, app_commands.CheckFailure):
-                message = "🚫 You don't have permission to use this command."
-            elif isinstance(error, app_commands.CommandOnCooldown):
-                message = "⏳ This command is on cooldown. Try again later."
-            elif isinstance(error, app_commands.MissingPermissions):
-                message = "❌ You're missing required permissions."
-            else:
-                message = "❗ An unexpected error occurred. Please try again later."
+        if isinstance(error.original, ExecutingUserNotVIPError):
+            logging.warning("User %s (ID: %s) attempted to use a VIP-only command without VIP status.",
+                            interaction.user.name, interaction.user.id)
+            message = "🚫👑 You lack the VIP status required for this command."
+        elif isinstance(error, app_commands.CommandOnCooldown):
+            logging.warning("User %s (ID: %s) attempted to use command '%s' which is on cooldown.",
+                            interaction.user.name, interaction.user.id, interaction.command.name)
+            message = "⏳ This command is on cooldown. Try again later."
+        else:
+            logging.error("Unhandled/Unexpected error in command '%s': %s", interaction.command.name, repr(error),
+                          exc_info=True)
+            message = "❗ An unexpected error occurred. Please try again later."
 
-            # Check if the interaction has already been responded to
-            if interaction.response.is_done():
-                await interaction.followup.send(message, ephemeral=True)
-            else:
-                await interaction.response.send_message(message, ephemeral=True)
-        except discord.errors.InteractionResponded:
-            logging.warning("Interaction already responded to. Skipping additional response.")
+        # Handling if the interaction has already been responded to
+        if interaction.response.is_done():
+            await interaction.followup.send(message, ephemeral=True)
+        else:
+            await interaction.response.send_message(message, ephemeral=True)
 
     async def global_interaction_check(self, interaction: discord.Interaction) -> bool:
         """Global app command check to prevent banned users from using commands."""
@@ -95,13 +92,10 @@ class VideoJoker(commands.Bot):
         if await permission_manager.is_user_banned(interaction.user.id):
             logging.warning("Banned user %s (ID: %s) attempted to use a command.", interaction.user.name,
                             interaction.user.id)
-            try:
-                await interaction.response.send_message(
-                    "🚫 You are banned from using this bot.",
-                    ephemeral=True
-                )
-            except discord.InteractionResponded:
-                pass
+            await interaction.response.send_message(
+                "🚫 You are banned from using this bot.",
+                ephemeral=True
+            )
             return False
         return True
 
