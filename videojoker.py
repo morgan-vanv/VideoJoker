@@ -9,6 +9,7 @@ from pathlib import Path
 
 # third party imports
 import discord
+from discord import app_commands
 from discord.ext import commands
 from dotenv import load_dotenv
 
@@ -18,6 +19,7 @@ from cogs.fun import Fun
 from cogs.permissions.permissions_manager import PermissionManager
 from cogs.utility import Utility
 from cogs.permissions import Permissions
+from shared.custom_exceptions import ExecutingUserNotVIPError
 
 
 class VideoJoker(commands.Bot):
@@ -39,6 +41,7 @@ class VideoJoker(commands.Bot):
         await self.add_cog(Utility(self))
         await self.add_cog(Permissions(self))
 
+        self.tree.on_error = self.on_app_command_error
         self.tree.interaction_check = self.global_interaction_check
         await self.tree.sync()
         logging.info("Commands synced")
@@ -58,6 +61,33 @@ class VideoJoker(commands.Bot):
     async def start_bot(self):
         """Starts the bot with the provided token."""
         await self.start(self.token)
+
+    async def on_app_command_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
+        """Global error handler for all app_commands"""
+        # left for debugging purposes, uncomment if needed to add more handled exceptions
+        # logging.error("Error in command '%s': %s", interaction.command.name, repr(error))
+
+        try:
+            if isinstance(error.original, ExecutingUserNotVIPError):
+                logging.warning("User %s (ID: %s) attempted to use a VIP-only command without VIP status.",
+                                interaction.user.name, interaction.user.id)
+                message = f"🚫👑 {interaction.user.name}, you lack the VIP status required for this command."
+            elif isinstance(error, app_commands.CheckFailure):
+                message = "🚫 You don't have permission to use this command."
+            elif isinstance(error, app_commands.CommandOnCooldown):
+                message = "⏳ This command is on cooldown. Try again later."
+            elif isinstance(error, app_commands.MissingPermissions):
+                message = "❌ You're missing required permissions."
+            else:
+                message = "❗ An unexpected error occurred. Please try again later."
+
+            # Check if the interaction has already been responded to
+            if interaction.response.is_done():
+                await interaction.followup.send(message, ephemeral=True)
+            else:
+                await interaction.response.send_message(message, ephemeral=True)
+        except discord.errors.InteractionResponded:
+            logging.warning("Interaction already responded to. Skipping additional response.")
 
     async def global_interaction_check(self, interaction: discord.Interaction) -> bool:
         """Global app command check to prevent banned users from using commands."""
@@ -141,7 +171,9 @@ if __name__ == "__main__":
         level=logging.INFO,  # Set logging level
         format='%(asctime)s - %(levelname)s - %(message)s',
         handlers=[
-            logging.FileHandler(f"{Path(__file__).resolve().parent / 'data' / 'logs' / 'bot.log'}", mode='w'),
+            logging.FileHandler(f"{Path(__file__).resolve().parent / 'data' / 'logs' / 'bot.log'}",
+                                mode='w',
+                                encoding='utf-8'),
             logging.StreamHandler()
         ]
     )
