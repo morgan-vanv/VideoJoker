@@ -2,7 +2,6 @@ import logging
 import discord
 from discord import app_commands
 from discord.ext.commands import Cog
-from discord.app_commands import commands
 
 from cogs.permissions.permissions_manager import PermissionManager
 
@@ -40,8 +39,8 @@ class Permissions(Cog, name="Permissions"):
             await interaction.followup.send(embed=embed)
 
         except Exception as e:
-            logging.error("Error checking permissions for user %s: %s", user.name, str(e))
-            await interaction.followup.send(f"An error occurred while checking permissions for {user.name}.", ephemeral=True)
+            logging.error("An Unexpected Error occurred while checking permissions for user %s: %s", user.name, str(e))
+            await interaction.followup.send(f"An Unexpected Error occurred while while checking permissions for {user.name}.", ephemeral=True)
 
     @app_commands.command(name='listbannedusers', description='Lists all banned users')
     async def list_banned_users(self, interaction: discord.Interaction):
@@ -59,8 +58,8 @@ class Permissions(Cog, name="Permissions"):
             await interaction.followup.send(embed=embed)
 
         except Exception as e:
-            logging.error("Error listing banned users: %s", str(e))
-            await interaction.followup.send(f"An error occurred while listing banned users.", ephemeral=True)
+            logging.error("An Unexpected Error occurred while listing banned users: %s", str(e))
+            await interaction.followup.send("An Unexpected Error occurred while listing banned users.", ephemeral=True)
 
     @app_commands.command(name='grantbanuser', description='Bans a user from using the bot')
     async def grant_ban_user(self, interaction: discord.Interaction, user: discord.User):
@@ -77,8 +76,8 @@ class Permissions(Cog, name="Permissions"):
                 await permission_manager.add_banned_user_id(user, interaction)
 
         except Exception as e:
-            logging.error("Error granting BANNED status to user %s: %s", user.name, str(e))
-            await interaction.followup.send(f"An error occurred while granting BANNED status to {user.name}.", ephemeral=True)
+            logging.error("An Unexpected Error occurred while granting BANNED status to user %s: %s", user.name, str(e))
+            await interaction.followup.send(f"An Unexpected Error occurred while while granting BANNED status to {user.name}.", ephemeral=True)
 
     @app_commands.command(name='listvipusers', description='Lists all VIP users')
     async def list_vip_users(self, interaction: discord.Interaction):
@@ -95,8 +94,8 @@ class Permissions(Cog, name="Permissions"):
             )
             await interaction.followup.send(embed=embed)
         except Exception as e:
-            logging.error("Error listing VIP users: %s", str(e))
-            await interaction.followup.send(f"An error occurred while listing VIP users.", ephemeral=True)
+            logging.error("An Unexpected Error occurred while listing VIP users: %s", str(e))
+            await interaction.followup.send("An Unexpected Error occurred while listing VIP users.", ephemeral=True)
 
     @app_commands.command(name='grantvipuser', description='Grants VIP status to a user')
     async def grant_vip_user(self, interaction: discord.Interaction, user: discord.User):
@@ -113,8 +112,8 @@ class Permissions(Cog, name="Permissions"):
                 await permission_manager.add_vip_user_id(user, interaction)
 
         except Exception as e:
-            logging.error("Error granting VIP status to user %s: %s", user.name, str(e))
-            await interaction.followup.send(f"An error occurred while granting VIP status to {user.name}.", ephemeral=True)
+            logging.error("An Unexpected Error occurred while granting VIP status to user %s: %s", user.name, str(e))
+            await interaction.followup.send(f"An Unexpected Error occurred while granting VIP status to {user.name}.", ephemeral=True)
 
     @app_commands.command(name='resetpermissions', description='Resets permissions for a user')
     async def reset_permissions(self, interaction: discord.Interaction, user: discord.User):
@@ -133,8 +132,8 @@ class Permissions(Cog, name="Permissions"):
                 await interaction.followup.send(f"Permissions for user {user.name} have been reset.")
                 logging.info("Permissions reset for user: %s (ID: %d)", user.name, user.id)
         except Exception as e:
-            logging.error("Error resetting permissions for user %s: %s", user.name, str(e))
-            await interaction.followup.send(f"An error occurred while resetting permissions for {user.name}.", ephemeral=True)
+            logging.error("An Unexpected Error occurred while resetting permissions for user %s: %s", user.name, str(e))
+            await interaction.followup.send(f"An Unexpected Error occurred while resetting permissions for {user.name}.", ephemeral=True)
 
 
 async def setup(bot):
