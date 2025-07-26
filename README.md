@@ -36,18 +36,25 @@ _See `DESIGNDOCUMENT.md` for information on what might come in the future_
 ### Main Bot Commands
 - **/listcommands** (*Lists all available commands in the bot along with their descriptions.*)
 - **/ping** (*Checks the bot's latency and responsiveness.*)
-- **/sync** (*Syncs the bot's slash commands with Discord.*)
 
-### Utility Cog Commands
-- **/userinfo [user]** (*Displays information about a user, including their nickname, ID, and the date they joined Discord.*)
-- **/serverinfo** (*Displays information about the server, including its name, ID, member count, and creation date.*)
-
-### Fun Cog Commands
-- **/say [message]** (*The bot repeats the given message.*)
-- **/roast [user]** (*Roasts a user with a random humorous insult.*)
+### Permissions Cog Commands
+- **/checkpermissions** (*Checks the permissions of a user.*)
+- **/listbannedusers** (*Lists all banned users.*)
+- **/grantbanuser [user]** (*Bans a user from using the bot.*)
+- **/listvipusers** (*Lists all VIP users.*)
+- **/grantvipuser [user]** (*Grants VIP status to a user.*)
+- **/resetpermissions [user]** (*Resets permissions for a user.*)
 
 ### Games Cog Commands
 - **/coinflip** (*Flips a virtual coin, returning either "Heads" or "Tails."*)
 - **/roll [sides]** (*Rolls a virtual die with the specified number of sides (default is 6).*)
 - **/8ball [question]** (*Answers a yes/no question with a random response, mimicking a Magic 8-Ball.*)
 - **/rockpaperscissors [choice]** (*Plays a game of Rock-Paper-Scissors against the bot.*)
+
+### Fun Cog Commands
+- **/say [message]** (*The bot repeats the given message.*)
+- **/roast [user]** (*Roasts a user with a random humorous insult.*)
+
+### Utility Cog Commands
+- **/userinfo [user]** (*Displays information about a user, including their nickname, ID, and the date they joined Discord.*)
+- **/serverinfo** (*Displays information about the server, including its name, ID, member count, and creation date.*)
