@@ -1,5 +1,6 @@
 import logging
 import discord
+from discord import app_commands
 from discord.ext.commands import Cog
 from discord.app_commands import commands
 
@@ -13,29 +14,34 @@ class Permissions(Cog, name="Permissions"):
         logging.info("Permissions cog initialized.")
         self.bot = bot
 
-    @commands.command(name='checkpermissions', description='Checks the permissions of a user')
+    @app_commands.command(name='checkpermissions', description='Checks the permissions of a user')
     async def check_permissions(self, ctx, user: discord.User):
         """Checks the permissions of a user"""
         logging.info("Permissions check requested for %s by %s", user.name, ctx.user.name)
+        await ctx.response.defer()
 
-        permission_manager = PermissionManager()
-        if await permission_manager.is_user_banned(user.id):
-            status = "BANNED"
-            color = discord.Colour.red()
-        elif await permission_manager.is_user_vip(user.id):
-            status = "VIP"
-            color = discord.Colour.green()
-        else:
-            status = "No special permissions"
-            color = discord.Colour.orange()
+        try:
+            permission_manager = PermissionManager()
+            if await permission_manager.is_user_banned(user.id):
+                status = "BANNED"
+                color = discord.Colour.red()
+            elif await permission_manager.is_user_vip(user.id):
+                status = "VIP"
+                color = discord.Colour.green()
+            else:
+                status = "No special permissions"
+                color = discord.Colour.orange()
 
-        embed = discord.Embed(
-            title=f"Permissions for: {user.name}",
-            description=f"Status: {status}",
-            color=color
-        )
+            embed = discord.Embed(
+                title=f"Permissions for: {user.name}",
+                description=f"Status: {status}",
+                color=color
+            )
+            await ctx.followup.send(embed=embed)
 
-        await ctx.response.send_message(embed=embed)
+        except Exception as e:
+            logging.error("Error checking permissions for user %s: %s", user.name, str(e))
+            await ctx.followup.send(f"An error occurred while checking permissions for {user.name}.", ephemeral=True)
 
     @commands.command(name='listbannedusers', description='Lists all banned users')
     async def list_banned_users(self, ctx):
