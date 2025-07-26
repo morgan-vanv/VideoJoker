@@ -62,12 +62,13 @@ class Permissions(Cog, name="Permissions"):
             logging.error("Error listing banned users: %s", str(e))
             await interaction.followup.send(f"An error occurred while listing banned users.", ephemeral=True)
 
-    @commands.command(name='grantbanuser', description='Bans a user from using the bot')
-    async def grant_ban_user(self, ctx, user: discord.User):
+    @app_commands.command(name='grantbanuser', description='Bans a user from using the bot')
+    async def grant_ban_user(self, interaction: discord.Interaction, user: discord.User):
         """Grants BANNED status to a user"""
-        logging.info("BANNED Status requested for %s by %s", user.name, ctx.user.name)
+        logging.info("BANNED Status requested for %s by %s", user.name, interaction.user.name)
+        await interaction.response.defer()
 
-        await PermissionManager().add_banned_user_id(user, ctx)
+        await PermissionManager().add_banned_user_id(user, interaction)
 
     @app_commands.command(name='listvipusers', description='Lists all VIP users')
     async def list_vip_users(self, interaction: discord.Interaction):
@@ -87,12 +88,13 @@ class Permissions(Cog, name="Permissions"):
             logging.error("Error listing VIP users: %s", str(e))
             await interaction.followup.send(f"An error occurred while listing VIP users.", ephemeral=True)
 
-    @commands.command(name='grantvipuser', description='Grants VIP status to a user')
-    async def grant_vip_user(self, ctx, user: discord.User):
+    @app_commands.command(name='grantvipuser', description='Grants VIP status to a user')
+    async def grant_vip_user(self, interaction: discord.Interaction, user: discord.User):
         """Grants VIP status to a user"""
-        logging.info("VIP Status requested for %s by %s", user.name, ctx.user.name)
+        logging.info("VIP Status requested for %s by %s", user.name, interaction.user.name)
+        await interaction.response.defer()
 
-        await PermissionManager().add_vip_user_id(user, ctx)
+        await PermissionManager().add_vip_user_id(user, interaction)
 
     @app_commands.command(name='resetpermissions', description='Resets permissions for a user')
     async def reset_permissions(self, interaction: discord.Interaction, user: discord.User):
