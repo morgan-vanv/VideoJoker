@@ -36,10 +36,7 @@ class PermissionManager:
             content = await f.read()
             user_ids = json.loads(content)
 
-        if self.owner_id not in user_ids:
-            user_ids.append(self.owner_id) # Always include the owner ID
-
-        return user_ids
+        return user_ids if self.owner_id in user_ids else user_ids + [self.owner_id] # Ensure owner is always VIP
 
 
     async def save_vip_ids_to_file(self, user_ids: list[int]):

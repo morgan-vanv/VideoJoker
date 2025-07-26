@@ -101,14 +101,14 @@ class Permissions(Cog, name="Permissions"):
         """
         **Grants BANNED status to the user provided**
 
-        Permissions Required: !BANNED & VIP
+        Permissions Required: VIP
 
         :param interaction: The interaction object from discord
         :type interaction: discord.Interaction
         :param user: The user to be granted BANNED status
         :type user: discord.User
 
-        Usage Example: `/listvipusers`
+        Usage Example: `/grantbanuser @SomeUser`
         """
         logging.info("BANNED Status requested for %s by %s", user.name, interaction.user.name)
         await interaction.response.defer()
@@ -125,11 +125,11 @@ class Permissions(Cog, name="Permissions"):
         """
         **Grants VIP status to the user provided**
 
-        Permissions Required: !BANNED & VIP
+        Permissions Required: VIP
 
         :param interaction: The interaction object from discord
         :type interaction: discord.Interaction
-        :param user: The user to be granted BANNED status
+        :param user: The user to be granted VIP status
         :type user: discord.User
 
         Usage Example: `/grantvipuser @SomeUser`
@@ -153,7 +153,7 @@ class Permissions(Cog, name="Permissions"):
 
         :param interaction: The interaction object from discord
         :type interaction: discord.Interaction
-        :param user: The user to be granted BANNED status
+        :param user: The user to have their permissions reset
         :type user: discord.User
 
         Usage Example: `/resetpermissions @SomeUser`

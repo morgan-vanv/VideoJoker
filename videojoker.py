@@ -33,6 +33,7 @@ class VideoJoker(commands.Bot):
 
         load_dotenv()
         self.token = os.getenv('DISCORD_TOKEN')
+        self.permission_manager = PermissionManager()
 
     async def setup_hook(self):
         """Called when the bot is setting up (load cogs, sync commands, etc.)"""
@@ -88,8 +89,7 @@ class VideoJoker(commands.Bot):
 
     async def global_interaction_check(self, interaction: discord.Interaction) -> bool:
         """Global app command check to prevent banned users from using commands."""
-        permission_manager = PermissionManager()
-        if await permission_manager.is_user_banned(interaction.user.id):
+        if await self.permission_manager.is_user_banned(interaction.user.id):
             logging.warning("Banned user %s (ID: %s) attempted to use a command.", interaction.user.name,
                             interaction.user.id)
             await interaction.response.send_message(
