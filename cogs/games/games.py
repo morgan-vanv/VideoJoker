@@ -68,8 +68,3 @@ class Games(Cog, name="Games"):
         logging.info("%s played %s against bot's %s: %s", ctx.user.name, choice, bot_choice, result)
         await ctx.response.send_message(f"{ctx.user.name} chose **{choice}**. I chose **{bot_choice}**. {result}")
 
-
-async def setup(bot):
-    """setup function required for loading the cog"""
-    await bot.add_cog(Games(bot))
-    logging.info("Games cog loaded.")

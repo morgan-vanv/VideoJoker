@@ -29,9 +29,3 @@ class Fun(Cog, name="Fun"):
         roast = random.choice(roasts)
         logging.info("%s roasted %s: '%s'", ctx.user.name, user.name, roast)
         await ctx.response.send_message(f"{ctx.user.name} roasted {user.name}: **{roast}**")
-
-
-async def setup(bot):
-    """setup function required for loading the cog"""
-    await bot.add_cog(Fun(bot))
-    logging.info("Fun cog loaded.")

@@ -182,8 +182,3 @@ class Permissions(Cog, name="Permissions"):
             await interaction.followup.send(
                 f"An Unexpected Error occurred while resetting permissions for {user.name}.", ephemeral=True)
 
-
-async def setup(bot):
-    """setup function required for loading the cog"""
-    await bot.add_cog(Permissions(bot))
-    logging.info("Permissions cog loaded.")
