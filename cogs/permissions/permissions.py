@@ -3,11 +3,8 @@ import discord
 from discord.ext.commands import Cog
 from discord.app_commands import commands
 
-from .permissions_manager import PermissionManager
+from cogs.permissions.permissions_manager import PermissionManager
 
-
-# TODO BEFORE MERGING
-#   - update listing methods to return user names rather than ids
 
 class Permissions(Cog, name="Permissions"):
     """A cog that provides permission-related commands"""
@@ -56,9 +53,9 @@ class Permissions(Cog, name="Permissions"):
     @commands.command(name='grantbanuser', description='Bans a user from using the bot')
     async def grant_ban_user(self, ctx, user: discord.User):
         """Grants BANNED status to a user"""
-        logging.info("Grant BANNED Status requested for %s by %s", user.name, ctx.user.name)
+        logging.info("BANNED Status requested for %s by %s", user.name, ctx.user.name)
 
-        await PermissionManager().add_banned_user_id(user.id, ctx)
+        await PermissionManager().add_banned_user_id(user, ctx)
 
     @commands.command(name='listvipusers', description='Lists all VIP users')
     async def list_vip_users(self, ctx):
@@ -76,20 +73,20 @@ class Permissions(Cog, name="Permissions"):
     @commands.command(name='grantvipuser', description='Grants VIP status to a user')
     async def grant_vip_user(self, ctx, user: discord.User):
         """Grants VIP status to a user"""
-        logging.info("Grant VIP Status requested for %s by %s", user.name, ctx.user.name)
+        logging.info("VIP Status requested for %s by %s", user.name, ctx.user.name)
 
-        await PermissionManager().add_vip_user_id(user.id, ctx)
+        await PermissionManager().add_vip_user_id(user, ctx)
 
     @commands.command(name='resetpermissions', description='Resets permissions for a user')
     async def reset_permissions(self, ctx, user: discord.User):
         """Resets permissions for a user (removes from both VIP and BANNED lists)"""
-        logging.info("Reset permissions requested for %s by %s", user.name, ctx.user.name)
+        logging.info("Permissions reset requested for %s by %s", user.name, ctx.user.name)
 
         permission_manager = PermissionManager()
         await permission_manager.remove_vip_user_id(user.id)
         await permission_manager.remove_banned_user_id(user.id)
-        await ctx.response.send_message(f"Permissions for user ID {user.id} have been reset.")
-        logging.info("Permissions reset for user ID: %d", user.id)
+        await ctx.response.send_message(f"Permissions for user {user.name} have been reset.")
+        logging.info("Permissions reset for user: %s (ID: %d)", user.name, user.id)
 
 
 async def setup(bot):
