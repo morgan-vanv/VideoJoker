@@ -15,10 +15,10 @@ class Permissions(Cog, name="Permissions"):
         self.bot = bot
 
     @app_commands.command(name='checkpermissions', description='Checks the permissions of a user')
-    async def check_permissions(self, ctx, user: discord.User):
+    async def check_permissions(self, interaction: discord.Interaction, user: discord.User):
         """Checks the permissions of a user"""
-        logging.info("Permissions check requested for %s by %s", user.name, ctx.user.name)
-        await ctx.response.defer()
+        logging.info("Permissions check requested for %s by %s", user.name, interaction.user.name)
+        await interaction.response.defer()
 
         try:
             permission_manager = PermissionManager()
@@ -37,24 +37,30 @@ class Permissions(Cog, name="Permissions"):
                 description=f"Status: {status}",
                 color=color
             )
-            await ctx.followup.send(embed=embed)
+            await interaction.followup.send(embed=embed)
 
         except Exception as e:
             logging.error("Error checking permissions for user %s: %s", user.name, str(e))
-            await ctx.followup.send(f"An error occurred while checking permissions for {user.name}.", ephemeral=True)
+            await interaction.followup.send(f"An error occurred while checking permissions for {user.name}.", ephemeral=True)
 
-    @commands.command(name='listbannedusers', description='Lists all banned users')
-    async def list_banned_users(self, ctx):
+    @app_commands.command(name='listbannedusers', description='Lists all banned users')
+    async def list_banned_users(self, interaction: discord.Interaction):
         """Lists all BANNED users"""
-        logging.info("BANNED users list requested by %s", ctx.user.name)
+        logging.info("BANNED users list requested by %s", interaction.user.name)
+        await interaction.response.defer()
 
-        content = await PermissionManager().read_banned_ids_from_file()
-        embed = discord.Embed(
-            title="BANNED Users",
-            description=content,
-            color=discord.Colour.red()
-        )
-        await ctx.response.send_message(embed=embed)
+        try:
+            content = await PermissionManager().read_banned_ids_from_file()
+            embed = discord.Embed(
+                title="BANNED Users",
+                description=content,
+                color=discord.Colour.red()
+            )
+            await interaction.followup.send(embed=embed)
+
+        except Exception as e:
+            logging.error("Error listing banned users: %s", str(e))
+            await interaction.followup.send(f"An error occurred while listing banned users.", ephemeral=True)
 
     @commands.command(name='grantbanuser', description='Bans a user from using the bot')
     async def grant_ban_user(self, ctx, user: discord.User):
@@ -63,18 +69,23 @@ class Permissions(Cog, name="Permissions"):
 
         await PermissionManager().add_banned_user_id(user, ctx)
 
-    @commands.command(name='listvipusers', description='Lists all VIP users')
-    async def list_vip_users(self, ctx):
+    @app_commands.command(name='listvipusers', description='Lists all VIP users')
+    async def list_vip_users(self, interaction: discord.Interaction):
         """Lists all VIP users"""
-        logging.info("VIP users list requested by %s", ctx.user.name)
+        logging.info("VIP users list requested by %s", interaction.user.name)
+        await interaction.response.defer()
 
-        content = await PermissionManager().read_vip_ids_from_file()
-        embed = discord.Embed(
-            title="VIP Users",
-            description=content,
-            color=discord.Colour.green()
-        )
-        await ctx.response.send_message(embed=embed)
+        try:
+            content = await PermissionManager().read_vip_ids_from_file()
+            embed = discord.Embed(
+                title="VIP Users",
+                description=content,
+                color=discord.Colour.green()
+            )
+            await interaction.followup.send(embed=embed)
+        except Exception as e:
+            logging.error("Error listing VIP users: %s", str(e))
+            await interaction.followup.send(f"An error occurred while listing VIP users.", ephemeral=True)
 
     @commands.command(name='grantvipuser', description='Grants VIP status to a user')
     async def grant_vip_user(self, ctx, user: discord.User):
@@ -83,16 +94,21 @@ class Permissions(Cog, name="Permissions"):
 
         await PermissionManager().add_vip_user_id(user, ctx)
 
-    @commands.command(name='resetpermissions', description='Resets permissions for a user')
-    async def reset_permissions(self, ctx, user: discord.User):
+    @app_commands.command(name='resetpermissions', description='Resets permissions for a user')
+    async def reset_permissions(self, interaction: discord.Interaction, user: discord.User):
         """Resets permissions for a user (removes from both VIP and BANNED lists)"""
-        logging.info("Permissions reset requested for %s by %s", user.name, ctx.user.name)
+        logging.info("Permissions reset requested for %s by %s", user.name, interaction.user.name)
+        await interaction.response.defer()
 
-        permission_manager = PermissionManager()
-        await permission_manager.remove_vip_user_id(user.id)
-        await permission_manager.remove_banned_user_id(user.id)
-        await ctx.response.send_message(f"Permissions for user {user.name} have been reset.")
-        logging.info("Permissions reset for user: %s (ID: %d)", user.name, user.id)
+        try:
+            permission_manager = PermissionManager()
+            await permission_manager.remove_vip_user_id(user.id)
+            await permission_manager.remove_banned_user_id(user.id)
+            await interaction.followup.send(f"Permissions for user {user.name} have been reset.")
+            logging.info("Permissions reset for user: %s (ID: %d)", user.name, user.id)
+        except Exception as e:
+            logging.error("Error resetting permissions for user %s: %s", user.name, str(e))
+            await interaction.followup.send(f"An error occurred while resetting permissions for {user.name}.", ephemeral=True)
 
 
 async def setup(bot):
