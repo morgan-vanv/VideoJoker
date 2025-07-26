@@ -9,18 +9,21 @@ from pathlib import Path
 
 # third party imports
 import discord
+from discord import app_commands
 from discord.ext import commands
 from dotenv import load_dotenv
 
 # Importing Cogs
 from cogs.games import Games
 from cogs.fun import Fun
+from cogs.permissions.permissions_manager import PermissionManager
 from cogs.utility import Utility
 from cogs.permissions import Permissions
 
 
 class VideoJoker(commands.Bot):
     """ The main bot class for VideoJoker, a Discord bot with various commands and functionalities. """
+
     def __init__(self):
         """ Initializes the VideoJoker bot with necessary intents and loads environment variables. """
         intents = discord.Intents.all()
@@ -32,10 +35,10 @@ class VideoJoker(commands.Bot):
 
     async def setup_hook(self):
         """Called when the bot is setting up (load cogs, sync commands, etc.)"""
-        await bot.add_cog(Games(bot))
-        await bot.add_cog(Fun(bot))
-        await bot.add_cog(Utility(bot))
-        await bot.add_cog(Permissions(bot))
+        await self.add_cog(Games(self))
+        await self.add_cog(Fun(self))
+        await self.add_cog(Utility(self))
+        await self.add_cog(Permissions(self))
 
         await self.tree.sync()
         logging.info("Commands synced")
@@ -55,6 +58,13 @@ class VideoJoker(commands.Bot):
     async def start_bot(self):
         """Starts the bot with the provided token."""
         await self.start(self.token)
+
+    # async def on_interaction(self, interaction: discord.Interaction):
+    #     """Intercept interactions to enforce global checks."""
+    #     permission_manager = PermissionManager()
+    #     if await permission_manager.is_user_banned(interaction.user.id):
+    #         logging.warning("Banned user %s (ID: %s) attempted to use a command.", interaction.user.name,
+    #                         interaction.user.id)
 
 
 bot = VideoJoker()
@@ -130,3 +140,4 @@ if __name__ == "__main__":
     # running the bot
     load_dotenv()
     asyncio.run(bot.start_bot())
+
