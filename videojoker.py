@@ -110,6 +110,14 @@ async def listcommands(ctx):
 
 # Main entry point
 if __name__ == "__main__":
+    # creating necessary directories if they don't exist
+    data_dir = Path(__file__).resolve().parent / "data"
+    permissions_dir = data_dir / "permissions"
+    logs_dir = data_dir / "logs"
+
+    permissions_dir.mkdir(parents=True, exist_ok=True)
+    logs_dir.mkdir(parents=True, exist_ok=True)
+
     # set up logging
     logging.basicConfig(
         level=logging.INFO,  # Set logging level
