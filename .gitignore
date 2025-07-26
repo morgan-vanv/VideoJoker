@@ -1,10 +1,9 @@
 .idea
 .env
 
-# Ignore contents of data directories but not the directories themselves
-data/**/*
-!data/
-!data/logs/
+# Ignoring this specifically for VideoJoker
+*.log
+*.json
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
