@@ -9,17 +9,22 @@ from pathlib import Path
 
 # third party imports
 import discord
+from discord import app_commands
 from discord.ext import commands
 from dotenv import load_dotenv
 
 # Importing Cogs
 from cogs.games import Games
 from cogs.fun import Fun
+from cogs.permissions.permissions_manager import PermissionManager
 from cogs.utility import Utility
+from cogs.permissions import Permissions
+from shared.custom_exceptions import ExecutingUserNotVIPError
 
 
 class VideoJoker(commands.Bot):
     """ The main bot class for VideoJoker, a Discord bot with various commands and functionalities. """
+
     def __init__(self):
         """ Initializes the VideoJoker bot with necessary intents and loads environment variables. """
         intents = discord.Intents.all()
@@ -28,13 +33,17 @@ class VideoJoker(commands.Bot):
 
         load_dotenv()
         self.token = os.getenv('DISCORD_TOKEN')
+        self.permission_manager = PermissionManager()
 
     async def setup_hook(self):
         """Called when the bot is setting up (load cogs, sync commands, etc.)"""
-        await bot.add_cog(Games(bot))
-        await bot.add_cog(Fun(bot))
-        await bot.add_cog(Utility(bot))
+        await self.add_cog(Games(self))
+        await self.add_cog(Fun(self))
+        await self.add_cog(Utility(self))
+        await self.add_cog(Permissions(self))
 
+        self.tree.on_error = self.on_app_command_error
+        self.tree.interaction_check = self.global_interaction_check
         await self.tree.sync()
         logging.info("Commands synced")
 
@@ -54,32 +63,57 @@ class VideoJoker(commands.Bot):
         """Starts the bot with the provided token."""
         await self.start(self.token)
 
+    async def on_app_command_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
+        """Global error handler for all app_commands"""
+        # left for debugging purposes, uncomment if needed to add more handled exceptions
+        # logging.error("Error in command '%s': %s", interaction.command.name, repr(error))
+
+        if hasattr(error, 'original') and isinstance(error.original, ExecutingUserNotVIPError):
+            logging.warning("User %s (ID: %s) attempted to use a VIP-only command without VIP status.",
+                            interaction.user.name, interaction.user.id)
+            message = "🚫👑 You lack the VIP status required for this command."
+        elif isinstance(error, app_commands.CommandOnCooldown):
+            logging.warning("User %s (ID: %s) attempted to use command '%s' which is on cooldown.",
+                            interaction.user.name, interaction.user.id, interaction.command.name)
+            message = "⏳ This command is on cooldown. Try again later."
+        else:
+            logging.error("Unhandled/Unexpected error in command '%s': %s", interaction.command.name, repr(error),
+                          exc_info=True)
+            message = "❗ An unexpected error occurred. Please try again later."
+
+        # Handling if the interaction has already been responded to
+        if interaction.response.is_done():
+            await interaction.followup.send(message, ephemeral=True)
+        else:
+            await interaction.response.send_message(message, ephemeral=True)
+
+    async def global_interaction_check(self, interaction: discord.Interaction) -> bool:
+        """Global app command check to prevent banned users from using commands."""
+        if await self.permission_manager.is_user_banned(interaction.user.id):
+            logging.warning("Banned user %s (ID: %s) attempted to use a command.", interaction.user.name,
+                            interaction.user.id)
+            await interaction.response.send_message(
+                "🚫 You are banned from using this bot.",
+                ephemeral=True
+            )
+            return False
+        return True
+
 
 bot = VideoJoker()
 
 
 # Beginning of the Root level commands exposed to users, the rest are imported from cogs above
 @bot.tree.command()
-async def ping(ctx):
+async def ping(interaction: discord.Interaction) -> None:
     """A simple command to check if the bot is responsive."""
-    logging.info('/ping command invoked by %s', ctx.user.name)
-    await ctx.response.send_message('pong')
-
-
-@bot.tree.command(name='sync', description='Admin only - Syncs the command tree.')
-async def sync(interaction: discord.Interaction):
-    """Syncs the command tree with Discord. This is an admin-only command."""
-    # note: adding new commands requires a client restart to show the new commands
-    logging.info("%s has activated /sync", interaction.user.name)
-    await bot.tree.sync()
-    await interaction.response.send_message('Command tree synced.', delete_after=5)
-    logging.info('Command tree synced.')
-
+    logging.info('/ping command invoked by %s', interaction.user.name)
+    await interaction.response.send_message('pong')
 
 @bot.tree.command(name='listcommands', description='Shows list of all commands')
-async def listcommands(ctx):
+async def listcommands(interaction: discord.Interaction) -> None:
     """Displays a list of all available commands in the bot."""
-    logging.info('/listcommands command invoked by %s', ctx.user.name)
+    logging.info('/listcommands command invoked by %s', interaction.user.name)
     embed = discord.Embed(
         title="List of Commands",
         description="Here are all the available commands:",
@@ -88,32 +122,51 @@ async def listcommands(ctx):
 
     # Root-level commands
     embed.add_field(name="/ping", value="Returns pong", inline=False)
-    embed.add_field(name="/sync", value="Admin only - Syncs the command tree.", inline=False)
     embed.add_field(name="/listcommands", value="Shows list of all commands", inline=False)
+
+    # Permissions cog commands
+    embed.add_field(name="/checkpermissions", value="Checks the permissions of a user.", inline=False)
+    embed.add_field(name="/listbannedusers", value="Lists all banned users.", inline=False)
+    embed.add_field(name="/listvipusers", value="Lists all VIP users.", inline=False)
+    embed.add_field(name="/grantbanuser", value="Bans a user from using the bot.", inline=False)
+    embed.add_field(name="/grantvipuser", value="Grants VIP status to a user.", inline=False)
+    embed.add_field(name="/resetpermissions", value="Resets permissions for a user.", inline=False)
 
     # Games cog commands
     embed.add_field(name="/coinflip", value="Flips a coin.", inline=False)
     embed.add_field(name="/diceroll", value="Rolls an N-sided die (defaults to 6).", inline=False)
+    embed.add_field(name="/8ball", value="Ask the magic 8 ball a question.", inline=False)
+    embed.add_field(name="/rockpaperscissors", value="Play rock-paper-scissors against the bot.", inline=False)
 
     # Fun cog commands
-    embed.add_field(name="/roast", value="Roast a user.", inline=False)
     embed.add_field(name="/say", value="Repeat after me.", inline=False)
+    embed.add_field(name="/roast", value="Roast a user.", inline=False)
 
     # Utility cog commands
     embed.add_field(name="/userinfo", value="Displays information about a user.", inline=False)
     embed.add_field(name="/serverinfo", value="Displays information about the server.", inline=False)
 
-    await ctx.response.send_message(embed=embed, ephemeral=False)
+    await interaction.response.send_message(embed=embed, ephemeral=False)
 
 
 # Main entry point
 if __name__ == "__main__":
+    # creating necessary directories if they don't exist
+    data_dir = Path(__file__).resolve().parent / "data"
+    permissions_dir = data_dir / "permissions"
+    logs_dir = data_dir / "logs"
+
+    permissions_dir.mkdir(parents=True, exist_ok=True)
+    logs_dir.mkdir(parents=True, exist_ok=True)
+
     # set up logging
     logging.basicConfig(
         level=logging.INFO,  # Set logging level
         format='%(asctime)s - %(levelname)s - %(message)s',
         handlers=[
-            logging.FileHandler(f"{Path(__file__).resolve().parent / 'bot_log.log'}", mode='w'),
+            logging.FileHandler(f"{Path(__file__).resolve().parent / 'data' / 'logs' / 'bot.log'}",
+                                mode='w',
+                                encoding='utf-8'),
             logging.StreamHandler()
         ]
     )
@@ -122,3 +175,4 @@ if __name__ == "__main__":
     # running the bot
     load_dotenv()
     asyncio.run(bot.start_bot())
+
