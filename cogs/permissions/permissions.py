@@ -61,10 +61,17 @@ class Permissions(Cog, name="Permissions"):
         logging.info("BANNED users list requested by %s", interaction.user.name)
         await interaction.response.defer()
 
-        content = await self.bot.permission_manager.read_banned_ids_from_file()
+        banned_ids = await self.bot.permission_manager.read_banned_ids_from_file()
+        banned_names = []
+
+        for user_id in banned_ids:
+            user = await self.bot.fetch_user(user_id)
+            banned_names.append(user.mention if user else f"Unknown User ({user_id})")
+
+        description = "\n".join(banned_names) if banned_names else "No banned users found."
         embed = discord.Embed(
             title="BANNED Users",
-            description=content,
+            description=description,
             color=discord.Colour.red()
         )
         await interaction.followup.send(embed=embed)
@@ -85,10 +92,17 @@ class Permissions(Cog, name="Permissions"):
         logging.info("VIP users list requested by %s", interaction.user.name)
         await interaction.response.defer()
 
-        content = await self.bot.permission_manager.read_vip_ids_from_file()
+        vip_ids = await self.bot.permission_manager.read_vip_ids_from_file()
+        vip_names = []
+
+        for user_id in vip_ids:
+            user = await self.bot.fetch_user(user_id)
+            vip_names.append(user.mention if user else f"Unknown User ({user_id})")
+
+        description = "\n".join(vip_names) if vip_names else "No VIP users found."
         embed = discord.Embed(
             title="VIP Users",
-            description=content,
+            description=description,
             color=discord.Colour.green()
         )
         await interaction.followup.send(embed=embed)
