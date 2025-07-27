@@ -1,7 +1,7 @@
 import logging
 import discord
+from discord import app_commands
 from discord.ext.commands import Cog
-from discord.app_commands import commands
 
 
 class Utility(Cog, name="Utility"):
@@ -10,7 +10,7 @@ class Utility(Cog, name="Utility"):
         logging.info("Utility cog initialized.")
         self.bot = bot
 
-    @commands.command(name='userinfo', description='Displays information about a user')
+    @app_commands.command(name='userinfo', description='Displays information about a user')
     async def userinfo(self, interaction: discord.Interaction, user: discord.User) -> None:
         """
         **Displays information about a user**
@@ -32,7 +32,7 @@ class Utility(Cog, name="Utility"):
         logging.info("User info requested for %s by %s", user.name, interaction.user.name)
         await interaction.response.send_message(embed=embed)
 
-    @commands.command(name='serverinfo', description='Displays information about the server')
+    @app_commands.command(name='serverinfo', description='Displays information about the server')
     async def serverinfo(self, interaction: discord.Interaction) -> None:
         """
         **Displays information about the server**
