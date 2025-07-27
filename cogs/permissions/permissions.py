@@ -3,7 +3,6 @@ import discord
 from discord import app_commands
 from discord.ext.commands import Cog
 
-from cogs.permissions.permissions_manager import PermissionManager
 from shared.custom_exceptions import ExecutingUserNotVIPError
 
 
@@ -29,11 +28,10 @@ class Permissions(Cog, name="Permissions"):
         logging.info("Permissions check requested for %s by %s", user.name, interaction.user.name)
         await interaction.response.defer()
 
-        permission_manager = PermissionManager()
-        if await permission_manager.is_user_banned(user.id):
+        if await self.bot.permission_manager.is_user_banned(user.id):
             status = "BANNED"
             color = discord.Colour.red()
-        elif await permission_manager.is_user_vip(user.id):
+        elif await self.bot.permission_manager.is_user_vip(user.id):
             status = "VIP"
             color = discord.Colour.green()
         else:
@@ -63,7 +61,7 @@ class Permissions(Cog, name="Permissions"):
         logging.info("BANNED users list requested by %s", interaction.user.name)
         await interaction.response.defer()
 
-        content = await PermissionManager().read_banned_ids_from_file()
+        content = await self.bot.permission_manager.read_banned_ids_from_file()
         embed = discord.Embed(
             title="BANNED Users",
             description=content,
@@ -87,7 +85,7 @@ class Permissions(Cog, name="Permissions"):
         logging.info("VIP users list requested by %s", interaction.user.name)
         await interaction.response.defer()
 
-        content = await PermissionManager().read_vip_ids_from_file()
+        content = await self.bot.permission_manager.read_vip_ids_from_file()
         embed = discord.Embed(
             title="VIP Users",
             description=content,
@@ -113,11 +111,10 @@ class Permissions(Cog, name="Permissions"):
         logging.info("BANNED Status requested for %s by %s", user.name, interaction.user.name)
         await interaction.response.defer()
 
-        permission_manager = PermissionManager()
-        if not await permission_manager.is_user_vip(interaction.user.id):
+        if not await self.bot.permission_manager.is_user_vip(interaction.user.id):
             raise ExecutingUserNotVIPError(interaction.user)
 
-        await permission_manager.add_banned_user_id(user, interaction)
+        await self.bot.permission_manager.add_banned_user_id(user, interaction)
 
 
     @app_commands.command(name='grantvipuser', description='Grants VIP status to a user')
@@ -137,11 +134,10 @@ class Permissions(Cog, name="Permissions"):
         logging.info("VIP Status requested for %s by %s", user.name, interaction.user.name)
         await interaction.response.defer()
 
-        permission_manager = PermissionManager()
-        if not await permission_manager.is_user_vip(interaction.user.id):
+        if not await self.bot.permission_manager.is_user_vip(interaction.user.id):
             raise ExecutingUserNotVIPError(interaction.user)
 
-        await permission_manager.add_vip_user_id(user, interaction)
+        await self.bot.permission_manager.add_vip_user_id(user, interaction)
 
 
     @app_commands.command(name='resetpermissions', description='Resets permissions for a user')
@@ -161,12 +157,11 @@ class Permissions(Cog, name="Permissions"):
         logging.info("Permissions reset requested for %s by %s", user.name, interaction.user.name)
         await interaction.response.defer()
 
-        permission_manager = PermissionManager()
-        if not await permission_manager.is_user_vip(interaction.user.id):
+        if not await self.bot.permission_manager.is_user_vip(interaction.user.id):
             raise ExecutingUserNotVIPError(interaction.user)
 
-        await permission_manager.remove_vip_user_id(user.id)
-        await permission_manager.remove_banned_user_id(user.id)
+        await self.bot.permission_manager.remove_vip_user_id(user.id)
+        await self.bot.permission_manager.remove_banned_user_id(user.id)
         await interaction.followup.send(f"Permissions for user {user.name} have been reset.")
         logging.info("Permissions reset for user: %s (ID: %d)", user.name, user.id)
 

@@ -68,7 +68,7 @@ class VideoJoker(commands.Bot):
         # left for debugging purposes, uncomment if needed to add more handled exceptions
         # logging.error("Error in command '%s': %s", interaction.command.name, repr(error))
 
-        if isinstance(error.original, ExecutingUserNotVIPError):
+        if hasattr(error, 'original') and isinstance(error.original, ExecutingUserNotVIPError):
             logging.warning("User %s (ID: %s) attempted to use a VIP-only command without VIP status.",
                             interaction.user.name, interaction.user.id)
             message = "🚫👑 You lack the VIP status required for this command."
