@@ -11,13 +11,13 @@ class Fun(Cog, name="Fun"):
         logging.info("Fun cog initialized.")
         self.bot = bot
     @commands.command(name='say', description='Repeat after me')
-    async def say(self, ctx, *, message: str):
+    async def say(self, ctx, *, message: str) -> None:
         """Repeats the given message"""
         logging.info("%s asked the bot to say: '%s'", ctx.user.name, message)
         await ctx.response.send_message(message)
 
     @commands.command(name='roast', description='Roast a user')
-    async def roast(self, ctx, user: discord.User):
+    async def roast(self, ctx, user: discord.User) -> None:
         """Roasts a user"""
         # Update these with better roasts, maybe use an API for that?
         roasts = [

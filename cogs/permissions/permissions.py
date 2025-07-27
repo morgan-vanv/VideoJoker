@@ -15,7 +15,7 @@ class Permissions(Cog, name="Permissions"):
         self.bot = bot
 
     @app_commands.command(name='checkpermissions', description='Checks the permissions of a user')
-    async def check_permissions(self, interaction: discord.Interaction, user: discord.User):
+    async def check_permissions(self, interaction: discord.Interaction, user: discord.User) -> None:
         """
         **Replies to the executing user with the permissions of the user provided**
 
@@ -49,7 +49,7 @@ class Permissions(Cog, name="Permissions"):
 
 
     @app_commands.command(name='listbannedusers', description='Lists all banned users')
-    async def list_banned_users(self, interaction: discord.Interaction):
+    async def list_banned_users(self, interaction: discord.Interaction) -> None:
         """
         **Replies to the executing user with a list of all BANNED users**
 
@@ -73,7 +73,7 @@ class Permissions(Cog, name="Permissions"):
 
 
     @app_commands.command(name='listvipusers', description='Lists all VIP users')
-    async def list_vip_users(self, interaction: discord.Interaction):
+    async def list_vip_users(self, interaction: discord.Interaction) -> None:
         """
         **Replies to the executing user with a list of all VIP users**
 
@@ -97,7 +97,7 @@ class Permissions(Cog, name="Permissions"):
 
 
     @app_commands.command(name='grantbanuser', description='Bans a user from using the bot')
-    async def grant_ban_user(self, interaction: discord.Interaction, user: discord.User):
+    async def grant_ban_user(self, interaction: discord.Interaction, user: discord.User) -> None:
         """
         **Grants BANNED status to the user provided**
 
@@ -121,7 +121,7 @@ class Permissions(Cog, name="Permissions"):
 
 
     @app_commands.command(name='grantvipuser', description='Grants VIP status to a user')
-    async def grant_vip_user(self, interaction: discord.Interaction, user: discord.User):
+    async def grant_vip_user(self, interaction: discord.Interaction, user: discord.User) -> None:
         """
         **Grants VIP status to the user provided**
 
@@ -145,7 +145,7 @@ class Permissions(Cog, name="Permissions"):
 
 
     @app_commands.command(name='resetpermissions', description='Resets permissions for a user')
-    async def reset_permissions(self, interaction: discord.Interaction, user: discord.User):
+    async def reset_permissions(self, interaction: discord.Interaction, user: discord.User) -> None:
         """
         **Resets the permissions of the user provided**
 

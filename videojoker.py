@@ -105,16 +105,15 @@ bot = VideoJoker()
 
 # Beginning of the Root level commands exposed to users, the rest are imported from cogs above
 @bot.tree.command()
-async def ping(ctx):
+async def ping(interaction: discord.Interaction) -> None:
     """A simple command to check if the bot is responsive."""
-    logging.info('/ping command invoked by %s', ctx.user.name)
-    await ctx.response.send_message('pong')
-
+    logging.info('/ping command invoked by %s', interaction.user.name)
+    await interaction.response.send_message('pong')
 
 @bot.tree.command(name='listcommands', description='Shows list of all commands')
-async def listcommands(ctx):
+async def listcommands(interaction: discord.Interaction) -> None:
     """Displays a list of all available commands in the bot."""
-    logging.info('/listcommands command invoked by %s', ctx.user.name)
+    logging.info('/listcommands command invoked by %s', interaction.user.name)
     embed = discord.Embed(
         title="List of Commands",
         description="Here are all the available commands:",
@@ -147,7 +146,7 @@ async def listcommands(ctx):
     embed.add_field(name="/userinfo", value="Displays information about a user.", inline=False)
     embed.add_field(name="/serverinfo", value="Displays information about the server.", inline=False)
 
-    await ctx.response.send_message(embed=embed, ephemeral=False)
+    await interaction.response.send_message(embed=embed, ephemeral=False)
 
 
 # Main entry point
