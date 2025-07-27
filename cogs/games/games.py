@@ -1,6 +1,8 @@
 import logging
 import random
-from discord.app_commands import commands
+
+import discord
+from discord import app_commands
 from discord.ext.commands import Cog
 
 
@@ -10,25 +12,25 @@ class Games(Cog, name="Games"):
         logging.info("Games cog initialized.")
         self.bot = bot
 
-    @commands.command()
-    async def coinflip(self, ctx):
+    @app_commands.command()
+    async def coinflip(self, interaction: discord.Interaction) -> None:
         """Flips a coin"""
         if random.Random().randint(0, 1) == 0:
             result = 'Heads!'
         else:
             result = 'Tails!'
-        logging.info("%s flipped a coin and got: %s", ctx.user.name, result)
-        await ctx.response.send_message(f"{ctx.user.name} flipped a coin and got: **{result}**")
+        logging.info("%s flipped a coin and got: %s", interaction.user.name, result)
+        await interaction.response.send_message(f"{interaction.user.name} flipped a coin and got: **{result}**")
 
-    @commands.command(name='diceroll', description='Rolls an N sided die (defaults to 6)')
-    async def diceroll(self, ctx, sides: int = 6):
+    @app_commands.command(name='diceroll', description='Rolls an N sided die (defaults to 6)')
+    async def diceroll(self, interaction: discord.Interaction, sides: int = 6) -> None:
         """Rolls a die, if no argument is given, defaults to 6 sides."""
         result = random.Random().randint(1, sides)
-        logging.info("%s rolled a %s on a %s-sided die.", ctx.user.name, result, sides)
-        await ctx.response.send_message(f"{ctx.user.name} rolled a **{result}** on a {sides}-sided die.")
+        logging.info("%s rolled a %s on a %s-sided die.", interaction.user.name, result, sides)
+        await interaction.response.send_message(f"{interaction.user.name} rolled a **{result}** on a {sides}-sided die.")
 
-    @commands.command(name='8ball', description='Ask the magic 8 ball a question')
-    async def eightball(self, ctx, *, question: str):
+    @app_commands.command(name='8ball', description='Ask the magic 8 ball a question')
+    async def eightball(self, interaction: discord.Interaction, question: str) -> None:
         """Ask the magic 8-ball a question"""
         responses = [
             "It is certain.", "It is decidedly so.", "Without a doubt.", "Yes - definitely.",
@@ -39,11 +41,11 @@ class Games(Cog, name="Games"):
             "Very doubtful."
         ]
         answer = random.choice(responses)
-        logging.info("%s asked the 8 ball: '%s' and got: '%s'", ctx.user.name, question, answer)
-        await ctx.response.send_message(f"{ctx.user.name} asked: '{question}'\n🎱 Magic 8 Ball says: **{answer}**")
+        logging.info("%s asked the 8 ball: '%s' and got: '%s'", interaction.user.name, question, answer)
+        await interaction.response.send_message(f"{interaction.user.name} asked: '{question}'\n🎱 Magic 8 Ball says: **{answer}**")
 
-    @commands.command(name='rockpaperscissors', description='Play rock-paper-scissors against the bot')
-    async def rockpaperscissors(self, ctx, choice: str):
+    @app_commands.command(name='rockpaperscissors', description='Play rock-paper-scissors against the bot')
+    async def rockpaperscissors(self, interaction: discord.Interaction, choice: str) -> None:
         """Play rock-paper-scissors against the bot"""
         choices = ['rock', 'paper', 'scissors']
         winning_conditions = {
@@ -54,7 +56,7 @@ class Games(Cog, name="Games"):
 
         choice = choice.lower()
         if choice not in choices:
-            await ctx.response.send_message(f"{ctx.user.name}, please choose rock, paper, or scissors.")
+            await interaction.response.send_message(f"{interaction.user.name}, please choose rock, paper, or scissors.")
             return
 
         bot_choice = random.choice(choices)
@@ -65,11 +67,6 @@ class Games(Cog, name="Games"):
         else:
             result = "I win!"
 
-        logging.info("%s played %s against bot's %s: %s", ctx.user.name, choice, bot_choice, result)
-        await ctx.response.send_message(f"{ctx.user.name} chose **{choice}**. I chose **{bot_choice}**. {result}")
+        logging.info("%s played %s against bot's %s: %s", interaction.user.name, choice, bot_choice, result)
+        await interaction.response.send_message(f"{interaction.user.name} chose **{choice}**. I chose **{bot_choice}**. {result}")
 
-
-async def setup(bot):
-    """setup function required for loading the cog"""
-    await bot.add_cog(Games(bot))
-    logging.info("Games cog loaded.")

@@ -1,7 +1,7 @@
 import logging
 import discord
+from discord import app_commands
 from discord.ext.commands import Cog
-from discord.app_commands import commands
 
 
 class Utility(Cog, name="Utility"):
@@ -10,9 +10,18 @@ class Utility(Cog, name="Utility"):
         logging.info("Utility cog initialized.")
         self.bot = bot
 
-    @commands.command(name='userinfo', description='Displays information about a user')
-    async def userinfo(self, ctx, user: discord.User):
-        """Displays information about a user"""
+    @app_commands.command(name='userinfo', description='Displays information about a user')
+    async def userinfo(self, interaction: discord.Interaction, user: discord.User) -> None:
+        """
+        **Displays information about a user**
+
+        :param interaction: The interaction object from discord
+        :type interaction: discord.Interaction
+        :param user: The Discord user to get information about.
+        :type user: discord.User
+
+        Usage Example: `/userinfo @SomeUser`
+        """
         embed = discord.Embed(
             title=f"User Info: {user.name}",
             description=f"Nickname: {user.display_name}\n"
@@ -20,13 +29,20 @@ class Utility(Cog, name="Utility"):
                         f"Joined Discord: {user.created_at.strftime('%Y-%m-%d')}",
             color=discord.Colour.blue()
         )
-        logging.info("User info requested for %s by %s", user.name, ctx.user.name)
-        await ctx.response.send_message(embed=embed)
+        logging.info("User info requested for %s by %s", user.name, interaction.user.name)
+        await interaction.response.send_message(embed=embed)
 
-    @commands.command(name='serverinfo', description='Displays information about the server')
-    async def serverinfo(self, ctx):
-        """Displays information about the server"""
-        guild = ctx.guild
+    @app_commands.command(name='serverinfo', description='Displays information about the server')
+    async def serverinfo(self, interaction: discord.Interaction) -> None:
+        """
+        **Displays information about the server**
+
+        :param interaction: The interaction object from discord
+        :type interaction: discord.Interaction
+
+        Usage Example: `/serverinfo`
+        """
+        guild = interaction.guild
         embed = discord.Embed(
             title=f"Server Info: {guild.name}", # name is still not working, fix later
             description=f"ID: {guild.id}\n"
@@ -34,10 +50,6 @@ class Utility(Cog, name="Utility"):
                         f"Created: {guild.created_at.strftime('%Y-%m-%d')}",
             color=discord.Colour.green()
         )
-        logging.info("Server info requested by %s", ctx.user.name)
-        await ctx.response.send_message(embed=embed)
+        logging.info("Server info requested by %s", interaction.user.name)
+        await interaction.response.send_message(embed=embed)
 
-async def setup(bot):
-    """setup function required for loading the cog"""
-    await bot.add_cog(Utility(bot))
-    logging.info("Utility cog loaded.")
