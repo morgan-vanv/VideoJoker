@@ -48,7 +48,7 @@ class PermissionManager:
             content = await f.read()
             return json.loads(content)
 
-    async def save_banned_ids_to_file(self, user_ids) -> None:
+    async def save_banned_ids_to_file(self, user_ids: list[int]) -> None:
         """**Saves banned user IDs to the JSON file.**"""
         async with aiofiles.open(self.BANNED_USERS_FILE, "w") as f:
             await f.write(json.dumps(user_ids, indent=2))

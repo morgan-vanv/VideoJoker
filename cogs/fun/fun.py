@@ -11,13 +11,13 @@ class Fun(Cog, name="Fun"):
         logging.info("Fun cog initialized.")
         self.bot = bot
     @commands.command(name='say', description='Repeat after me')
-    async def say(self, ctx, *, message: str) -> None:
+    async def say(self, interaction: discord.Interaction, *, message: str) -> None:
         """Repeats the given message"""
-        logging.info("%s asked the bot to say: '%s'", ctx.user.name, message)
-        await ctx.response.send_message(message)
+        logging.info("%s asked the bot to say: '%s'", interaction.user.name, message)
+        await interaction.response.send_message(message)
 
     @commands.command(name='roast', description='Roast a user')
-    async def roast(self, ctx, user: discord.User) -> None:
+    async def roast(self, interaction: discord.Interaction, user: discord.User) -> None:
         """Roasts a user"""
         # Update these with better roasts, maybe use an API for that?
         roasts = [
@@ -27,5 +27,5 @@ class Fun(Cog, name="Fun"):
             "You're like a cloud. When you disappear, it's a beautiful day."
         ]
         roast = random.choice(roasts)
-        logging.info("%s roasted %s: '%s'", ctx.user.name, user.name, roast)
-        await ctx.response.send_message(f"{ctx.user.name} roasted {user.name}: **{roast}**")
+        logging.info("%s roasted %s: '%s'", interaction.user.name, user.name, roast)
+        await interaction.response.send_message(f"{interaction.user.name} roasted {user.name}: **{roast}**")
