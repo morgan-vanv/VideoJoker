@@ -44,7 +44,11 @@ jobs:
     - name: Get changed Python files
       id: changed-files
       run: |
-        files=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep '\.py$' || true)
+        if [ -z "${{ github.event.before }}" ]; then
+          files=$(git diff --name-only HEAD~1 ${{ github.sha }} | grep '\.py$' || true)
+        else
+          files=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep '\.py$' || true)
+        fi
         echo "result=$files" >> $GITHUB_OUTPUT
 
     - name: Skip checks if no Python files changed
