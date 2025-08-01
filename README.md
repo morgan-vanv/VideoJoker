@@ -22,7 +22,7 @@ So the Video Joker would:
 Even to this day, Video Jokers remain popular in Uganda, especially for action and martial arts films. 
 We also see similar practices in other countries. I've always found this to be one of my favorite parts of films that have them.
 
-**So then, what is this?**
+**But really, what is this?**
 
 Mostly a fun side project to learn more about Discord bots and to pay homage to the VJ tradition. 
 Maybe one day this will be available to the public rather than just open source, but for now it's just for me to mess around with.
