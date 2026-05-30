@@ -5,6 +5,13 @@ from discord.ext.commands import Cog
 
 from shared.custom_exceptions import ExecutingUserNotVIPError
 
+def is_vip():
+    async def predicate(interaction: discord.Interaction) -> bool:
+        if await interaction.client.permission_manager.is_user_vip(interaction.user.id):
+            return True
+        raise ExecutingUserNotVIPError(interaction.user)
+    return app_commands.check(predicate)
+
 
 class Permissions(Cog, name="Permissions"):
     """**A cog that provides permission-related commands**"""
@@ -61,7 +68,7 @@ class Permissions(Cog, name="Permissions"):
         logging.info("BANNED users list requested by %s", interaction.user.name)
         await interaction.response.defer()
 
-        banned_ids = await self.bot.permission_manager.read_banned_ids_from_file()
+        banned_ids = await self.bot.permission_manager.get_all_banned()
         banned_names = []
 
         for user_id in banned_ids:
@@ -92,7 +99,7 @@ class Permissions(Cog, name="Permissions"):
         logging.info("VIP users list requested by %s", interaction.user.name)
         await interaction.response.defer()
 
-        vip_ids = await self.bot.permission_manager.read_vip_ids_from_file()
+        vip_ids = await self.bot.permission_manager.get_all_vips()
         vip_names = []
 
         for user_id in vip_ids:
@@ -109,6 +116,7 @@ class Permissions(Cog, name="Permissions"):
 
 
     @app_commands.command(name='grantbanuser', description='Bans a user from using the bot')
+    @is_vip()
     async def grant_ban_user(self, interaction: discord.Interaction, user: discord.User) -> None:
         """
         **Grants BANNED status to the user provided**
@@ -124,14 +132,11 @@ class Permissions(Cog, name="Permissions"):
         """
         logging.info("BANNED Status requested for %s by %s", user.name, interaction.user.name)
         await interaction.response.defer()
-
-        if not await self.bot.permission_manager.is_user_vip(interaction.user.id):
-            raise ExecutingUserNotVIPError(interaction.user)
-
         await self.bot.permission_manager.add_banned_user_id(user, interaction)
 
 
     @app_commands.command(name='grantvipuser', description='Grants VIP status to a user')
+    @is_vip()
     async def grant_vip_user(self, interaction: discord.Interaction, user: discord.User) -> None:
         """
         **Grants VIP status to the user provided**
@@ -147,14 +152,11 @@ class Permissions(Cog, name="Permissions"):
         """
         logging.info("VIP Status requested for %s by %s", user.name, interaction.user.name)
         await interaction.response.defer()
-
-        if not await self.bot.permission_manager.is_user_vip(interaction.user.id):
-            raise ExecutingUserNotVIPError(interaction.user)
-
         await self.bot.permission_manager.add_vip_user_id(user, interaction)
 
 
     @app_commands.command(name='resetpermissions', description='Resets permissions for a user')
+    @is_vip()
     async def reset_permissions(self, interaction: discord.Interaction, user: discord.User) -> None:
         """
         **Resets the permissions of the user provided**
@@ -170,12 +172,7 @@ class Permissions(Cog, name="Permissions"):
         """
         logging.info("Permissions reset requested for %s by %s", user.name, interaction.user.name)
         await interaction.response.defer()
-
-        if not await self.bot.permission_manager.is_user_vip(interaction.user.id):
-            raise ExecutingUserNotVIPError(interaction.user)
-
         await self.bot.permission_manager.remove_vip_user_id(user.id)
         await self.bot.permission_manager.remove_banned_user_id(user.id)
         await interaction.followup.send(f"Permissions for user {user.name} have been reset.")
         logging.info("Permissions reset for user: %s (ID: %d)", user.name, user.id)
-

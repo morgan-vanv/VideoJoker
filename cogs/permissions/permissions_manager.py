@@ -1,130 +1,98 @@
-import json
 import os
-from pathlib import Path
 import logging
-import aiofiles
 import discord
-
+from shared.database import get_db
 
 class PermissionManager:
     """
-    **Manages user permissions, specifically BANNED and VIP statuses, storing in JSON files.**
-
-    This carries out the commands found in permissions.py
+    **Manages user permissions, specifically BANNED and VIP statuses, storing in an SQLite database.**
     """
 
     def __init__(self):
         self.owner_id = int(os.getenv("OWNER", "0"))
-        root_dir = Path(__file__).resolve().parent.parent.parent
-        self.data_dir = root_dir / "data" / "permissions"
-        self.VIP_USERS_FILE = self.data_dir / "vip_users_list.json"
-        self.BANNED_USERS_FILE = self.data_dir / "banned_users_list.json"
 
-        # Ensure the data directory and files exist
-        self.data_dir.mkdir(exist_ok=True)
-        if not self.VIP_USERS_FILE.exists():
-            logging.info("VIP users file does not exist, creating a new one at %s", self.VIP_USERS_FILE.name)
-            self.VIP_USERS_FILE.write_text(json.dumps([]))
-        if not self.BANNED_USERS_FILE.exists():
-            logging.info("BANNED users file does not exist, creating a new one at %s", self.BANNED_USERS_FILE.name)
-            self.BANNED_USERS_FILE.write_text(json.dumps([]))
+    async def get_all_vips(self) -> list[int]:
+        """Returns a list of all VIP user IDs, ensuring the owner is included."""
+        async with get_db() as db:
+            async with db.execute("SELECT user_id FROM permissions WHERE is_vip = 1") as cursor:
+                rows = await cursor.fetchall()
+                vips = [row[0] for row in rows]
+                if self.owner_id not in vips:
+                    vips.append(self.owner_id)
+                return vips
 
-    async def read_vip_ids_from_file(self) -> list[int]:
-        """**Reads VIP user IDs from the JSON file**"""
-        async with aiofiles.open(self.VIP_USERS_FILE, "r") as f:
-            content = await f.read()
-            user_ids = json.loads(content)
-
-        return user_ids if self.owner_id in user_ids else user_ids + [self.owner_id]  # Ensure owner is always VIP
-
-    async def save_vip_ids_to_file(self, user_ids: list[int]) -> None:
-        """**Saves list of VIP user IDs to the JSON file**"""
-        async with aiofiles.open(self.VIP_USERS_FILE, "w") as f:
-            await f.write(json.dumps(user_ids, indent=2))
-
-    async def read_banned_ids_from_file(self) -> list[int]:
-        """**Reads banned user IDs from the JSON file.**"""
-        async with aiofiles.open(self.BANNED_USERS_FILE, "r") as f:
-            content = await f.read()
-            return json.loads(content)
-
-    async def save_banned_ids_to_file(self, user_ids: list[int]) -> None:
-        """**Saves banned user IDs to the JSON file.**"""
-        async with aiofiles.open(self.BANNED_USERS_FILE, "w") as f:
-            await f.write(json.dumps(user_ids, indent=2))
+    async def get_all_banned(self) -> list[int]:
+        """Returns a list of all banned user IDs."""
+        async with get_db() as db:
+            async with db.execute("SELECT user_id FROM permissions WHERE is_banned = 1") as cursor:
+                rows = await cursor.fetchall()
+                return [row[0] for row in rows]
 
     async def is_user_vip(self, user_id: int) -> bool:
-        """**Checks if user ID is in the VIP list**"""
-        vip_user_ids = await self.read_vip_ids_from_file()
-        return user_id in vip_user_ids
+        if user_id == self.owner_id:
+            return True
+        async with get_db() as db:
+            async with db.execute("SELECT is_vip FROM permissions WHERE user_id = ?", (user_id,)) as cursor:
+                row = await cursor.fetchone()
+                return bool(row[0]) if row else False
 
     async def is_user_banned(self, user_id: int) -> bool:
-        """**Checks if user ID is in the banned list**"""
-        banned_user_ids = await self.read_banned_ids_from_file()
-        return user_id in banned_user_ids
+        async with get_db() as db:
+            async with db.execute("SELECT is_banned FROM permissions WHERE user_id = ?", (user_id,)) as cursor:
+                row = await cursor.fetchone()
+                return bool(row[0]) if row else False
 
-    async def add_vip_user_id(self, user, interaction: discord.Interaction) -> None:
-        """
-        **Adds user ID to VIP if not already present or banned**
-
-        :param user: The Discord user to add as VIP.
-        :type user: discord.User
-        :param interaction: The interaction context for sending responses.
-        :type interaction: discord.Interaction
-        """
-        vip_users = await self.read_vip_ids_from_file()
+    async def add_vip_user_id(self, user: discord.User, interaction: discord.Interaction) -> None:
         if await self.is_user_banned(user.id):
             logging.info("Cannot add user ID %d to VIP as they are BANNED", user.id)
             await interaction.followup.send(f"Cannot give user {user.name} VIP status, as they are BANNED.")
-        elif user.id in vip_users:
+            return
+
+        if await self.is_user_vip(user.id):
             logging.info("User ID %d is already a VIP user", user.id)
             await interaction.followup.send(f"User {user.name} already has VIP status.")
-        else:
-            vip_users.append(user.id)
-            await self.save_vip_ids_to_file(vip_users)
-            logging.info("Added VIP user ID to list: %d", user.id)
-            await interaction.followup.send(f"User {user.name} has been granted VIP status.")
+            return
 
-    async def add_banned_user_id(self, user, interaction: discord.Interaction) -> None:
-        """
-        **Adds user ID to banned list if not already present. Removes VIP status if applicable.**
+        async with get_db() as db:
+            await db.execute("""
+                INSERT INTO permissions (user_id, is_vip, is_banned) 
+                VALUES (?, 1, 0)
+                ON CONFLICT(user_id) DO UPDATE SET is_vip = 1
+            """, (user.id,))
+            await db.commit()
 
-        :param user: The Discord user to ban.
-        :type user: discord.User
-        :param interaction: The interaction context for sending responses.
-        :type interaction: discord.Interaction
-        """
-        banned_users = await self.read_banned_ids_from_file()
+        logging.info("Added VIP user ID to list: %d", user.id)
+        await interaction.followup.send(f"User {user.name} has been granted VIP status.")
+
+    async def add_banned_user_id(self, user: discord.User, interaction: discord.Interaction) -> None:
         if await self.is_user_vip(user.id):
             logging.info("Removing VIP status for %d before banning...", user.id)
             await self.remove_vip_user_id(user.id)
 
-        if user.id in banned_users:
+        if await self.is_user_banned(user.id):
             logging.info("User ID %d is already banned from the bot", user.id)
             await interaction.followup.send(f"User {user.name} is already banned from the bot.")
-        else:
-            banned_users.append(user.id)
-            await self.save_banned_ids_to_file(banned_users)
-            logging.info("Added banned user ID to list: %d", user.id)
-            await interaction.followup.send(f"User {user.name} has been banned from the bot.")
+            return
+
+        async with get_db() as db:
+            await db.execute("""
+                INSERT INTO permissions (user_id, is_vip, is_banned) 
+                VALUES (?, 0, 1)
+                ON CONFLICT(user_id) DO UPDATE SET is_banned = 1, is_vip = 0
+            """, (user.id,))
+            await db.commit()
+
+        logging.info("Added banned user ID to list: %d", user.id)
+        await interaction.followup.send(f"User {user.name} has been banned from the bot.")
 
     async def remove_vip_user_id(self, user_id: int) -> None:
-        """**Removes user ID from VIP if present.**"""
-        vip_users = await self.read_vip_ids_from_file()
-        if user_id in vip_users:
-            vip_users.remove(user_id)
-            await self.save_vip_ids_to_file(vip_users)
-            logging.info("Removed VIP user ID from list: %d", user_id)
-        else:
-            logging.info("User ID %d is not a VIP user", user_id)
+        async with get_db() as db:
+            await db.execute("UPDATE permissions SET is_vip = 0 WHERE user_id = ?", (user_id,))
+            await db.commit()
+        logging.info("Removed VIP status for user ID: %d", user_id)
 
     async def remove_banned_user_id(self, user_id: int) -> None:
-        """**Removes user ID from banned list if present.**"""
-        banned_users = await self.read_banned_ids_from_file()
-        if user_id in banned_users:
-            banned_users.remove(user_id)
-            await self.save_banned_ids_to_file(banned_users)
-            logging.info("Removed banned user ID from list: %d", user_id)
-        else:
-            logging.info("User ID %d is not banned from the bot", user_id)
-
+        async with get_db() as db:
+            await db.execute("UPDATE permissions SET is_banned = 0 WHERE user_id = ?", (user_id,))
+            await db.commit()
+        logging.info("Removed Banned status for user ID: %d", user_id)
