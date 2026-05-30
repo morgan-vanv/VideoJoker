@@ -6,6 +6,8 @@ from discord import app_commands
 from discord.ext.commands import Cog
 
 
+from core.constants import EIGHT_BALL_RESPONSES, RPS_CHOICES, RPS_WINNING_CONDITIONS
+
 class Games(Cog, name="Games"):
     """A cog that provides simple game commands"""
     def __init__(self, bot):
@@ -32,37 +34,22 @@ class Games(Cog, name="Games"):
     @app_commands.command(name='8ball', description='Ask the magic 8 ball a question')
     async def eightball(self, interaction: discord.Interaction, question: str) -> None:
         """Ask the magic 8-ball a question"""
-        responses = [
-            "It is certain.", "It is decidedly so.", "Without a doubt.", "Yes - definitely.",
-            "You may rely on it.", "As I see it, yes.", "Most likely.", "Outlook good.",
-            "Yes.", "Signs point to yes.", "Reply hazy, try again.", "Ask again later.",
-            "Better not tell you now.", "Cannot predict now.", "Concentrate and ask again.",
-            "Don't count on it.", "My reply is no.", "My sources say no.", "Outlook not so good.",
-            "Very doubtful."
-        ]
-        answer = random.choice(responses)
+        answer = random.choice(EIGHT_BALL_RESPONSES)
         logging.info("%s asked the 8 ball: '%s' and got: '%s'", interaction.user.name, question, answer)
         await interaction.response.send_message(f"{interaction.user.name} asked: '{question}'\n🎱 Magic 8 Ball says: **{answer}**")
 
     @app_commands.command(name='rockpaperscissors', description='Play rock-paper-scissors against the bot')
     async def rockpaperscissors(self, interaction: discord.Interaction, choice: str) -> None:
         """Play rock-paper-scissors against the bot"""
-        choices = ['rock', 'paper', 'scissors']
-        winning_conditions = {
-            'rock': 'scissors',
-            'paper': 'rock',
-            'scissors': 'paper'
-        }
-
         choice = choice.lower()
-        if choice not in choices:
+        if choice not in RPS_CHOICES:
             await interaction.response.send_message(f"{interaction.user.name}, please choose rock, paper, or scissors.")
             return
 
-        bot_choice = random.choice(choices)
+        bot_choice = random.choice(RPS_CHOICES)
         if choice == bot_choice:
             result = "It's a tie!"
-        elif winning_conditions[choice] == bot_choice:
+        elif RPS_WINNING_CONDITIONS[choice] == bot_choice:
             result = "You win!"
         else:
             result = "I win!"
@@ -70,3 +57,5 @@ class Games(Cog, name="Games"):
         logging.info("%s played %s against bot's %s: %s", interaction.user.name, choice, bot_choice, result)
         await interaction.response.send_message(f"{interaction.user.name} chose **{choice}**. I chose **{bot_choice}**. {result}")
 
+async def setup(bot):
+    await bot.add_cog(Games(bot))

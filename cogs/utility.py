@@ -33,6 +33,7 @@ class Utility(Cog, name="Utility"):
         await interaction.response.send_message(embed=embed)
 
     @app_commands.command(name='serverinfo', description='Displays information about the server')
+    @app_commands.guild_only()
     async def serverinfo(self, interaction: discord.Interaction) -> None:
         """
         **Displays information about the server**
@@ -44,7 +45,7 @@ class Utility(Cog, name="Utility"):
         """
         guild = interaction.guild
         embed = discord.Embed(
-            title=f"Server Info: {guild.name}", # name is still not working, fix later
+            title=f"Server Info: {guild.name}",
             description=f"ID: {guild.id}\n"
                         f"Member Count: {guild.member_count}\n"
                         f"Created: {guild.created_at.strftime('%Y-%m-%d')}",
@@ -53,3 +54,5 @@ class Utility(Cog, name="Utility"):
         logging.info("Server info requested by %s", interaction.user.name)
         await interaction.response.send_message(embed=embed)
 
+async def setup(bot):
+    await bot.add_cog(Utility(bot))
