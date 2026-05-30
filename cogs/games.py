@@ -57,3 +57,5 @@ class Games(Cog, name="Games"):
         logging.info("%s played %s against bot's %s: %s", interaction.user.name, choice, bot_choice, result)
         await interaction.response.send_message(f"{interaction.user.name} chose **{choice}**. I chose **{bot_choice}**. {result}")
 
+async def setup(bot):
+    await bot.add_cog(Games(bot))

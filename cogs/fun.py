@@ -30,3 +30,5 @@ class Fun(Cog, name="Fun"):
         logging.info("%s roasted %s: '%s'", interaction.user.name, user.name, roast)
         await interaction.response.send_message(f"{interaction.user.name} roasted {user.name}: **{roast}**")
 
+async def setup(bot):
+    await bot.add_cog(Fun(bot))

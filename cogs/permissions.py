@@ -176,3 +176,6 @@ class Permissions(Cog, name="Permissions"):
         await self.bot.permission_manager.remove_banned_user_id(user.id)
         await interaction.followup.send(f"Permissions for user {user.name} have been reset.")
         logging.info("Permissions reset for user: %s (ID: %d)", user.name, user.id)
+
+async def setup(bot):
+    await bot.add_cog(Permissions(bot))

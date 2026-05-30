@@ -54,3 +54,5 @@ class Utility(Cog, name="Utility"):
         logging.info("Server info requested by %s", interaction.user.name)
         await interaction.response.send_message(embed=embed)
 
+async def setup(bot):
+    await bot.add_cog(Utility(bot))

@@ -6,12 +6,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
-# Importing Cogs
-from cogs.games import Games
-from cogs.fun import Fun
-from cogs.permissions.permissions_manager import PermissionManager
-from cogs.utility import Utility
-from cogs.permissions import Permissions
+from core.permissions_manager import PermissionManager
 from shared.custom_exceptions import ExecutingUserNotVIPError
 
 class VideoJoker(commands.Bot):
@@ -31,10 +26,9 @@ class VideoJoker(commands.Bot):
         from shared.database import setup_database
         await setup_database()
         
-        await self.add_cog(Games(self))
-        await self.add_cog(Fun(self))
-        await self.add_cog(Utility(self))
-        await self.add_cog(Permissions(self))
+        initial_extensions = ['cogs.games', 'cogs.fun', 'cogs.utility', 'cogs.permissions', 'cogs.music']
+        for extension in initial_extensions:
+            await self.load_extension(extension)
 
         self.tree.on_error = self.on_app_command_error
         self.tree.interaction_check = self.global_interaction_check
