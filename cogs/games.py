@@ -6,7 +6,7 @@ from discord import app_commands
 from discord.ext.commands import Cog
 
 
-from shared.constants import EIGHT_BALL_RESPONSES, RPS_CHOICES, RPS_WINNING_CONDITIONS
+from core.constants import EIGHT_BALL_RESPONSES, RPS_CHOICES, RPS_WINNING_CONDITIONS
 
 class Games(Cog, name="Games"):
     """A cog that provides simple game commands"""

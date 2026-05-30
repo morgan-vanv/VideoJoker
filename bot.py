@@ -6,8 +6,8 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
-from core.permissions_manager import PermissionManager
-from shared.custom_exceptions import ExecutingUserNotVIPError
+from core.database import Database
+from core.custom_exceptions import ExecutingUserNotVIPError
 
 class VideoJoker(commands.Bot):
     """ The main bot class for VideoJoker, a Discord bot with various commands and functionalities. """
@@ -19,12 +19,11 @@ class VideoJoker(commands.Bot):
         super().__init__(intents=intents, command_prefix="/")
         
         self.token = token
-        self.permission_manager = PermissionManager()
+        self.db = Database()
 
     async def setup_hook(self):
         """Called when the bot is setting up (load cogs, sync commands, etc.)"""
-        from shared.database import setup_database
-        await setup_database()
+        await self.db.setup()
         
         initial_extensions = ['cogs.games', 'cogs.fun', 'cogs.utility', 'cogs.permissions', 'cogs.music']
         for extension in initial_extensions:
@@ -77,7 +76,7 @@ class VideoJoker(commands.Bot):
 
     async def global_interaction_check(self, interaction: discord.Interaction) -> bool:
         """Global app command check to prevent banned users from using commands."""
-        if await self.permission_manager.is_user_banned(interaction.user.id):
+        if interaction.user.id in self.db.banned:
             logging.warning("Banned user %s (ID: %s) attempted to use a command.", interaction.user.name,
                             interaction.user.id)
             await interaction.response.send_message(
