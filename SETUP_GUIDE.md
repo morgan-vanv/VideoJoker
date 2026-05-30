@@ -53,24 +53,21 @@ OWNER=your_copied_discord_user_id_here
 
 ---
 
-## 4. Setting up the Virtual Environment & Dependencies
-We will create a virtual environment (`.venv`) to isolate packages, install dependencies, and run the bot.
+## 4. Setting up Docker & Dependencies
+Because we are preparing for future music bot capabilities, this project uses Docker to package native system dependencies like `ffmpeg` along with our Python libraries.
 
-1. **Create the virtual environment**:
+1. **Ensure Docker is installed** on your Linux machine (Omarchy Linux typically uses `pacman`):
    ```bash
-   python3 -m venv .venv
+   sudo pacman -S docker docker-compose
    ```
-2. **Activate the virtual environment**:
+2. **Start the Docker Daemon** (if it isn't running):
    ```bash
-   source .venv/bin/activate
+   sudo systemctl start docker
+   sudo systemctl enable docker
    ```
-3. **Upgrade pip**:
+3. **Add yourself to the docker group** (optional, avoids needing `sudo` for docker commands):
    ```bash
-   pip install --upgrade pip
-   ```
-4. **Install the dependencies**:
-   ```bash
-   pip install -r requirements.txt
+   sudo usermod -aG docker $USER
    ```
 
 ---
@@ -90,10 +87,10 @@ We will create a virtual environment (`.venv`) to isolate packages, install depe
 ---
 
 ## 6. Running the Bot
-Once the bot is added to your server and your `.env` is set up, make sure your virtual environment is active and run:
+Once the bot is added to your server and your `.env` is set up, you can start the bot using Docker Compose. The `docker-compose.yml` file is configured to mount your local directory, meaning any changes you make in NeoVim will be synced to the container immediately.
 
 ```bash
-python main.py
+docker compose up --build
 ```
 
 ### Expected Output:

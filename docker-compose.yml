@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  videojoker:
+    build: .
+    container_name: videojoker_bot
+    restart: unless-stopped
+    volumes:
+      # Mount the current directory into /app so local edits in NeoVim apply instantly
+      - .:/app
+    env_file:
+      # Load environment variables from .env
+      - .env
