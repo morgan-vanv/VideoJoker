@@ -2,7 +2,7 @@
 
 Welcome to **VideoJoker**! This guide will walk you through getting the bot configured and running locally on your Linux system. 
 
-Since you are transitioning from PyCharm on Windows to **NeoVim** on Linux, we will use a `.env` file in the project root to manage credentials. The bot's code (`videojoker.py`) is already configured to automatically load environment variables from this file using `python-dotenv`.
+Since you are transitioning from PyCharm on Windows to **NeoVim** on Linux, use a `.env` file in the project root to manage credentials. The bot's entry point (`main.py`) loads environment variables from this file using `python-dotenv`.
 
 ---
 
@@ -35,11 +35,11 @@ The permission manager uses an `OWNER` variable to ensure you always have VIP/ad
 ---
 
 ## 3. Configuring the Workspace Environment
-Since you are using NeoVim, you can manage environment variables cleanly via a `.env` file in the root of the project `/home/morganvanv/Projects/VideoJoker`.
+Since you are using NeoVim, you can manage environment variables cleanly via a `.env` file in the root of your local VideoJoker clone.
 
 Create a `.env` file:
 ```bash
-cd /home/morganvanv/Projects/VideoJoker
+cd /path/to/VideoJoker
 nvim .env
 ```
 
@@ -73,13 +73,6 @@ We will create a virtual environment (`.venv`) to isolate packages, install depe
    pip install -r requirements.txt
    ```
 
-> [!NOTE]
-> `requirements.txt` contains both `dotenv==0.9.9` and `python-dotenv==1.1.0`. They share the same import namespace (`dotenv`), which can sometimes cause conflicts depending on installation order. If you encounter any import issues when running the bot, uninstall both and install only `python-dotenv`:
-> ```bash
-> pip uninstall dotenv python-dotenv -y
-> pip install python-dotenv==1.1.0
-> ```
-
 ---
 
 ## 5. Inviting the Bot to your Discord Server
@@ -100,7 +93,7 @@ We will create a virtual environment (`.venv`) to isolate packages, install depe
 Once the bot is added to your server and your `.env` is set up, make sure your virtual environment is active and run:
 
 ```bash
-python videojoker.py
+python main.py
 ```
 
 ### Expected Output:
