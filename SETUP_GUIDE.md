@@ -56,10 +56,15 @@ OWNER=your_copied_discord_user_id_here
 ## 4. Setting up Docker & Dependencies
 Because we are preparing for future music bot capabilities, this project uses Docker to package native system dependencies like `ffmpeg` along with our Python libraries.
 
-1. **Ensure Docker is installed** on your Linux machine (Omarchy Linux typically uses `pacman`):
-   ```bash
-   sudo pacman -S docker docker-compose
-   ```
+1. **Ensure Docker is installed** on your system. You can refer to the [Official Docker Installation Docs](https://docs.docker.com/engine/install/) or install via your package manager:
+   - **Arch / Omarchy Linux**:
+     ```bash
+     sudo pacman -S docker docker-compose
+     ```
+   - **Debian / Ubuntu**:
+     ```bash
+     sudo apt update && sudo apt install docker.io docker-compose-v2
+     ```
 2. **Start the Docker Daemon** (if it isn't running):
    ```bash
    sudo systemctl start docker
