@@ -16,3 +16,11 @@ RPS_WINNING_CONDITIONS = {
     'paper': 'rock',
     'scissors': 'paper'
 }
+
+# Roast Options
+ROASTS = [
+    "You are a stinky smeller boy.",
+    "Everyone point and laugh!",
+    "You are Italian (deragatory).",
+    "just give it up lil bro."
+]

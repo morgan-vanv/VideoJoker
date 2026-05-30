@@ -4,6 +4,8 @@ import discord
 from discord import app_commands
 from discord.ext.commands import Cog
 
+from core.constants import ROASTS
+
 
 class Fun(Cog, name="Fun"):
     """A cog that provides fun commands"""
@@ -19,14 +21,7 @@ class Fun(Cog, name="Fun"):
     @app_commands.command(name='roast', description='Roast a user')
     async def roast(self, interaction: discord.Interaction, user: discord.User) -> None:
         """Roasts a user"""
-        # Update these with better roasts, maybe use an API for that?
-        roasts = [
-            "You're as bright as a black hole, and twice as dense.",
-            "You bring everyone so much joy... when you leave the room.",
-            "You're proof that even the worst people can accomplish great things.",
-            "You're like a cloud. When you disappear, it's a beautiful day."
-        ]
-        roast = random.choice(roasts)
+        roast = random.choice(ROASTS)
         logging.info("%s roasted %s: '%s'", interaction.user.name, user.name, roast)
         await interaction.response.send_message(f"{interaction.user.name} roasted {user.name}: **{roast}**")
 
