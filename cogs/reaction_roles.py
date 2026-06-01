@@ -27,7 +27,7 @@ class ReactionRoles(Cog, name="ReactionRoles"):
 
     @Cog.listener()
     async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
-        if payload.user_id == self.bot.user.id:
+        if not self.bot.user or payload.user_id == self.bot.user.id:
             return
             
         # TODO: Look up message_id and emoji in DB
@@ -38,7 +38,7 @@ class ReactionRoles(Cog, name="ReactionRoles"):
 
     @Cog.listener()
     async def on_raw_reaction_remove(self, payload: discord.RawReactionActionEvent):
-        if payload.user_id == self.bot.user.id:
+        if not self.bot.user or payload.user_id == self.bot.user.id:
             return
             
         # TODO: Look up message_id and emoji in DB

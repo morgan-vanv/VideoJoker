@@ -31,13 +31,11 @@ class Economy(Cog, name="Economy"):
             await interaction.response.send_message("Amount must be greater than 0.", ephemeral=True)
             return
         
-        sender_balance = await self.bot.db.get_balance(interaction.user.id)
-        if sender_balance < amount:
-            await interaction.response.send_message("You don't have enough USh.", ephemeral=True)
+        success = await self.bot.db.transfer_balance(interaction.user.id, user.id, amount)
+        if not success:
+            await interaction.response.send_message("You don't have enough USh or the transfer failed.", ephemeral=True)
             return
 
-        await self.bot.db.add_balance(interaction.user.id, -amount)
-        await self.bot.db.add_balance(user.id, amount)
         await interaction.response.send_message(f"Successfully sent {amount} USh to {user.mention}.", ephemeral=False)
 
     @app_commands.command(name='gamble', description='Gamble your USh.')
