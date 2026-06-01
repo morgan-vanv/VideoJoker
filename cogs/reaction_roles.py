@@ -12,7 +12,7 @@ class ReactionRoles(Cog, name="ReactionRoles"):
     @app_commands.command(name='create_rr_message', description='Creates a new message that users can react to for a role.')
     # pylint: disable=too-many-arguments, too-many-positional-arguments
     async def create_rr_message(self, interaction: discord.Interaction, title: str, description: str, role: discord.Role, emoji: str) -> None:
-        logging.info("%s invoked /create_rr_message for role: %s, emoji: %s", interaction.user.name, role.name, emoji)
+
         # TODO: Send a formatted embed, add the reaction, and save to DB
         await interaction.response.send_message(
             f"Stub: Created RR message '{title}' ({description}) for role {role.name} with emoji {emoji}",
@@ -21,7 +21,7 @@ class ReactionRoles(Cog, name="ReactionRoles"):
 
     @app_commands.command(name='link_rr', description='Links a reaction role to an existing message.')
     async def link_rr(self, interaction: discord.Interaction, message_id: str, role: discord.Role, emoji: str) -> None:
-        logging.info("%s invoked /link_rr for message: %s, role: %s, emoji: %s", interaction.user.name, message_id, role.name, emoji)
+
         # TODO: Validate message ID, add reaction to it, and save to DB
         await interaction.response.send_message(f"Stub: Linked RR to message {message_id} for role {role.name} with emoji {emoji}", ephemeral=True)
 

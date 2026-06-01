@@ -84,6 +84,13 @@ class VideoJoker(commands.Bot):
 
     async def global_interaction_check(self, interaction: discord.Interaction) -> bool:
         """Global app command check to prevent banned users from using commands."""
+        # Log command usage
+        if interaction.command:
+            guild_name = interaction.guild.name if interaction.guild else "Direct Message"
+            channel_name = interaction.channel.name if hasattr(interaction.channel, 'name') else "Unknown Channel"
+            logging.info("User %s (ID: %s) invoked /%s in Guild: '%s', Channel: '%s'",
+                         interaction.user.name, interaction.user.id, interaction.command.name, guild_name, channel_name)
+
         if interaction.user.id in self.db.banned:
             logging.warning("Banned user %s (ID: %s) attempted to use a command.", interaction.user.name,
                             interaction.user.id)
@@ -98,12 +105,11 @@ class VideoJoker(commands.Bot):
 def setup_root_commands(bot: VideoJoker):
     @bot.tree.command(name='ping', description='A simple command to check if the bot is responsive.')
     async def ping(interaction: discord.Interaction) -> None:
-        logging.info('/ping command invoked by %s', interaction.user.name)
         await interaction.response.send_message('pong')
 
     @bot.tree.command(name='listcommands', description='Shows list of all commands')
     async def listcommands(interaction: discord.Interaction) -> None:
-        logging.info('/listcommands command invoked by %s', interaction.user.name)
+        
         
         # Get all global commands registered in the tree
         all_commands = interaction.client.tree.get_commands()

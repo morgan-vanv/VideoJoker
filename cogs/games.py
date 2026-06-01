@@ -21,21 +21,21 @@ class Games(Cog, name="Games"):
             result = 'Heads!'
         else:
             result = 'Tails!'
-        logging.info("%s flipped a coin and got: %s", interaction.user.name, result)
+
         await interaction.response.send_message(f"{interaction.user.name} flipped a coin and got: **{result}**")
 
     @app_commands.command(name='diceroll', description='Rolls an N sided die (defaults to 6)')
     async def diceroll(self, interaction: discord.Interaction, sides: int = 6) -> None:
         """Rolls a die, if no argument is given, defaults to 6 sides."""
         result = random.Random().randint(1, sides)
-        logging.info("%s rolled a %s on a %s-sided die.", interaction.user.name, result, sides)
+
         await interaction.response.send_message(f"{interaction.user.name} rolled a **{result}** on a {sides}-sided die.")
 
     @app_commands.command(name='8ball', description='Ask the magic 8 ball a question')
     async def eightball(self, interaction: discord.Interaction, question: str) -> None:
         """Ask the magic 8-ball a question"""
         answer = random.choice(EIGHT_BALL_RESPONSES)
-        logging.info("%s asked the 8 ball: '%s' and got: '%s'", interaction.user.name, question, answer)
+
         await interaction.response.send_message(f"{interaction.user.name} asked: '{question}'\n🎱 Magic 8 Ball says: **{answer}**")
 
     @app_commands.command(name='rockpaperscissors', description='Play rock-paper-scissors against the bot')
@@ -54,7 +54,7 @@ class Games(Cog, name="Games"):
         else:
             result = "I win!"
 
-        logging.info("%s played %s against bot's %s: %s", interaction.user.name, choice, bot_choice, result)
+
         await interaction.response.send_message(f"{interaction.user.name} chose **{choice}**. I chose **{bot_choice}**. {result}")
 
 async def setup(bot):

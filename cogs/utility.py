@@ -29,7 +29,7 @@ class Utility(Cog, name="Utility"):
                         f"Joined Discord: {user.created_at.strftime('%Y-%m-%d')}",
             color=discord.Colour.blue()
         )
-        logging.info("User info requested for %s by %s", user.name, interaction.user.name)
+
         await interaction.response.send_message(embed=embed)
 
     @app_commands.command(name='serverinfo', description='Displays information about the server')

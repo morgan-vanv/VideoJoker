@@ -65,9 +65,13 @@ class Database:
 
     async def _execute(self, query: str, parameters: tuple = ()):
         """Helper to execute a query securely using aiosqlite."""
-        async with aiosqlite.connect(DB_PATH) as db:
-            await db.execute(query, parameters)
-            await db.commit()
+        try:
+            async with aiosqlite.connect(DB_PATH) as db:
+                await db.execute(query, parameters)
+                await db.commit()
+        except Exception as e:
+            logging.error("Database execution error: %s | Query: %s | Params: %s", e, query, parameters)
+            raise
 
     async def set_user_role(self, user_id: int, role: str):
         """Sets a user's role to VIP or BANNED."""
@@ -102,10 +106,14 @@ class Database:
 
     # Economy Methods
     async def get_balance(self, user_id: int) -> int:
-        async with aiosqlite.connect(DB_PATH) as db:
-            async with db.execute("SELECT balance FROM economy WHERE user_id = ?", (user_id,)) as cursor:
-                row = await cursor.fetchone()
-                return row[0] if row else 0
+        try:
+            async with aiosqlite.connect(DB_PATH) as db:
+                async with db.execute("SELECT balance FROM economy WHERE user_id = ?", (user_id,)) as cursor:
+                    row = await cursor.fetchone()
+                    return row[0] if row else 0
+        except Exception as e:
+            logging.error("Database read error in get_balance for user %s: %s", user_id, e)
+            return 0
 
     async def add_balance(self, user_id: int, amount: int):
         await self._execute("""
@@ -116,10 +124,14 @@ class Database:
 
     # XP Methods
     async def get_xp(self, user_id: int) -> tuple[int, int]:
-        async with aiosqlite.connect(DB_PATH) as db:
-            async with db.execute("SELECT server_xp, bot_xp FROM xp WHERE user_id = ?", (user_id,)) as cursor:
-                row = await cursor.fetchone()
-                return row if row else (0, 0)
+        try:
+            async with aiosqlite.connect(DB_PATH) as db:
+                async with db.execute("SELECT server_xp, bot_xp FROM xp WHERE user_id = ?", (user_id,)) as cursor:
+                    row = await cursor.fetchone()
+                    return row if row else (0, 0)
+        except Exception as e:
+            logging.error("Database read error in get_xp for user %s: %s", user_id, e)
+            return (0, 0)
 
     async def add_server_xp(self, user_id: int, amount: int = 1):
         await self._execute("""
@@ -144,8 +156,12 @@ class Database:
         """, (message_id, emoji, role_id))
 
     async def get_reaction_role(self, message_id: int, emoji: str) -> int:
-        async with aiosqlite.connect(DB_PATH) as db:
-            async with db.execute("SELECT role_id FROM reaction_roles WHERE message_id = ? AND emoji = ?", (message_id, emoji)) as cursor:
-                row = await cursor.fetchone()
-                return row[0] if row else None
+        try:
+            async with aiosqlite.connect(DB_PATH) as db:
+                async with db.execute("SELECT role_id FROM reaction_roles WHERE message_id = ? AND emoji = ?", (message_id, emoji)) as cursor:
+                    row = await cursor.fetchone()
+                    return row[0] if row else None
+        except Exception as e:
+            logging.error("Database read error in get_reaction_role: %s", e)
+            return None
 
