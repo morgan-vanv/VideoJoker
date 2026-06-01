@@ -138,15 +138,29 @@ def setup_root_commands(bot: VideoJoker):
         
         for category in sorted_categories:
             category_commands = sorted(grouped_commands[category], key=lambda c: c.name)
-            command_list = []
+            current_value = ""
+            field_index = 1
             for cmd in category_commands:
                 desc = cmd.description or "No description provided."
-                command_list.append(f"**/{cmd.name}** - {desc}")
+                line = f"**/{cmd.name}** - {desc}\n"
+                
+                # Check if adding this line would exceed the 1024 character limit for embed fields
+                if len(current_value) + len(line) > 1000:
+                    embed.add_field(
+                        name=f"{category} (Part {field_index})" if field_index > 1 else category,
+                        value=current_value,
+                        inline=False
+                    )
+                    current_value = line
+                    field_index += 1
+                else:
+                    current_value += line
             
-            embed.add_field(
-                name=category,
-                value="\n".join(command_list) if command_list else "No commands.",
-                inline=False
-            )
+            if current_value:
+                embed.add_field(
+                    name=f"{category} (Part {field_index})" if field_index > 1 else category,
+                    value=current_value,
+                    inline=False
+                )
             
         await interaction.response.send_message(embed=embed, ephemeral=False)

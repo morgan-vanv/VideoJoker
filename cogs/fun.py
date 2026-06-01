@@ -16,7 +16,7 @@ class Fun(Cog, name="Fun"):
     async def say(self, interaction: discord.Interaction, message: str) -> None:
         """Repeats the given message"""
 
-        await interaction.response.send_message(message)
+        await interaction.response.send_message(message, allowed_mentions=discord.AllowedMentions.none())
 
     @app_commands.command(name='roast', description='Roast a user')
     async def roast(self, interaction: discord.Interaction, user: discord.User) -> None:

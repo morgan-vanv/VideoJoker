@@ -55,7 +55,7 @@ class Utility(Cog, name="Utility"):
 
     @Cog.listener()
     async def on_message(self, message: discord.Message):
-        if message.author.bot:
+        if message.author.bot or message.guild is None:
             return
         # Add 1 Server XP for every message
         await self.bot.db.add_server_xp(message.author.id, 1)
