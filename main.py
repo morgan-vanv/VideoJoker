@@ -1,4 +1,5 @@
 import os
+import sys
 import asyncio
 import logging
 from pathlib import Path
@@ -17,25 +18,30 @@ if __name__ == "__main__":
     permissions_dir.mkdir(parents=True, exist_ok=True)
     logs_dir.mkdir(parents=True, exist_ok=True)
 
+    from logging.handlers import RotatingFileHandler
+
     # set up logging
     logging.basicConfig(
         level=logging.INFO,  # Set logging level
-        format='%(asctime)s - %(levelname)s - %(message)s',
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
         handlers=[
-            logging.FileHandler(logs_dir / 'bot.log',
-                                mode='w',
+            RotatingFileHandler(logs_dir / 'bot.log',
+                                maxBytes=5 * 1024 * 1024,  # 5 MB
+                                backupCount=3,
                                 encoding='utf-8'),
             logging.StreamHandler()
         ]
     )
-    logging.getLogger("discord").setLevel(logging.WARNING)
+    logging.getLogger("discord").setLevel(logging.INFO)
+    logging.getLogger("discord.http").setLevel(logging.WARNING)
+    logging.getLogger("discord.gateway").setLevel(logging.WARNING)
 
     # load env and start the bot
     load_dotenv()
     token = os.getenv('DISCORD_TOKEN')
     if not token:
         logging.error("DISCORD_TOKEN not found in environment variables.")
-        exit(1)
+        sys.exit(1)
 
     bot = VideoJoker(token=token)
     asyncio.run(bot.start_bot())

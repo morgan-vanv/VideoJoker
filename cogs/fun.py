@@ -15,14 +15,14 @@ class Fun(Cog, name="Fun"):
     @app_commands.command(name='say', description='Repeat after me')
     async def say(self, interaction: discord.Interaction, message: str) -> None:
         """Repeats the given message"""
-        logging.info("%s asked the bot to say: '%s'", interaction.user.name, message)
-        await interaction.response.send_message(message)
+
+        await interaction.response.send_message(message, allowed_mentions=discord.AllowedMentions.none())
 
     @app_commands.command(name='roast', description='Roast a user')
     async def roast(self, interaction: discord.Interaction, user: discord.User) -> None:
         """Roasts a user"""
         roast = random.choice(ROASTS)
-        logging.info("%s roasted %s: '%s'", interaction.user.name, user.name, roast)
+
         await interaction.response.send_message(f"{interaction.user.name} roasted {user.name}: **{roast}**")
 
 async def setup(bot):

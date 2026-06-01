@@ -25,7 +25,15 @@ class VideoJoker(commands.Bot):
         """Called when the bot is setting up (load cogs, sync commands, etc.)"""
         await self.db.setup()
         
-        initial_extensions = ['cogs.games', 'cogs.fun', 'cogs.utility', 'cogs.permissions', 'cogs.music']
+        initial_extensions = [
+            'cogs.games', 
+            'cogs.fun', 
+            'cogs.utility', 
+            'cogs.permissions', 
+            'cogs.music',
+            'cogs.economy',
+            'cogs.reaction_roles'
+        ]
         for extension in initial_extensions:
             await self.load_extension(extension)
 
@@ -76,6 +84,13 @@ class VideoJoker(commands.Bot):
 
     async def global_interaction_check(self, interaction: discord.Interaction) -> bool:
         """Global app command check to prevent banned users from using commands."""
+        # Log command usage
+        if interaction.command:
+            guild_name = interaction.guild.name if interaction.guild else "Direct Message"
+            channel_name = interaction.channel.name if hasattr(interaction.channel, 'name') else "Unknown Channel"
+            logging.info("User %s (ID: %s) invoked /%s in Guild: '%s', Channel: '%s'",
+                         interaction.user.name, interaction.user.id, interaction.command.name, guild_name, channel_name)
+
         if interaction.user.id in self.db.banned:
             logging.warning("Banned user %s (ID: %s) attempted to use a command.", interaction.user.name,
                             interaction.user.id)
@@ -86,46 +101,72 @@ class VideoJoker(commands.Bot):
             return False
         return True
 
+    async def close(self):
+        """Clean up resources before closing the bot."""
+        logging.info("Closing database connection...")
+        await self.db.close()
+        await super().close()
+
 
 def setup_root_commands(bot: VideoJoker):
     @bot.tree.command(name='ping', description='A simple command to check if the bot is responsive.')
     async def ping(interaction: discord.Interaction) -> None:
-        logging.info('/ping command invoked by %s', interaction.user.name)
         await interaction.response.send_message('pong')
 
     @bot.tree.command(name='listcommands', description='Shows list of all commands')
     async def listcommands(interaction: discord.Interaction) -> None:
-        logging.info('/listcommands command invoked by %s', interaction.user.name)
+        
+        
+        # Get all global commands registered in the tree
+        all_commands = interaction.client.tree.get_commands()
+        
+        # Group commands by Cog name or 'General'
+        grouped_commands = {}
+        for cmd in all_commands:
+            if hasattr(cmd, 'binding') and cmd.binding is not None:
+                category = getattr(cmd.binding, 'qualified_name', 'General')
+            else:
+                category = 'General'
+            
+            if category not in grouped_commands:
+                grouped_commands[category] = []
+            grouped_commands[category].append(cmd)
+            
+        # Create embed
         embed = discord.Embed(
             title="List of Commands",
             description="Here are all the available commands:",
             color=discord.Colour.dark_grey()
         )
-
-        # Root-level commands
-        embed.add_field(name="/ping", value="Returns pong", inline=False)
-        embed.add_field(name="/listcommands", value="Shows list of all commands", inline=False)
-
-        # Permissions cog commands
-        embed.add_field(name="/checkpermissions", value="Checks the permissions of a user.", inline=False)
-        embed.add_field(name="/listbannedusers", value="Lists all banned users.", inline=False)
-        embed.add_field(name="/listvipusers", value="Lists all VIP users.", inline=False)
-        embed.add_field(name="/grantbanuser", value="Bans a user from using the bot.", inline=False)
-        embed.add_field(name="/grantvipuser", value="Grants VIP status to a user.", inline=False)
-        embed.add_field(name="/resetpermissions", value="Resets permissions for a user.", inline=False)
-
-        # Games cog commands
-        embed.add_field(name="/coinflip", value="Flips a coin.", inline=False)
-        embed.add_field(name="/diceroll", value="Rolls an N-sided die (defaults to 6).", inline=False)
-        embed.add_field(name="/8ball", value="Ask the magic 8 ball a question.", inline=False)
-        embed.add_field(name="/rockpaperscissors", value="Play rock-paper-scissors against the bot.", inline=False)
-
-        # Fun cog commands
-        embed.add_field(name="/say", value="Repeat after me.", inline=False)
-        embed.add_field(name="/roast", value="Roast a user.", inline=False)
-
-        # Utility cog commands
-        embed.add_field(name="/userinfo", value="Displays information about a user.", inline=False)
-        embed.add_field(name="/serverinfo", value="Displays information about the server.", inline=False)
-
+        
+        # Sort categories so General comes first, then alphabetically
+        sorted_categories = sorted(grouped_commands.keys(), key=lambda x: (x != 'General', x))
+        
+        for category in sorted_categories:
+            category_commands = sorted(grouped_commands[category], key=lambda c: c.name)
+            current_value = ""
+            field_index = 1
+            for cmd in category_commands:
+                desc = cmd.description or "No description provided."
+                line = f"**/{cmd.name}** - {desc}\n"
+                
+                # Check if adding this line would exceed the 1024 character limit for embed fields
+                if len(current_value) + len(line) > 1000:
+                    embed.add_field(
+                        name=f"{category} (Part {field_index})" if field_index > 1 else category,
+                        value=current_value,
+                        inline=False
+                    )
+                    current_value = line
+                    field_index += 1
+                else:
+                    current_value += line
+            
+            if current_value:
+                embed.add_field(
+                    name=f"{category} (Part {field_index})" if field_index > 1 else category,
+                    value=current_value,
+                    inline=False
+                )
+            
         await interaction.response.send_message(embed=embed, ephemeral=False)
