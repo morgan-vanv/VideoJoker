@@ -1,8 +1,8 @@
-# Local Setup Guide for VideoJoker on Linux
+# Local Setup Guide for VideoJoker
 
-Welcome to **VideoJoker**! This guide will walk you through getting the bot configured and running locally on your Linux system. 
+Welcome to **VideoJoker**! This guide will walk you through getting the bot configured and running locally on your system. 
 
-Since you are transitioning from PyCharm on Windows to **NeoVim** on Linux, use a `.env` file in the project root to manage credentials. The bot's entry point (`main.py`) loads environment variables from this file using `python-dotenv`.
+We use a `.env` file in the project root to manage credentials. The bot's entry point (`main.py`) loads environment variables from this file using `python-dotenv`.
 
 ---
 
@@ -35,15 +35,10 @@ The permission manager uses an `OWNER` variable to ensure you always have VIP/ad
 ---
 
 ## 3. Configuring the Workspace Environment
-Since you are using NeoVim, you can manage environment variables cleanly via a `.env` file in the root of your local VideoJoker clone.
+Manage environment variables cleanly via a `.env` file in the root of your local VideoJoker clone.
 
-Create a `.env` file:
-```bash
-cd /path/to/VideoJoker
-nvim .env
-```
+Create a `.env` file in the project root directory and add the following lines, replacing the placeholder values:
 
-Add the following lines, replacing the placeholder values:
 ```env
 DISCORD_TOKEN=your_copied_bot_token_here
 OWNER=your_copied_discord_user_id_here
@@ -56,24 +51,8 @@ OWNER=your_copied_discord_user_id_here
 ## 4. Setting up Docker & Dependencies
 Because we are preparing for future music bot capabilities, this project uses Docker to package native system dependencies like `ffmpeg` along with our Python libraries.
 
-1. **Ensure Docker is installed** on your system. You can refer to the [Official Docker Installation Docs](https://docs.docker.com/engine/install/) or install via your package manager:
-   - **Arch / Omarchy Linux**:
-     ```bash
-     sudo pacman -S docker docker-compose
-     ```
-   - **Debian / Ubuntu**:
-     ```bash
-     sudo apt update && sudo apt install docker.io docker-compose-v2
-     ```
-2. **Start the Docker Daemon** (if it isn't running):
-   ```bash
-   sudo systemctl start docker
-   sudo systemctl enable docker
-   ```
-3. **Add yourself to the docker group** (optional, avoids needing `sudo` for docker commands):
-   ```bash
-   sudo usermod -aG docker $USER
-   ```
+1. **Ensure Docker is installed** on your system. You can refer to the [Official Docker Installation Docs](https://docs.docker.com/engine/install/).
+2. Make sure the Docker daemon is running on your machine.
 
 ---
 
@@ -92,7 +71,7 @@ Because we are preparing for future music bot capabilities, this project uses Do
 ---
 
 ## 6. Running the Bot
-Once the bot is added to your server and your `.env` is set up, you can start the bot using Docker Compose. The `docker-compose.yml` file is configured to mount your local directory, meaning any changes you make in NeoVim will be synced to the container immediately.
+Once the bot is added to your server and your `.env` is set up, you can start the bot using Docker Compose. The `docker-compose.yml` file is configured to mount your local directory, meaning any changes you make will be synced to the container immediately.
 
 ```bash
 docker compose up --build
@@ -111,3 +90,4 @@ Upon startup, the console logs should look similar to:
 ```
 
 Try typing `/ping` in your server—the bot should respond with `pong`.
+

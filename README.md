@@ -62,3 +62,21 @@ _See `DESIGNDOCUMENT.md` for information on what might come in the future_
 ### Utility Cog Commands
 - **/userinfo [user]** (*Displays information about a user, including their nickname, ID, and the date they joined Discord.*)
 - **/serverinfo** (*Displays information about the server, including its name, ID, member count, and creation date.*)
+- **/rank [user]** (*Check your or another user's Server and Bot engagement XP.*)
+- **/leaderboard [category]** (*Shows the top users in server or bot engagement.*)
+
+### Economy Cog Commands
+- **/balance [user]** (*Check your or another user's USh balance.*)
+- **/pay [user] [amount]** (*Send USh to another user.*)
+- **/gamble [amount]** (*Gamble your USh.*)
+
+### Reaction Roles Cog Commands
+- **/create_rr_message [title] [description] [role] [emoji]** (*Creates a new message that users can react to for a role.*)
+- **/link_rr [message_id] [role] [emoji]** (*Links a reaction role to an existing message.*)
+
+### Music Cog Commands
+- **/play [query]** (*Plays a song from a link or search query.*)
+- **/skip** (*Skips the currently playing song.*)
+- **/queue** (*Shows the current music queue.*)
+- **/stop** (*Stops the music and clears the queue.*)
+- **/effects [effect]** (*Applies an audio effect to the music.*)
