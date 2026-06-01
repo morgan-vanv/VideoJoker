@@ -25,7 +25,15 @@ class VideoJoker(commands.Bot):
         """Called when the bot is setting up (load cogs, sync commands, etc.)"""
         await self.db.setup()
         
-        initial_extensions = ['cogs.games', 'cogs.fun', 'cogs.utility', 'cogs.permissions', 'cogs.music']
+        initial_extensions = [
+            'cogs.games', 
+            'cogs.fun', 
+            'cogs.utility', 
+            'cogs.permissions', 
+            'cogs.music',
+            'cogs.economy',
+            'cogs.reaction_roles'
+        ]
         for extension in initial_extensions:
             await self.load_extension(extension)
 

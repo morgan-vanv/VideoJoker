@@ -26,10 +26,30 @@ class Database:
                     role TEXT CHECK(role IN ('VIP', 'BANNED'))
                 )
             ''')
+            await db.execute('''
+                CREATE TABLE IF NOT EXISTS economy (
+                    user_id INTEGER PRIMARY KEY,
+                    balance INTEGER DEFAULT 0
+                )
+            ''')
+            await db.execute('''
+                CREATE TABLE IF NOT EXISTS xp (
+                    user_id INTEGER PRIMARY KEY,
+                    server_xp INTEGER DEFAULT 0,
+                    bot_xp INTEGER DEFAULT 0
+                )
+            ''')
+            await db.execute('''
+                CREATE TABLE IF NOT EXISTS reaction_roles (
+                    message_id INTEGER,
+                    emoji TEXT,
+                    role_id INTEGER,
+                    PRIMARY KEY (message_id, emoji)
+                )
+            ''')
             # Drop the old permissions table if it exists to keep the schema clean
             await db.execute("DROP TABLE IF EXISTS permissions")
             await db.commit()
-            
             # Load the cache
             async with db.execute("SELECT user_id, role FROM user_roles") as cursor:
                 rows = await cursor.fetchall()
@@ -79,3 +99,53 @@ class Database:
         if user_id != self.owner_id:
             self.vips.discard(user_id)
         self.banned.discard(user_id)
+
+    # Economy Methods
+    async def get_balance(self, user_id: int) -> int:
+        async with aiosqlite.connect(DB_PATH) as db:
+            async with db.execute("SELECT balance FROM economy WHERE user_id = ?", (user_id,)) as cursor:
+                row = await cursor.fetchone()
+                return row[0] if row else 0
+
+    async def add_balance(self, user_id: int, amount: int):
+        await self._execute("""
+            INSERT INTO economy (user_id, balance) 
+            VALUES (?, ?)
+            ON CONFLICT(user_id) DO UPDATE SET balance = balance + excluded.balance
+        """, (user_id, amount))
+
+    # XP Methods
+    async def get_xp(self, user_id: int) -> tuple[int, int]:
+        async with aiosqlite.connect(DB_PATH) as db:
+            async with db.execute("SELECT server_xp, bot_xp FROM xp WHERE user_id = ?", (user_id,)) as cursor:
+                row = await cursor.fetchone()
+                return row if row else (0, 0)
+
+    async def add_server_xp(self, user_id: int, amount: int = 1):
+        await self._execute("""
+            INSERT INTO xp (user_id, server_xp, bot_xp) 
+            VALUES (?, ?, 0)
+            ON CONFLICT(user_id) DO UPDATE SET server_xp = server_xp + excluded.server_xp
+        """, (user_id, amount))
+
+    async def add_bot_xp(self, user_id: int, amount: int = 1):
+        await self._execute("""
+            INSERT INTO xp (user_id, server_xp, bot_xp) 
+            VALUES (?, 0, ?)
+            ON CONFLICT(user_id) DO UPDATE SET bot_xp = bot_xp + excluded.bot_xp
+        """, (user_id, amount))
+
+    # Reaction Role Methods
+    async def add_reaction_role(self, message_id: int, emoji: str, role_id: int):
+        await self._execute("""
+            INSERT INTO reaction_roles (message_id, emoji, role_id) 
+            VALUES (?, ?, ?)
+            ON CONFLICT(message_id, emoji) DO UPDATE SET role_id = excluded.role_id
+        """, (message_id, emoji, role_id))
+
+    async def get_reaction_role(self, message_id: int, emoji: str) -> int:
+        async with aiosqlite.connect(DB_PATH) as db:
+            async with db.execute("SELECT role_id FROM reaction_roles WHERE message_id = ? AND emoji = ?", (message_id, emoji)) as cursor:
+                row = await cursor.fetchone()
+                return row[0] if row else None
+
