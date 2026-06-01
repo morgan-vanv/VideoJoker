@@ -84,6 +84,7 @@
 - Grand Exchange price lookups (item name or id)
 
 **Longshots (unfeasible/difficult things, but could be cool down the line):**
+- polymarket functionality that lets users bet on outcomes
 - listens to the users for voice commands 
   - like "play music", "stop music", "skip song", etc.
   - or just server mute anyone who says "League of Legends"
