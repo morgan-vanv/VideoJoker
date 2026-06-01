@@ -1,4 +1,5 @@
 import os
+import asyncio
 import aiosqlite
 import logging
 from typing import Optional
@@ -17,6 +18,7 @@ class Database:
         self.vips = set()
         self.banned = set()
         self.conn: Optional[aiosqlite.Connection] = None
+        self.lock = asyncio.Lock()
 
     async def setup(self):
         """Initializes the database, creates the table, and loads the cache."""
@@ -76,12 +78,13 @@ class Database:
         """Helper to execute a query securely using aiosqlite."""
         if self.conn is None:
             raise RuntimeError("Database connection is not initialized. Did you call setup()?")
-        try:
-            await self.conn.execute(query, parameters)
-            await self.conn.commit()
-        except Exception as e:
-            logging.error("Database execution error: %s | Query: %s | Params: %s", e, query, parameters)
-            raise
+        async with self.lock:
+            try:
+                await self.conn.execute(query, parameters)
+                await self.conn.commit()
+            except Exception as e:
+                logging.error("Database execution error: %s | Query: %s | Params: %s", e, query, parameters)
+                raise
 
     async def set_user_role(self, user_id: int, role: str):
         """Sets a user's role to VIP or BANNED."""
@@ -118,13 +121,14 @@ class Database:
     async def get_balance(self, user_id: int) -> int:
         if self.conn is None:
             raise RuntimeError("Database connection is not initialized. Did you call setup()?")
-        try:
-            async with self.conn.execute("SELECT balance FROM economy WHERE user_id = ?", (user_id,)) as cursor:
-                row = await cursor.fetchone()
-                return row[0] if row else 0
-        except Exception as e:
-            logging.error("Database read error in get_balance for user %s: %s", user_id, e)
-            raise
+        async with self.lock:
+            try:
+                async with self.conn.execute("SELECT balance FROM economy WHERE user_id = ?", (user_id,)) as cursor:
+                    row = await cursor.fetchone()
+                    return row[0] if row else 0
+            except Exception as e:
+                logging.error("Database read error in get_balance for user %s: %s", user_id, e)
+                raise
 
     async def add_balance(self, user_id: int, amount: int):
         await self._execute("""
@@ -137,49 +141,51 @@ class Database:
         """Atomically transfers balance from sender to receiver. Returns True if successful."""
         if self.conn is None:
             raise RuntimeError("Database connection is not initialized. Did you call setup()?")
-        try:
-            # We use an atomic update where sender balance must be >= amount
-            await self.conn.execute("BEGIN TRANSACTION")
-            
-            # Deduct from sender
-            cursor = await self.conn.execute("""
-                UPDATE economy 
-                SET balance = balance - ? 
-                WHERE user_id = ? AND balance >= ?
-            """, (amount, sender_id, amount))
-            
-            if cursor.rowcount == 0:
-                await self.conn.rollback()
-                return False  # Insufficient funds or user not found
-                
-            # Add to receiver (insert if not exists)
-            await self.conn.execute("""
-                INSERT INTO economy (user_id, balance) 
-                VALUES (?, ?)
-                ON CONFLICT(user_id) DO UPDATE SET balance = balance + excluded.balance
-            """, (receiver_id, amount))
-            
-            await self.conn.commit()
-            return True
-        except Exception as e:
+        async with self.lock:
             try:
-                await self.conn.rollback()
-            except Exception as rollback_err:
-                logging.error("Failed to rollback transaction: %s", rollback_err)
-            logging.error("Database transfer error from %s to %s for %d: %s", sender_id, receiver_id, amount, e)
-            return False
+                # We use an atomic update where sender balance must be >= amount
+                await self.conn.execute("BEGIN IMMEDIATE TRANSACTION")
+                
+                # Deduct from sender
+                cursor = await self.conn.execute("""
+                    UPDATE economy 
+                    SET balance = balance - ? 
+                    WHERE user_id = ? AND balance >= ?
+                """, (amount, sender_id, amount))
+                
+                if cursor.rowcount == 0:
+                    await self.conn.rollback()
+                    return False  # Insufficient funds or user not found
+                    
+                # Add to receiver (insert if not exists)
+                await self.conn.execute("""
+                    INSERT INTO economy (user_id, balance) 
+                    VALUES (?, ?)
+                    ON CONFLICT(user_id) DO UPDATE SET balance = balance + excluded.balance
+                """, (receiver_id, amount))
+                
+                await self.conn.commit()
+                return True
+            except Exception as e:
+                try:
+                    await self.conn.rollback()
+                except Exception as rollback_err:
+                    logging.error("Failed to rollback transaction: %s", rollback_err)
+                logging.error("Database transfer error from %s to %s for %d: %s", sender_id, receiver_id, amount, e)
+                return False
 
     # XP Methods
     async def get_xp(self, user_id: int) -> tuple[int, int]:
         if self.conn is None:
             raise RuntimeError("Database connection is not initialized. Did you call setup()?")
-        try:
-            async with self.conn.execute("SELECT server_xp, bot_xp FROM xp WHERE user_id = ?", (user_id,)) as cursor:
-                row = await cursor.fetchone()
-                return row if row else (0, 0)
-        except Exception as e:
-            logging.error("Database read error in get_xp for user %s: %s", user_id, e)
-            raise
+        async with self.lock:
+            try:
+                async with self.conn.execute("SELECT server_xp, bot_xp FROM xp WHERE user_id = ?", (user_id,)) as cursor:
+                    row = await cursor.fetchone()
+                    return row if row else (0, 0)
+            except Exception as e:
+                logging.error("Database read error in get_xp for user %s: %s", user_id, e)
+                raise
 
     async def add_server_xp(self, user_id: int, amount: int = 1):
         await self._execute("""
@@ -206,10 +212,11 @@ class Database:
     async def get_reaction_role(self, message_id: int, emoji: str) -> Optional[int]:
         if self.conn is None:
             raise RuntimeError("Database connection is not initialized. Did you call setup()?")
-        try:
-            async with self.conn.execute("SELECT role_id FROM reaction_roles WHERE message_id = ? AND emoji = ?", (message_id, emoji)) as cursor:
-                row = await cursor.fetchone()
-                return row[0] if row else None
-        except Exception as e:
-            logging.error("Database read error in get_reaction_role: %s", e)
-            raise
+        async with self.lock:
+            try:
+                async with self.conn.execute("SELECT role_id FROM reaction_roles WHERE message_id = ? AND emoji = ?", (message_id, emoji)) as cursor:
+                    row = await cursor.fetchone()
+                    return row[0] if row else None
+            except Exception as e:
+                logging.error("Database read error in get_reaction_role: %s", e)
+                raise

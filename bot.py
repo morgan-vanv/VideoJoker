@@ -101,6 +101,12 @@ class VideoJoker(commands.Bot):
             return False
         return True
 
+    async def close(self):
+        """Clean up resources before closing the bot."""
+        logging.info("Closing database connection...")
+        await self.db.close()
+        await super().close()
+
 
 def setup_root_commands(bot: VideoJoker):
     @bot.tree.command(name='ping', description='A simple command to check if the bot is responsive.')
