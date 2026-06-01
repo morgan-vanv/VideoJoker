@@ -104,36 +104,43 @@ def setup_root_commands(bot: VideoJoker):
     @bot.tree.command(name='listcommands', description='Shows list of all commands')
     async def listcommands(interaction: discord.Interaction) -> None:
         logging.info('/listcommands command invoked by %s', interaction.user.name)
+        
+        # Get all global commands registered in the tree
+        all_commands = interaction.client.tree.get_commands()
+        
+        # Group commands by Cog name or 'General'
+        grouped_commands = {}
+        for cmd in all_commands:
+            if hasattr(cmd, 'binding') and cmd.binding is not None:
+                category = getattr(cmd.binding, 'qualified_name', 'General')
+            else:
+                category = 'General'
+            
+            if category not in grouped_commands:
+                grouped_commands[category] = []
+            grouped_commands[category].append(cmd)
+            
+        # Create embed
         embed = discord.Embed(
             title="List of Commands",
             description="Here are all the available commands:",
             color=discord.Colour.dark_grey()
         )
-
-        # Root-level commands
-        embed.add_field(name="/ping", value="Returns pong", inline=False)
-        embed.add_field(name="/listcommands", value="Shows list of all commands", inline=False)
-
-        # Permissions cog commands
-        embed.add_field(name="/checkpermissions", value="Checks the permissions of a user.", inline=False)
-        embed.add_field(name="/listbannedusers", value="Lists all banned users.", inline=False)
-        embed.add_field(name="/listvipusers", value="Lists all VIP users.", inline=False)
-        embed.add_field(name="/grantbanuser", value="Bans a user from using the bot.", inline=False)
-        embed.add_field(name="/grantvipuser", value="Grants VIP status to a user.", inline=False)
-        embed.add_field(name="/resetpermissions", value="Resets permissions for a user.", inline=False)
-
-        # Games cog commands
-        embed.add_field(name="/coinflip", value="Flips a coin.", inline=False)
-        embed.add_field(name="/diceroll", value="Rolls an N-sided die (defaults to 6).", inline=False)
-        embed.add_field(name="/8ball", value="Ask the magic 8 ball a question.", inline=False)
-        embed.add_field(name="/rockpaperscissors", value="Play rock-paper-scissors against the bot.", inline=False)
-
-        # Fun cog commands
-        embed.add_field(name="/say", value="Repeat after me.", inline=False)
-        embed.add_field(name="/roast", value="Roast a user.", inline=False)
-
-        # Utility cog commands
-        embed.add_field(name="/userinfo", value="Displays information about a user.", inline=False)
-        embed.add_field(name="/serverinfo", value="Displays information about the server.", inline=False)
-
+        
+        # Sort categories so General comes first, then alphabetically
+        sorted_categories = sorted(grouped_commands.keys(), key=lambda x: (x != 'General', x))
+        
+        for category in sorted_categories:
+            category_commands = sorted(grouped_commands[category], key=lambda c: c.name)
+            command_list = []
+            for cmd in category_commands:
+                desc = cmd.description or "No description provided."
+                command_list.append(f"**/{cmd.name}** - {desc}")
+            
+            embed.add_field(
+                name=category,
+                value="\n".join(command_list) if command_list else "No commands.",
+                inline=False
+            )
+            
         await interaction.response.send_message(embed=embed, ephemeral=False)
