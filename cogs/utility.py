@@ -51,7 +51,6 @@ class Utility(Cog, name="Utility"):
                         f"Created: {guild.created_at.strftime('%Y-%m-%d')}",
             color=discord.Colour.green()
         )
-        logging.info("Server info requested by %s", interaction.user.name)
         await interaction.response.send_message(embed=embed)
 
     @Cog.listener()
@@ -71,7 +70,6 @@ class Utility(Cog, name="Utility"):
     @app_commands.command(name='rank', description="Check your or another user's XP rank.")
     async def rank(self, interaction: discord.Interaction, user: discord.User = None) -> None:
         target_user = user or interaction.user
-        logging.info("%s checked XP rank for %s", interaction.user.name, target_user.name)
         server_xp, bot_xp = await self.bot.db.get_xp(target_user.id)
         
         embed = discord.Embed(
@@ -88,7 +86,6 @@ class Utility(Cog, name="Utility"):
         app_commands.Choice(name='Bot Engagement', value='bot_xp')
     ])
     async def leaderboard(self, interaction: discord.Interaction, category: app_commands.Choice[str]) -> None:
-        logging.info("%s checked leaderboard for %s", interaction.user.name, category.name)
         # TODO: Implement database query for top 10 and display leaderboard
         await interaction.response.send_message(f"Stub: Leaderboard for '{category.name}'", ephemeral=True)
 

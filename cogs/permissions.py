@@ -142,7 +142,6 @@ class Permissions(Cog, name="Permissions"):
             return
 
         await self.bot.db.set_user_role(user.id, 'BANNED')
-        logging.info("Added banned user ID to list: %d", user.id)
         await interaction.followup.send(f"User {user.name} has been banned from the bot.")
 
 
@@ -173,7 +172,6 @@ class Permissions(Cog, name="Permissions"):
             return
 
         await self.bot.db.set_user_role(user.id, 'VIP')
-        logging.info("Added VIP user ID to list: %d", user.id)
         await interaction.followup.send(f"User {user.name} has been granted VIP status.")
 
 
@@ -197,7 +195,6 @@ class Permissions(Cog, name="Permissions"):
         
         await self.bot.db.remove_user_role(user.id)
         await interaction.followup.send(f"Permissions for user {user.name} have been reset.")
-        logging.info("Permissions reset for user: %s (ID: %d)", user.name, user.id)
 
 async def setup(bot):
     await bot.add_cog(Permissions(bot))
