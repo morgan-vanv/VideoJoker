@@ -20,11 +20,13 @@ class Economy(Cog, name="Economy"):
     @app_commands.command(name='balance', description="Check your or another user's balance.")
     async def balance(self, interaction: discord.Interaction, user: discord.User = None) -> None:
         target_user = user or interaction.user
+        logging.info("%s checked balance of %s", interaction.user.name, target_user.name)
         balance = await self.bot.db.get_balance(target_user.id)
         await interaction.response.send_message(f"{target_user.mention} has {balance} USh.", ephemeral=False)
 
     @app_commands.command(name='pay', description='Send USh to another user.')
     async def pay(self, interaction: discord.Interaction, user: discord.User, amount: int) -> None:
+        logging.info("%s initiated pay of %d USh to %s", interaction.user.name, amount, user.name)
         if amount <= 0:
             await interaction.response.send_message("Amount must be greater than 0.", ephemeral=True)
             return
@@ -40,6 +42,7 @@ class Economy(Cog, name="Economy"):
 
     @app_commands.command(name='gamble', description='Gamble your USh.')
     async def gamble(self, interaction: discord.Interaction, amount: int) -> None:
+        logging.info("%s invoked /gamble with %d USh", interaction.user.name, amount)
         # TODO: Implement actual gambling games
         await interaction.response.send_message(f"Stub: Gambled {amount} USh. Features coming soon!", ephemeral=True)
 

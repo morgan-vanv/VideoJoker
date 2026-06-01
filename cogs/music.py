@@ -11,21 +11,25 @@ class Music(Cog, name="Music"):
 
     @app_commands.command(name='play', description='Plays a song from a link or search query.')
     async def play(self, interaction: discord.Interaction, query: str) -> None:
+        logging.info("%s invoked /play with query: '%s'", interaction.user.name, query)
         # TODO: Implement play
         await interaction.response.send_message(f"Stub: Play song '{query}'", ephemeral=True)
 
     @app_commands.command(name='skip', description='Skips the currently playing song.')
     async def skip(self, interaction: discord.Interaction) -> None:
+        logging.info("%s invoked /skip", interaction.user.name)
         # TODO: Implement skip
         await interaction.response.send_message("Stub: Skips the song.", ephemeral=True)
 
     @app_commands.command(name='queue', description='Shows the current music queue.')
     async def queue(self, interaction: discord.Interaction) -> None:
+        logging.info("%s invoked /queue", interaction.user.name)
         # TODO: Implement queue
         await interaction.response.send_message("Stub: Shows the queue.", ephemeral=True)
 
     @app_commands.command(name='stop', description='Stops the music and clears the queue.')
     async def stop(self, interaction: discord.Interaction) -> None:
+        logging.info("%s invoked /stop", interaction.user.name)
         # TODO: Implement stop
         await interaction.response.send_message("Stub: Stops music and clears queue.", ephemeral=True)
 
@@ -36,6 +40,7 @@ class Music(Cog, name="Music"):
         app_commands.Choice(name='8D Audio', value='8d_audio')
     ])
     async def effects(self, interaction: discord.Interaction, effect: app_commands.Choice[str]) -> None:
+        logging.info("%s invoked /effects with effect: '%s'", interaction.user.name, effect.name)
         # TODO: Implement audio effects
         await interaction.response.send_message(f"Stub: Applies effect '{effect.name}'", ephemeral=True)
 
