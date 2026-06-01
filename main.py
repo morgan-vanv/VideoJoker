@@ -1,4 +1,5 @@
 import os
+import sys
 import asyncio
 import logging
 from pathlib import Path
@@ -35,7 +36,7 @@ if __name__ == "__main__":
     token = os.getenv('DISCORD_TOKEN')
     if not token:
         logging.error("DISCORD_TOKEN not found in environment variables.")
-        exit(1)
+        sys.exit(1)
 
     bot = VideoJoker(token=token)
     asyncio.run(bot.start_bot())

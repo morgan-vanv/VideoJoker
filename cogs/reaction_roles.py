@@ -10,9 +10,13 @@ class ReactionRoles(Cog, name="ReactionRoles"):
         self.bot = bot
 
     @app_commands.command(name='create_rr_message', description='Creates a new message that users can react to for a role.')
+    # pylint: disable=too-many-arguments, too-many-positional-arguments
     async def create_rr_message(self, interaction: discord.Interaction, title: str, description: str, role: discord.Role, emoji: str) -> None:
         # TODO: Send a formatted embed, add the reaction, and save to DB
-        await interaction.response.send_message(f"Stub: Created RR message for role {role.name} with emoji {emoji}", ephemeral=True)
+        await interaction.response.send_message(
+            f"Stub: Created RR message '{title}' ({description}) for role {role.name} with emoji {emoji}",
+            ephemeral=True
+        )
 
     @app_commands.command(name='link_rr', description='Links a reaction role to an existing message.')
     async def link_rr(self, interaction: discord.Interaction, message_id: str, role: discord.Role, emoji: str) -> None:
@@ -29,7 +33,6 @@ class ReactionRoles(Cog, name="ReactionRoles"):
         # if role_id:
         #     role = guild.get_role(role_id)
         #     await member.add_roles(role)
-        pass
 
     @Cog.listener()
     async def on_raw_reaction_remove(self, payload: discord.RawReactionActionEvent):
@@ -41,7 +44,6 @@ class ReactionRoles(Cog, name="ReactionRoles"):
         # if role_id:
         #     role = guild.get_role(role_id)
         #     await member.remove_roles(role)
-        pass
 
 async def setup(bot):
     await bot.add_cog(ReactionRoles(bot))
