@@ -58,6 +58,7 @@ _See `DESIGNDOCUMENT.md` for information on what might come in the future_
 ### Fun Cog Commands
 - **/say [message]** (*The bot repeats the given message.*)
 - **/roast [user]** (*Roasts a user with a random humorous insult.*)
+- **/russianroulette [message]** (*Russian Roulette simulator.*)
 
 ### Utility Cog Commands
 - **/userinfo [user]** (*Displays information about a user, including their nickname, ID, and the date they joined Discord.*)
