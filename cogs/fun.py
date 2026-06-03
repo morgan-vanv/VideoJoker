@@ -25,5 +25,11 @@ class Fun(Cog, name="Fun"):
 
         await interaction.response.send_message(f"{interaction.user.name} roasted {user.name}: **{roast}**")
 
+    @app_commands.command(name='russianroulette', description='Play russian roulette')
+    async def russianRoulette(self, interaction: discord.Interaction) -> None:
+        """Game of Russian Roulette"""
+
+        await interaction.response.send_message(f"Let's play Russian Roulette comrade.")
+
 async def setup(bot):
     await bot.add_cog(Fun(bot))
