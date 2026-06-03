@@ -29,7 +29,12 @@ class Fun(Cog, name="Fun"):
     async def russianroulette(self, interaction: discord.Interaction) -> None:
         """Game of Russian Roulette"""
 
-        await interaction.response.send_message('Let\'s play Russian Roulette comrade.')
+        roll = random.randint(1, 6)
+
+        if roll == 1:
+            await interaction.response.send_message(f"Boom! You are dead comrade.")
+        else:
+            await interaction.response.send_message(f"You live another day comrade.")
 
 async def setup(bot):
     await bot.add_cog(Fun(bot))
