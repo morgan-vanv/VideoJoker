@@ -28,10 +28,15 @@ class MonteView(discord.ui.View):
         else:
             result_msg = f"{interaction.user.mention} tried to beat the odds at Three Card Monte and Lost! :("
 
-        await interaction.response.edit_message(view=None)
-        # await interaction.delete_original_response()
-        # logging.warning(self.invocation)
-        await self.invocation.followup.send(result_msg)
+        # Edit the ephemeral selection message to remove the buttons
+        await interaction.response.edit_message(content="Card selected! Check the main chat for results.", view=None)
+
+        try:
+            # Update the original command invocation message with results
+            await self.invocation.edit_original_response(content=result_msg)
+        except discord.NotFound:
+            # Fallback if the original message was somehow deleted
+            await self.invocation.followup.send(result_msg)
 
         self.stop()
 
@@ -111,10 +116,14 @@ class Games(Cog, name="Games"):
             4. bot replies to the interaction with results in the message
         """
 
+        # Respond publicly so the results can be linked to the command invocation
+        await interaction.response.send_message("The dealer is shuffling the cards...", ephemeral=False)
+
         card = random.choice(["A", "B", "C"])
         view = MonteView(winning_card=card, user_id=interaction.user.id, invocation=interaction)
 
-        await interaction.response.send_message(f"Pick a card, any card!", view=view, ephemeral=True)
+        # Send the ephemeral selection message
+        await interaction.followup.send(f"Pick a card, any card!", view=view, ephemeral=True)
 
 async def setup(bot):
     await bot.add_cog(Games(bot))
