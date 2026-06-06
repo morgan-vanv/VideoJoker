@@ -1,7 +1,9 @@
 import logging
 import random
+from email import message
 
 import discord
+from dill.pointers import parent
 from discord import app_commands
 from discord.ext.commands import Cog
 
@@ -16,19 +18,28 @@ class MonteView(discord.ui.View):
         super().__init__(timeout=30)    # times out automatically if user doesn't press a button
         self.user_id = user_id
         self.winning_card = winning_card
-
+    
     # Functions that create the buttons - I would like to customize the look of the buttons a bit more
     @discord.ui.button(label=CARD_LABEL, style=discord.ButtonStyle.primary, custom_id="A")
     async def card_a(self, button, interaction):
-        await button.response.send_message(f"You clicked card {button.custom_id}!")
+        if self.winning_card == button.custom_id:
+            await button.response.send_message(f"You Win!")
+        else:
+            await button.response.send_message(f"You Lose :(")
 
     @discord.ui.button(label=CARD_LABEL, style=discord.ButtonStyle.primary, custom_id="B")
     async def card_b(self, button, interaction):
-        await button.response.send_message(f"You clicked card {button.custom_id}!")
+        if self.winning_card == button.custom_id:
+            await button.response.send_message(f"You Win!")
+        else:
+            await button.response.send_message(f"You Lose :(")
 
     @discord.ui.button(label=CARD_LABEL, style=discord.ButtonStyle.primary, custom_id="C")
     async def card_c(self, button, interaction):
-        await button.response.send_message(f"You clicked card {button.custom_id}!")
+        if self.winning_card == button.custom_id:
+            await button.response.send_message(f"You Win!")
+        else:
+            await button.response.send_message(f"You Lose :(")
 
 class Games(Cog, name="Games"):
     """A cog that provides simple game commands"""
@@ -85,7 +96,7 @@ class Games(Cog, name="Games"):
         card = random.choice(["A", "B", "C"])
         view = MonteView(winning_card=card, user_id=interaction.user.id)
 
-        await interaction.response.send_message("Pick a card any card!", view=view)
+        await interaction.response.send_message(f"Pick a card, any card!", view=view)
 
 async def setup(bot):
     await bot.add_cog(Games(bot))
