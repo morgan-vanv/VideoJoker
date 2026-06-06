@@ -1,13 +1,13 @@
 import logging
 import random
 from email import message
+from unittest import result
 
 import discord
 from dill.pointers import parent
 from discord import app_commands, Interaction
 from discord._types import ClientT
-from discord.ext.commands import Cog
-
+from discord.ext.commands import Cog, context
 
 from core.constants import EIGHT_BALL_RESPONSES, RPS_CHOICES, RPS_WINNING_CONDITIONS
 
@@ -20,6 +20,19 @@ class MonteView(discord.ui.View):
         self.user_id = user_id
         self.winning_card = winning_card
 
+    async def handle_choice(self, interaction: discord.Interaction, choice: str) -> None:
+        """Handles the user's choice and clears the response"""
+        if choice == self.winning_card:
+            result_msg = f"You Win!"
+        else:
+            result_msg = f"You Lose :("
+
+        await interaction.response.defer()
+        await interaction.delete_original_response()
+        await interaction.followup.send(result_msg)
+
+        self.stop()
+
     # Functions that create the buttons - I would like to customize the look of the buttons a bit more
     @discord.ui.button(label=CARD_LABEL, style=discord.ButtonStyle.primary, custom_id="A")
     async def card_a(self, interaction: discord.Interaction, temp):
@@ -27,24 +40,15 @@ class MonteView(discord.ui.View):
         # logging.warning(interaction)
         # logging.warning(interaction.custom_id)
 
-        if self.winning_card == interaction.custom_id:
-            await interaction.response.send_message(f"You Win!")
-        else:
-            await interaction.response.send_message(f"You Lose :(")
+        await self.handle_choice(interaction, interaction.custom_id)
 
     @discord.ui.button(label=CARD_LABEL, style=discord.ButtonStyle.primary, custom_id="B")
     async def card_b(self, interaction: discord.Interaction, temp):
-        if self.winning_card == interaction.custom_id:
-            await interaction.response.send_message(f"You Win!")
-        else:
-            await interaction.response.send_message(f"You Lose :(")
+        await self.handle_choice(interaction, interaction.custom_id)
 
     @discord.ui.button(label=CARD_LABEL, style=discord.ButtonStyle.primary, custom_id="C")
     async def card_c(self, interaction: discord.Interaction, temp):
-        if self.winning_card == interaction.custom_id:
-            await interaction.response.send_message(f"You Win!")
-        else:
-            await interaction.response.send_message(f"You Lose :(")
+        await self.handle_choice(interaction, interaction.custom_id)
 
 class Games(Cog, name="Games"):
     """A cog that provides simple game commands"""
@@ -97,7 +101,14 @@ class Games(Cog, name="Games"):
 
     @app_commands.command(name="threecardmonte", description="Play a game of Three Card Monte with the User")
     async def threecardmonte(self, interaction: discord.Interaction) -> None:
-        """Runs the Three Card Monte game with the User using buttons"""
+        """Runs the Three Card Monte game with the User using buttons
+
+            1. User calls command for /threecardmonte
+            2. bot sends an ephemeral message to channel with buttons selection
+            3. bot deletes ephemeral message once the selection is made
+            4. bot replies to the interaction with results in the message
+        """
+
         card = random.choice(["A", "B", "C"])
         view = MonteView(winning_card=card, user_id=interaction.user.id)
 
