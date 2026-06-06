@@ -28,10 +28,11 @@ class MonteView(discord.ui.View):
         else:
             result_msg = f"{interaction.user.mention} tried to beat the odds at Three Card Monte and Lost! :("
 
-        await interaction.response.edit_message(view=None)
+        await interaction.response.defer()
+        await self.invocation.delete_original_response()
         # await interaction.delete_original_response()
         # logging.warning(self.invocation)
-        await self.invocation.followup.send(result_msg)
+        await self.invocation.followup.send(result_msg, ephemeral=False)
 
         self.stop()
 
