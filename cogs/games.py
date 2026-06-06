@@ -28,8 +28,16 @@ class MonteView(discord.ui.View):
         else:
             result_msg = f"{interaction.user.mention} tried to beat the odds at Three Card Monte and Lost! :("
 
-        # Edit the ephemeral selection message to remove the buttons
-        await interaction.response.edit_message(content="Card selected! Check the main chat for results.", view=None)
+        # Try to delete the ephemeral selection message
+        try:
+            await interaction.response.defer()
+            await interaction.delete_original_response()
+        except Exception as e:
+            logging.warning(f"Could not delete ephemeral selection message: {e}. Editing instead.")
+            try:
+                await interaction.edit_original_response(content="Card selected! Check the main chat for results.", view=None)
+            except Exception as e2:
+                logging.error(f"Failed to edit ephemeral message: {e2}")
 
         try:
             # Update the original command invocation message with results
