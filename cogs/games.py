@@ -15,21 +15,23 @@ class MonteView(discord.ui.View):
     """Class for the Three Card Monte UI"""
     CARD_LABEL = "🃏"
 
-    def __init__(self, winning_card: str, user_id: int):
+    def __init__(self, winning_card: str, user_id: int, invocation: discord.Interaction):
         super().__init__(timeout=30)    # times out automatically if user doesn't press a button
         self.user_id = user_id
         self.winning_card = winning_card
+        self.invocation = invocation
 
     async def handle_choice(self, interaction: discord.Interaction, choice: str) -> None:
         """Handles the user's choice and clears the response"""
         if choice == self.winning_card:
-            result_msg = f"You Win!"
+            result_msg = f"{interaction.user.mention} tried to beat the odds at Three Card Monte and Won!"
         else:
-            result_msg = f"You Lose :("
+            result_msg = f"{interaction.user.mention} tried to beat the odds at Three Card Monte and Lost! :("
 
-        await interaction.response.defer()
-        await interaction.delete_original_response()
-        await interaction.followup.send(result_msg)
+        await interaction.response.edit_message(view=None)
+        # await interaction.delete_original_response()
+        # logging.warning(self.invocation)
+        await self.invocation.followup.send(result_msg)
 
         self.stop()
 
@@ -110,7 +112,7 @@ class Games(Cog, name="Games"):
         """
 
         card = random.choice(["A", "B", "C"])
-        view = MonteView(winning_card=card, user_id=interaction.user.id)
+        view = MonteView(winning_card=card, user_id=interaction.user.id, invocation=interaction)
 
         await interaction.response.send_message(f"Pick a card, any card!", view=view, ephemeral=True)
 
