@@ -17,6 +17,20 @@ class MonteView(discord.ui.View):
         self.winning_card = winning_card
         self.invocation = invocation
 
+        # Randomizing button styles
+            # This works because __init__() runs after the decorator function @discord.ui.button so
+            # it overwrites the already existing button style when the user runs the game
+        available_styles = [
+            discord.ButtonStyle.primary,
+            discord.ButtonStyle.success,
+            discord.ButtonStyle.danger
+        ]
+        random.shuffle(available_styles)
+
+        self.card_a.style = available_styles[0]
+        self.card_b.style = available_styles[1]
+        self.card_c.style = available_styles[2]
+
     async def handle_choice(self, interaction: discord.Interaction, choice: str) -> None:
         """Handles the user's choice and clears the response"""
         if interaction.user.id != self.user_id:
@@ -59,11 +73,11 @@ class MonteView(discord.ui.View):
     async def card_a(self, interaction: discord.Interaction, button: discord.ui.Button):
         await self.handle_choice(interaction, interaction.custom_id)
 
-    @discord.ui.button(label=CARD_LABEL, style=discord.ButtonStyle.primary, custom_id="B")
+    @discord.ui.button(label=CARD_LABEL, style=discord.ButtonStyle.success, custom_id="B")
     async def card_b(self, interaction: discord.Interaction, button: discord.ui.Button):
         await self.handle_choice(interaction, interaction.custom_id)
 
-    @discord.ui.button(label=CARD_LABEL, style=discord.ButtonStyle.primary, custom_id="C")
+    @discord.ui.button(label=CARD_LABEL, style=discord.ButtonStyle.danger, custom_id="C")
     async def card_c(self, interaction: discord.Interaction, button: discord.ui.Button):
         await self.handle_choice(interaction, interaction.custom_id)
 
