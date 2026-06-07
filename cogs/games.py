@@ -1,13 +1,9 @@
 import logging
 import random
-from email import message
-from unittest import result
 
 import discord
-from dill.pointers import parent
-from discord import app_commands, Interaction
-from discord._types import ClientT
-from discord.ext.commands import Cog, context
+from discord import app_commands
+from discord.ext.commands import Cog
 
 from core.constants import EIGHT_BALL_RESPONSES, RPS_CHOICES, RPS_WINNING_CONDITIONS
 
@@ -23,34 +19,52 @@ class MonteView(discord.ui.View):
 
     async def handle_choice(self, interaction: discord.Interaction, choice: str) -> None:
         """Handles the user's choice and clears the response"""
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message("This game of Three Card Monte isn't yours to play!", ephemeral=True)
+            return
+
         if choice == self.winning_card:
             result_msg = f"{interaction.user.mention} tried to beat the odds at Three Card Monte and Won!"
         else:
             result_msg = f"{interaction.user.mention} tried to beat the odds at Three Card Monte and Lost! :("
 
-        await interaction.response.defer()
-        await self.invocation.delete_original_response()
-        # await interaction.delete_original_response()
-        # logging.warning(self.invocation)
-        await self.invocation.followup.send(result_msg, ephemeral=False)
+        # Try to delete the ephemeral selection message
+        try:
+            await interaction.response.defer()
+            await interaction.delete_original_response()
+        except Exception as e:
+            logging.warning(f"Could not delete ephemeral selection message: {e}. Editing instead.")
+            try:
+                await interaction.edit_original_response(content="Card selected! Check the main chat for results.", view=None)
+            except Exception as e2:
+                logging.error(f"Failed to edit ephemeral message: {e2}")
+
+        try:
+            # Update the original command invocation message with results
+            await self.invocation.edit_original_response(content=result_msg)
+        except discord.NotFound:
+            # Fallback if the original message was somehow deleted
+            await self.invocation.followup.send(result_msg)
 
         self.stop()
 
-    # Functions that create the buttons - I would like to customize the look of the buttons a bit more
-    @discord.ui.button(label=CARD_LABEL, style=discord.ButtonStyle.primary, custom_id="A")
-    async def card_a(self, interaction: discord.Interaction, temp):
-        # Logging interaction when card_a button is clicked
-        # logging.warning(interaction)
-        # logging.warning(interaction.custom_id)
+    async def on_timeout(self) -> None:
+        """Handles the case where the user did not make a selection in time"""
+        try:
+            await self.invocation.edit_original_response(content="Three Card Monte timed out! The dealer packed up their cards.")
+        except Exception:
+            pass
 
+    @discord.ui.button(label=CARD_LABEL, style=discord.ButtonStyle.primary, custom_id="A")
+    async def card_a(self, interaction: discord.Interaction, button: discord.ui.Button):
         await self.handle_choice(interaction, interaction.custom_id)
 
     @discord.ui.button(label=CARD_LABEL, style=discord.ButtonStyle.primary, custom_id="B")
-    async def card_b(self, interaction: discord.Interaction, temp):
+    async def card_b(self, interaction: discord.Interaction, button: discord.ui.Button):
         await self.handle_choice(interaction, interaction.custom_id)
 
     @discord.ui.button(label=CARD_LABEL, style=discord.ButtonStyle.primary, custom_id="C")
-    async def card_c(self, interaction: discord.Interaction, temp):
+    async def card_c(self, interaction: discord.Interaction, button: discord.ui.Button):
         await self.handle_choice(interaction, interaction.custom_id)
 
 class Games(Cog, name="Games"):
@@ -59,21 +73,20 @@ class Games(Cog, name="Games"):
         logging.info("Games cog initialized.")
         self.bot = bot
 
-    @app_commands.command()
+    @app_commands.command(name='coinflip', description='Flips a coin')
     async def coinflip(self, interaction: discord.Interaction) -> None:
         """Flips a coin"""
-        if random.Random().randint(0, 1) == 0:
-            result = 'Heads!'
-        else:
-            result = 'Tails!'
-
+        result = random.choice(['Heads!', 'Tails!'])
         await interaction.response.send_message(f"{interaction.user.name} flipped a coin and got: **{result}**")
 
-    @app_commands.command(name='diceroll', description='Rolls an N sided die (defaults to 6)')
+    @app_commands.command(name='diceroll', description='Rolls an N-sided die (defaults to 6)')
     async def diceroll(self, interaction: discord.Interaction, sides: int = 6) -> None:
         """Rolls a die, if no argument is given, defaults to 6 sides."""
-        result = random.Random().randint(1, sides)
+        if sides < 1:
+            await interaction.response.send_message("A die must have at least 1 side!", ephemeral=True)
+            return
 
+        result = random.randint(1, sides)
         await interaction.response.send_message(f"{interaction.user.name} rolled a **{result}** on a {sides}-sided die.")
 
     @app_commands.command(name='8ball', description='Ask the magic 8 ball a question')
@@ -84,23 +97,23 @@ class Games(Cog, name="Games"):
         await interaction.response.send_message(f"{interaction.user.name} asked: '{question}'\n🎱 Magic 8 Ball says: **{answer}**")
 
     @app_commands.command(name='rockpaperscissors', description='Play rock-paper-scissors against the bot')
-    async def rockpaperscissors(self, interaction: discord.Interaction, choice: str) -> None:
+    @app_commands.choices(choice=[
+        app_commands.Choice(name='Rock', value='rock'),
+        app_commands.Choice(name='Paper', value='paper'),
+        app_commands.Choice(name='Scissors', value='scissors')
+    ])
+    async def rockpaperscissors(self, interaction: discord.Interaction, choice: app_commands.Choice[str]) -> None:
         """Play rock-paper-scissors against the bot"""
-        choice = choice.lower()
-        if choice not in RPS_CHOICES:
-            await interaction.response.send_message(f"{interaction.user.name}, please choose rock, paper, or scissors.")
-            return
-
+        user_choice = choice.value
         bot_choice = random.choice(RPS_CHOICES)
-        if choice == bot_choice:
+        if user_choice == bot_choice:
             result = "It's a tie!"
-        elif RPS_WINNING_CONDITIONS[choice] == bot_choice:
+        elif RPS_WINNING_CONDITIONS[user_choice] == bot_choice:
             result = "You win!"
         else:
             result = "I win!"
 
-
-        await interaction.response.send_message(f"{interaction.user.name} chose **{choice}**. I chose **{bot_choice}**. {result}")
+        await interaction.response.send_message(f"{interaction.user.name} chose **{choice.name}**. I chose **{bot_choice.capitalize()}**. {result}")
 
     @app_commands.command(name="threecardmonte", description="Play a game of Three Card Monte with the User")
     async def threecardmonte(self, interaction: discord.Interaction) -> None:
@@ -112,10 +125,14 @@ class Games(Cog, name="Games"):
             4. bot replies to the interaction with results in the message
         """
 
+        # Respond publicly so the results can be linked to the command invocation
+        await interaction.response.send_message("The dealer is shuffling the cards...", ephemeral=False)
+
         card = random.choice(["A", "B", "C"])
         view = MonteView(winning_card=card, user_id=interaction.user.id, invocation=interaction)
 
-        await interaction.response.send_message(f"Pick a card, any card!", view=view, ephemeral=True)
+        # Send the ephemeral selection message
+        await interaction.followup.send(f"Pick a card, any card!", view=view, ephemeral=True)
 
 async def setup(bot):
     await bot.add_cog(Games(bot))
