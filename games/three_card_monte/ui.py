@@ -73,12 +73,12 @@ class MonteView(discord.ui.View):
 
     @discord.ui.button(label=CARD_LABEL, style=discord.ButtonStyle.primary, custom_id="A")
     async def card_a(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await self.handle_choice(interaction, interaction.custom_id)
+        await self.handle_choice(interaction, button.custom_id)
 
     @discord.ui.button(label=CARD_LABEL, style=discord.ButtonStyle.success, custom_id="B")
     async def card_b(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await self.handle_choice(interaction, interaction.custom_id)
+        await self.handle_choice(interaction, button.custom_id)
 
     @discord.ui.button(label=CARD_LABEL, style=discord.ButtonStyle.danger, custom_id="C")
     async def card_c(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await self.handle_choice(interaction, interaction.custom_id)
+        await self.handle_choice(interaction, button.custom_id)
