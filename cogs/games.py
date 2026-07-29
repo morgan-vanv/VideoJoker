@@ -31,19 +31,26 @@ class Games(Cog, name="Games"):
         await interaction.response.send_message(f"{interaction.user.name} rolled a **{result}** on a {sides}-sided die.")
 
     @app_commands.command(name='droll', description='Roll dice using RPG notation (e.g., 2d20 + 1d4 + 5)')
-    async def droll(self, interation:discord.Interaction, expression: str = "6") -> None:
+    async def droll(self, interaction:discord.Interaction, sides: int = 6, dices: int = 1) -> None:
         # Slash commands do not support *args.  Need to figure out another approach
         """
-        Rolls dice and allows user to roll multiple ones:If no arguments are given, defaults to 1d6.
+        Rolls dice and allows user to roll multiple ones of the same dice:If no arguments are given, defaults to 1d6.
 
-        To use this command on discord, user can enter as an example 6d4 2d6 -> this would roll 6
-        d4 dice and 2d6 dice and give the total in the end.
+        To use this command on discord, user can enter as an example "/droll 10 5" -> this would roll 5 10-sided dice
+
+        Output will be each dice roll so with the example "/droll 10 5" the output would be, for example: "5 4 7 10 1"
         """
-        import re
+        if sides < 1:
+            await interaction.response.send_message("A die must have at least 1 side!", ephemeral=True)
+            return
 
-        clean_expr = expression.replace(" ", "").lower()
-        pattern = re.compile(r'[+-]?\dd\d+|[+-]?\d+')
+        if dices < 1:
+            await interaction.response.send_message("You did not roll any dice!", ephemeral=True)
+            return
 
+        all_rolls = [random.randint(1, sides) for _ in range(dices)]
+
+        await interaction.response.send_message(f"{all_rolls}")
 
     @app_commands.command(name='8ball', description='Ask the magic 8 ball a question')
     async def eightball(self, interaction: discord.Interaction, question: str) -> None:
