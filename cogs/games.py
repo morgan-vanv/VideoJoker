@@ -30,15 +30,15 @@ class Games(Cog, name="Games"):
         result = random.randint(1, sides)
         await interaction.response.send_message(f"{interaction.user.name} rolled a **{result}** on a {sides}-sided die.")
 
-    @app_commands.command(name='droll', description='Roll dice using RPG notation (e.g., 2d20 + 1d4 + 5)')
-    async def droll(self, interaction:discord.Interaction, sides: int = 6, dices: int = 1) -> None:
+    @app_commands.command(name='droll', description='Roll any number of dice of one number of sides')
+    async def droll(self, interaction:discord.Interaction, dices: int = 1, sides: int = 6) -> None:
         # Slash commands do not support *args.  Need to figure out another approach
         """
         Rolls dice and allows user to roll multiple ones of the same dice:If no arguments are given, defaults to 1d6.
 
-        To use this command on discord, user can enter as an example "/droll 10 5" -> this would roll 5 10-sided dice
+        To use this command on discord, user can enter as an example "/droll 2 20" -> this would roll 2 20-sided dice.
 
-        Output will be each dice roll so with the example "/droll 10 5" the output would be, for example: "5 4 7 10 1"
+        Output will be each dice roll so with the example "/droll 10 5" the output would be, for example: "7 20"
         """
         if sides < 1:
             await interaction.response.send_message("A die must have at least 1 side!", ephemeral=True)
@@ -48,9 +48,8 @@ class Games(Cog, name="Games"):
             await interaction.response.send_message("You did not roll any dice!", ephemeral=True)
             return
 
-        all_rolls = [random.randint(1, sides) for _ in range(dices)]
-
-        await interaction.response.send_message(f"{all_rolls}")
+        all_rolls = ", ".join(str(random.randint(1, sides)) for _ in range(dices))
+        await interaction.response.send_message(f"You rolled: {all_rolls}.")
 
     @app_commands.command(name='8ball', description='Ask the magic 8 ball a question')
     async def eightball(self, interaction: discord.Interaction, question: str) -> None:
