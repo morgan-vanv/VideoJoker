@@ -32,7 +32,6 @@ class Games(Cog, name="Games"):
 
     @app_commands.command(name='droll', description='Roll any number of dice of one number of sides')
     async def droll(self, interaction: discord.Interaction, dices: int = 1, sides: int = 6) -> None:
-        # Slash commands do not support *args.  Need to figure out another approach
         """
         Rolls dice and allows user to roll multiple ones of the same dice: If no arguments are given, defaults to 1d6.
 
