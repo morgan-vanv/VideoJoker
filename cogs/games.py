@@ -31,14 +31,15 @@ class Games(Cog, name="Games"):
         await interaction.response.send_message(f"{interaction.user.name} rolled a **{result}** on a {sides}-sided die.")
 
     @app_commands.command(name='droll', description='Roll any number of dice of one number of sides')
-    async def droll(self, interaction:discord.Interaction, dices: int = 1, sides: int = 6) -> None:
+    async def droll(self, interaction: discord.Interaction, dices: int = 1, sides: int = 6) -> None:
         # Slash commands do not support *args.  Need to figure out another approach
         """
-        Rolls dice and allows user to roll multiple ones of the same dice:If no arguments are given, defaults to 1d6.
+        Rolls dice and allows user to roll multiple ones of the same dice: If no arguments are given, defaults to 1d6.
 
         To use this command on discord, user can enter as an example "/droll 2 20" -> this would roll 2 20-sided dice.
 
-        Output will be each dice roll so with the example "/droll 10 5" the output would be, for example: "7 20"
+        Output will be each dice roll so with the example "/droll 2 20",
+        the output would be, for example: "You rolled: 7, 20."
         """
         if sides < 1:
             await interaction.response.send_message("A die must have at least 1 side!", ephemeral=True)
