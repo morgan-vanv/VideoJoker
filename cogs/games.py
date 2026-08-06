@@ -31,7 +31,7 @@ class Games(Cog, name="Games"):
         await interaction.response.send_message(f"{interaction.user.name} rolled a **{result}** on a {sides}-sided die.")
 
     @app_commands.command(name='droll', description='Roll any number of dice of one number of sides')
-    async def droll(self, interaction: discord.Interaction, dices: int = 1, sides: int = 6) -> None:
+    async def droll(self, interaction: discord.Interaction, dice: int = 1, sides: int = 6) -> None:
         """
         Rolls dice and allows user to roll multiple ones of the same dice: If no arguments are given, defaults to 1d6.
 
@@ -40,16 +40,25 @@ class Games(Cog, name="Games"):
         Output will be each dice roll so with the example "/droll 2 20",
         the output would be, for example: "You rolled: 7, 20."
         """
+        max_dice = 10
+        max_sides = 20
+
+        if dice < 1:
+            await interaction.response.send_message("You did not roll any dice!", ephemeral=True)
+            return
+        elif dice > max_dice:
+            await interaction.response.send_message(f"You can only roll up to {max_dice} dice!", ephemeral=True)
+            return
+
         if sides < 1:
             await interaction.response.send_message("A die must have at least 1 side!", ephemeral=True)
             return
-
-        if dices < 1:
-            await interaction.response.send_message("You did not roll any dice!", ephemeral=True)
+        elif sides > max_sides:
+            await interaction.response.send_message(f"Sorry, we don't have any {max_sides}-sided dice :(", ephemeral=True)
             return
 
-        all_rolls = ", ".join(str(random.randint(1, sides)) for _ in range(dices))
-        await interaction.response.send_message(f"You rolled: {all_rolls}.")
+        all_rolls = ", ".join(str(random.randint(1, sides)) for _ in range(dice))
+        await interaction.response.send_message(f"Rolling: {dice}d{sides}\n\nYou Rolled: {all_rolls}")
 
     @app_commands.command(name='8ball', description='Ask the magic 8 ball a question')
     async def eightball(self, interaction: discord.Interaction, question: str) -> None:
