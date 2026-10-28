@@ -1,0 +1,9 @@
+# Tool settings for VideoJoker. (The bot itself isn't installed as a package; this file only configures tools.)
+
+[tool.ruff]
+line-length = 120          # same limit as .pylintrc
+target-version = "py311"
+
+[tool.ruff.format]
+# Keep each file's existing ' vs " choice, so the one-time format commit only changes what matters
+quote-style = "preserve"
