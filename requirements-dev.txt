@@ -2,3 +2,5 @@
 # Usage: pip install -r requirements-dev.txt   (this also installs everything the bot needs)
 -r requirements.txt
 pylint==4.1.3
+pytest==9.2.0
+pytest-asyncio==1.4.1
