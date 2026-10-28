@@ -44,4 +44,15 @@ if __name__ == "__main__":
         sys.exit(1)
 
     bot = VideoJoker(token=token)
-    asyncio.run(bot.start_bot())
+
+    async def run_bot():
+        # `async with` guarantees bot.close() runs on the way out (closing the database cleanly),
+        # whether the bot stops normally, crashes, or is told to stop.
+        async with bot:
+            await bot.start_bot()
+
+    try:
+        asyncio.run(run_bot())
+    except KeyboardInterrupt:
+        # Ctrl+C locally, or `docker compose stop` (compose sends SIGINT, see stop_signal)
+        logging.info("Shutdown requested, bot stopped.")
