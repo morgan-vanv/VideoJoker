@@ -32,7 +32,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v7
         with:
-          python-version: "3.11"
+          python-version-file: .python-version   # same version as Docker and local dev
           cache: pip   # reuses downloaded packages between runs
           cache-dependency-path: requirements*.txt
 
