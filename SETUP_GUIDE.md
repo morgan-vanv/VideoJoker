@@ -161,3 +161,4 @@ CI runs the same checks on every pull request. Work on a branch, open a PR, and 
 - **Hotfix:** a normal `fix/...` branch and PR. Merging it releases immediately.
 - **Rollback:** run the previous version's image (every release keeps its own tag) while you fix forward.
 - **Release by hand** (e.g. to rebuild with a newer base image): Actions tab → Release → **Run workflow**.
+- **Package versions:** each release is one image with its version tag (the newest also has `latest`). Older releases built before 2026-10-29 may show extra "untagged" versions on the package page: those are parts of a tagged release, so don't delete them.
