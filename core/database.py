@@ -141,6 +141,8 @@ class Database:
 
     async def transfer_balance(self, sender_id: int, receiver_id: int, amount: int) -> bool:
         """Atomically transfers balance from sender to receiver. Returns True if successful."""
+        if amount <= 0:
+            return False  # a negative amount would move money backwards; /pay checks too, but the DB is the last line
         if self.conn is None:
             raise RuntimeError("Database connection is not initialized. Did you call setup()?")
         async with self.lock:
