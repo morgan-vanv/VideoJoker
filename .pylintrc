@@ -2,15 +2,25 @@
 # Specify the Python version used in the project
 py-version=3.11
 
+# Resolve imports from the repo root, like the bot does. Without this, pylint puts cogs/ on its path
+# (it has no __init__.py) and `games` wrongly resolves to cogs/games.py instead of the games/ package.
+source-roots=.
+
 # List of directories or files to ignore
-ignore=venv, .github
+ignore=venv, .venv, .github
+
+# Fail (non-zero exit) if the overall score drops below this. CI relies on it. (2026-10-28 decision)
+fail-under=9.5
+# ...but any error (E: likely crashes, like an undefined name) always fails, whatever the score.
+fail-on=E
 
 # Enable or disable specific Pylint checks
 disable=
 
 [MESSAGES CONTROL]
 # Disable specific message categories
-disable=missing-module-docstring,broad-exception-caught,C
+# fixme: the stubs' TODOs are intentional starter work for the crew, not problems
+disable=missing-module-docstring,broad-exception-caught,fixme,C
 
 [FORMAT]
 # Maximum number of characters on a single line

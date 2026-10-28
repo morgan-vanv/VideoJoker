@@ -13,7 +13,8 @@ class Fun(Cog, name="Fun"):
         logging.info("Fun cog initialized.")
         self.bot = bot
     @app_commands.command(name='say', description='Repeat after me')
-    async def say(self, interaction: discord.Interaction, message: str) -> None:
+    # Range makes Discord itself cap the message at 2000 characters, the most one Discord message can hold
+    async def say(self, interaction: discord.Interaction, message: app_commands.Range[str, 1, 2000]) -> None:
         """Repeats the given message"""
 
         await interaction.response.send_message(message, allowed_mentions=discord.AllowedMentions.none())
