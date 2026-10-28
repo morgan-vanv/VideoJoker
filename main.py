@@ -43,5 +43,12 @@ if __name__ == "__main__":
         logging.error("DISCORD_TOKEN not found in environment variables.")
         sys.exit(1)
 
+    owner = os.getenv('OWNER', '').strip()
+    if owner and not owner.isdigit():
+        logging.error("OWNER must be your numeric Discord user ID (got %r). See SETUP_GUIDE.md step 2.", owner)
+        sys.exit(1)
+    if not owner:
+        logging.warning("OWNER is not set, so nobody is VIP and nobody can grant VIP. See SETUP_GUIDE.md step 2.")
+
     bot = VideoJoker(token=token)
     asyncio.run(bot.start_bot())

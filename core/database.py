@@ -14,7 +14,7 @@ class Database:
     """
 
     def __init__(self):
-        self.owner_id = int(os.getenv("OWNER", "0"))
+        self.owner_id = int(os.getenv("OWNER") or 0)  # `or 0` also covers an empty "OWNER=" line in .env
         self.vips = set()
         self.banned = set()
         self.conn: Optional[aiosqlite.Connection] = None
@@ -65,8 +65,9 @@ class Database:
                 elif role == 'BANNED':
                     self.banned.add(user_id)
 
-        # Owner is implicitly VIP
-        self.vips.add(self.owner_id)
+        # Owner is implicitly VIP (0 means OWNER isn't set, and 0 isn't a real user)
+        if self.owner_id:
+            self.vips.add(self.owner_id)
         logging.info("Database loaded. VIPs: %d, Banned: %d", len(self.vips), len(self.banned))
 
     async def close(self):
