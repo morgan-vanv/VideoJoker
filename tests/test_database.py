@@ -1,4 +1,5 @@
 """Tests for core/database.py, run against a throwaway SQLite file (see the `db` fixture)."""
+
 import pytest
 
 from core.database import Database
@@ -8,6 +9,7 @@ ALICE, BOB = 1, 2  # fake Discord user ids
 
 
 # ---- Roles (VIP / BANNED) ----
+
 
 async def test_owner_is_vip_from_the_start(db):
     assert OWNER_ID in db.vips
@@ -58,6 +60,7 @@ async def test_roles_survive_a_restart(db, tmp_path):
 
 # ---- Economy (USh) ----
 
+
 async def test_new_users_start_with_zero_balance(db):
     assert await db.get_balance(ALICE) == 0
 
@@ -96,6 +99,7 @@ async def test_transfer_of_entire_balance_is_allowed(db):
 
 # ---- XP ----
 
+
 async def test_server_and_bot_xp_are_counted_separately(db):
     assert await db.get_xp(ALICE) == (0, 0)
     await db.add_server_xp(ALICE)
@@ -105,6 +109,7 @@ async def test_server_and_bot_xp_are_counted_separately(db):
 
 
 # ---- Reaction roles (database layer only; the commands are still a stub for the crew) ----
+
 
 async def test_reaction_role_lookup_and_overwrite(db):
     assert await db.get_reaction_role(555, "🎮") is None

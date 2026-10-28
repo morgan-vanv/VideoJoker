@@ -129,9 +129,12 @@ The dev bot uses its own `data-dev/` database and mounts your working folder, so
 ```bash
 python3 -m venv .venv && source .venv/bin/activate    # Python 3.14, see .python-version
 pip install -r requirements-dev.txt
+ruff format .                                          # format the code (or turn on format-on-save in your editor)
 pylint --rcfile=.pylintrc $(git ls-files '*.py')       # CI fails below 9.5 or on any error
 python -m pytest                                       # quick tests, no Discord needed
 ```
+
+Once per clone, run `git config blame.ignoreRevsFile .git-blame-ignore-revs` so `git blame` skips the one-time formatting commit and keeps showing who really wrote each line.
 
 CI runs the same checks on every pull request. Work on a branch, open a PR, and a human merges it.
 

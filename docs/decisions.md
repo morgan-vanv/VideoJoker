@@ -28,4 +28,5 @@ reconstructed from git history — correct anything that's off.
 - **2026-10-28** License: MIT (Morgan's call, confirmed after the line above), copyright "Morgan Van Valkenburgh and the VideoJoker contributors" so the crew's work is covered too.
 - **2026-10-28** Trunk-based: no `dev` branch. `main` is always deployable; testing happens in CI and on the dev bot before merging.
 - **2026-10-28** Every merge to `main` that changes bot code is a release (date version `vYYYY.MM.DD[.N]`, Docker image on GHCR, auto-generated GitHub Release notes). No release gate, so hotfixes ship as fast as any PR; rollback = previous image tag. `/ping` shows the running version.
+- **2026-10-28** Formatter applied now (not after #22) with Morgan's OK while Frankie is away; #22 will need `git merge main` + `ruff format .`. CI checks formatting from here on.
 - **2026-10-28** Release images are built with `--provenance=false`: one plain image per tag. Provenance's untagged parts looked like junk and deleting them broke v2026.10.28; flip back if the bot ever goes public.
