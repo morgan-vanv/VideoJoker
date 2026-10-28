@@ -3,6 +3,9 @@ services:
     build: .
     container_name: videojoker_bot
     restart: unless-stopped
+    # `docker compose stop` sends SIGINT (like Ctrl+C), which Python turns into a clean shutdown.
+    # The default SIGTERM is ignored by Python, so Docker would kill the bot after 10 seconds.
+    stop_signal: SIGINT
     env_file:
       # Load environment variables from .env
       - .env
