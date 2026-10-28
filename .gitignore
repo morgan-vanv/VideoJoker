@@ -4,6 +4,8 @@
 # Ignoring this specifically for VideoJoker
 *.log
 *.json
+# Runtime state (SQLite DB, logs incl. rotated bot.log.1-3) - never committed
+data/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
