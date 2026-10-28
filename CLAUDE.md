@@ -54,7 +54,7 @@ handcrafted, and sentimental. **Treat it like a friend's workshop, not a codebas
 
 ```bash
 pip install -r requirements-dev.txt                 # bot deps + dev tools (pylint)
-pylint --rcfile=.pylintrc $(git ls-files '*.py')     # CI lints changed files only; keep the score from dropping
+pylint --rcfile=.pylintrc $(git ls-files '*.py')     # CI runs exactly this on the whole repo: fails below 9.5 or on any error
 python -c "import bot, cogs.games, cogs.fun, cogs.utility, cogs.permissions, cogs.music, cogs.economy, cogs.reaction_roles"
 ```
 
