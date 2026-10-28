@@ -14,13 +14,18 @@ class VideoJoker(commands.Bot):
 
     def __init__(self, token: str):
         """ Initializes the VideoJoker bot with necessary intents. """
-        intents = discord.Intents.all()
-        intents.message_content = True
+        # Intents = which events Discord sends us. default() is everything except the three "privileged"
+        # ones (members, presences, message content), which this bot doesn't use: XP and USh only need to
+        # know that a message was sent, not what it says. Enable one here (and in the Developer Portal)
+        # when a feature needs it, e.g. intents.members = True for welcome messages.
+        intents = discord.Intents.default()
         # Bot-wide default for who a message is allowed to ping. Commands that echo user text
         # (like /8ball) can't be used to ping @everyone or a role; @user mentions still work.
         # A single send can still override this by passing its own allowed_mentions (see /say).
         safe_mentions = discord.AllowedMentions(everyone=False, roles=False, users=True, replied_user=True)
-        super().__init__(intents=intents, command_prefix="/", allowed_mentions=safe_mentions)
+        # Slash commands don't use a prefix. commands.Bot still requires one, and when_mentioned (only "@VideoJoker ...")
+        # works without the message content intent.
+        super().__init__(intents=intents, command_prefix=commands.when_mentioned, allowed_mentions=safe_mentions)
         
         self.token = token
         self.db = Database()
