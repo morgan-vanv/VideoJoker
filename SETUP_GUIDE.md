@@ -15,13 +15,11 @@ Before you can run the bot, you need to register it with Discord and obtain cred
    - Navigate to the **Bot** tab on the left sidebar.
    - Click **Add Bot** (if not already created).
    - Under the **Token** section, click **Reset Token** and copy the new token. Save this; you will use it as your `DISCORD_TOKEN`.
-4. **Enable Privileged Gateway Intents** (CRITICAL):
-   - Scroll down to the **Privileged Gateway Intents** section on the same **Bot** tab.
-   - Turn **ON** the following intents:
-     - **Presence Intent**
-     - **Server Members Intent**
-     - **Message Content Intent** (required for `intents.message_content = True`)
-   - Click **Save Changes**.
+4. **Privileged Gateway Intents: leave them all OFF.**
+   - The **Bot** tab lists three privileged intents (Presence, Server Members, Message Content).
+     VideoJoker doesn't use any of them: XP and USh only need to know *that* a message was sent, not what it says.
+   - If a future feature needs one (e.g. welcome messages need **Server Members**), it gets turned on
+     here *and* in `bot.py`, in the same PR.
 
 ---
 
@@ -37,12 +35,18 @@ The permission manager uses an `OWNER` variable to ensure you always have VIP/ad
 ## 3. Configuring the Workspace Environment
 Manage environment variables cleanly via a `.env` file in the root of your local VideoJoker clone.
 
-Create a `.env` file in the project root directory and add the following lines, replacing the placeholder values:
+Copy the template and fill in the two values from steps 1 and 2:
+
+```bash
+cp .env.example .env
+```
 
 ```env
 DISCORD_TOKEN=your_copied_bot_token_here
 OWNER=your_copied_discord_user_id_here
 ```
+
+The bot refuses to start without `DISCORD_TOKEN`, and warns you if `OWNER` is missing (then nobody is VIP).
 
 *Note: The `.gitignore` file already contains `.env`, ensuring your credentials won't be committed.*
 
@@ -62,32 +66,84 @@ Because we are preparing for future music bot capabilities, this project uses Do
 3. Under **Scopes**, select:
    - `bot`
    - `applications.commands` (enables slash command registration)
-4. Under **Bot Permissions**, select:
-   - For a personal test server, **Administrator** is the easiest choice.
-   - If you want restricted permissions, select: `Send Messages`, `Embed Links`, `Read Message History`, and `View Channels`.
+4. Under **Bot Permissions**, select only what the bot uses:
+   - `View Channels`, `Send Messages`, `Embed Links`, `Read Message History`, `Add Reactions`
+   - Later, when those features are built: `Manage Roles` (reaction roles), `Connect` + `Speak` (music).
+   - Avoid **Administrator**: it turns any bug into a server-wide one.
 5. Copy the generated URL at the bottom of the page.
 6. Paste the URL into your web browser, select your Discord server, and authorize the bot.
 
 ---
 
 ## 6. Running the Bot
-Once the bot is added to your server and your `.env` is set up, you can start the bot using Docker Compose. The `docker-compose.yml` file is configured to mount your local directory, meaning any changes you make will be synced to the container immediately.
+Once the bot is added to your server and your `.env` is set up, start it with Docker Compose.
+The first time, create the `data/` folder yourself, so it belongs to you rather than to Docker (the bot runs as a normal user and needs to write there):
 
 ```bash
-docker compose up --build
+mkdir -p data
+docker compose up --build -d     # -d = run in the background
+docker compose logs -f           # watch the logs (Ctrl+C stops watching, not the bot)
+```
+
+The code is built into the image, so **after changing code, run `docker compose up --build -d` again**. Only `data/` (the SQLite database and log files) lives outside the container, so your USh and XP survive rebuilds.
+
+Other everyday commands:
+
+```bash
+docker compose stop        # stops the bot cleanly (takes about a second)
+docker compose restart     # restart without rebuilding
 ```
 
 ### Expected Output:
 Upon startup, the console logs should look similar to:
 ```text
-2026-05-29 16:05:00,123 - INFO - Games cog initialized.
-2026-05-29 16:05:00,125 - INFO - Fun cog initialized.
-2026-05-29 16:05:00,130 - INFO - Utility cog initialized.
-2026-05-29 16:05:00,140 - INFO - Permissions cog initialized.
-2026-05-29 16:05:01,234 - INFO - Commands synced
-2026-05-29 16:05:01,500 - INFO - VideoJoker#1234 has connected.
-2026-05-29 16:05:01,501 - INFO - VideoJoker#1234 is now running and ready to serve!
+2026-10-28 16:05:00,101 - root - INFO - Database loaded. VIPs: 1, Banned: 0
+2026-10-28 16:05:00,123 - root - INFO - Games cog initialized.
+2026-10-28 16:05:00,125 - root - INFO - Fun cog initialized.
+...                         (one line per cog)
+2026-10-28 16:05:01,234 - root - INFO - Commands synced
+2026-10-28 16:05:01,500 - root - INFO - VideoJoker#1234 has connected.
+2026-10-28 16:05:01,501 - root - INFO - VideoJoker#1234 is now running and ready to serve!
 ```
 
 Try typing `/ping` in your server—the bot should respond with `pong`.
+
+---
+
+## 7. A dev bot for testing (recommended)
+
+Test changes on a second, private bot so experiments never touch the real server or the real economy:
+
+1. Repeat step 1 to create a second application (e.g. `VideoJoker Dev`), and invite it to a private test server (step 5).
+2. `cp .env.example .env.dev` and fill in the **dev** bot's token, your `OWNER`, and `DEV_GUILD_ID`
+   (with Developer Mode on, right-click your test server → **Copy Server ID**). Commands then appear instantly, in that server only.
+3. `mkdir -p data-dev`, then `docker compose -f compose.dev.yml up --build`
+
+The dev bot uses its own `data-dev/` database and mounts your working folder, so after editing code just run
+`docker compose -f compose.dev.yml restart`. Never put the real bot's token in `.env.dev`.
+
+---
+
+## 8. Working on the code
+
+```bash
+python3 -m venv .venv && source .venv/bin/activate    # Python 3.14, see .python-version
+pip install -r requirements-dev.txt
+pylint --rcfile=.pylintrc $(git ls-files '*.py')       # CI fails below 9.5 or on any error
+python -m pytest                                       # quick tests, no Discord needed
+```
+
+CI runs the same checks on every pull request. Work on a branch, open a PR, and a human merges it.
+
+---
+
+## 9. Backups and troubleshooting
+
+- **Back up the database** now and then (everyone's USh and XP live in this one file):
+  ```bash
+  docker compose stop && cp data/videojoker.db ~/videojoker-backup-$(date +%F).db && docker compose start
+  ```
+- **`PermissionError` on `data/`** (e.g. after upgrading from an older setup that ran as root):
+  `sudo chown -R "$(id -u):$(id -g)" data`. If `id -u` isn't 1000, build with `docker compose build --build-arg UID=$(id -u)`.
+- **Commands not showing up?** Global commands can take a little while to appear after a change. Restarting Discord (Ctrl+R) helps.
 
