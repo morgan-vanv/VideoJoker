@@ -1,0 +1,85 @@
+# Release: every merge to main that changes the bot itself becomes a release.
+#   1. picks a date version: v2026.10.28 (a second release that day: v2026.10.28.2, then .3, ...)
+#   2. builds the Docker image with that version baked in, and pushes it to GitHub's registry:
+#        ghcr.io/morgan-vanv/videojoker:v2026.10.28   and   ghcr.io/morgan-vanv/videojoker:latest
+#   3. creates a GitHub Release with notes generated from the merged PRs (titles + authors)
+# Docs-only merges don't release. To release by hand: Actions tab -> Release -> "Run workflow".
+# Hotfix = a normal fix PR; merging it releases immediately. Rollback = run the previous version's image.
+name: Release
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "bot.py"
+      - "main.py"
+      - "cogs/**"
+      - "core/**"
+      - "games/**"
+      - "requirements.txt"
+      - "Dockerfile"
+  workflow_dispatch:
+
+permissions:
+  contents: write   # create the tag and the GitHub Release
+  packages: write   # push the image to ghcr.io
+
+# Releases happen one at a time, in order (never cancelled half-way)
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+env:
+  IMAGE: ghcr.io/morgan-vanv/videojoker
+
+jobs:
+  release:
+    name: Build and publish a release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the code (with tags, to number same-day releases)
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Pick the version
+        id: version
+        run: |
+          base="v$(TZ=America/New_York date +%Y.%m.%d)"
+          version="$base"
+          n=2
+          while git rev-parse -q --verify "refs/tags/$version" >/dev/null; do
+            version="$base.$n"
+            n=$((n + 1))
+          done
+          echo "Releasing $version"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Log in to GitHub's container registry
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+      - name: Build the image
+        run: |
+          docker build \
+            --build-arg VERSION="${{ steps.version.outputs.version }}" \
+            --label org.opencontainers.image.source="${{ github.server_url }}/${{ github.repository }}" \
+            --label org.opencontainers.image.version="${{ steps.version.outputs.version }}" \
+            --label org.opencontainers.image.revision="${{ github.sha }}" \
+            -t "$IMAGE:${{ steps.version.outputs.version }}" \
+            -t "$IMAGE:latest" \
+            .
+
+      - name: Push the image
+        run: |
+          docker push "$IMAGE:${{ steps.version.outputs.version }}"
+          docker push "$IMAGE:latest"
+
+      - name: Create the GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${{ steps.version.outputs.version }}" \
+            --target "${{ github.sha }}" \
+            --title "${{ steps.version.outputs.version }}" \
+            --generate-notes \
+            --notes "Docker image: \`$IMAGE:${{ steps.version.outputs.version }}\`"

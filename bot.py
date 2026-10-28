@@ -6,6 +6,7 @@ from discord.ext import commands
 
 from core.database import Database
 from core.custom_exceptions import ExecutingUserNotVIPError
+from core.version import get_version
 
 class VideoJoker(commands.Bot):
     """ The main bot class for VideoJoker, a Discord bot with various commands and functionalities. """
@@ -64,7 +65,7 @@ class VideoJoker(commands.Bot):
 
     async def on_ready(self):
         """Called when the bot is ready to start working"""
-        logging.info("%s is now running and ready to serve!", self.user)
+        logging.info("%s (%s) is now running and ready to serve!", self.user, get_version())
 
     async def on_connect(self):
         """Called when the bot connects to Discord"""
@@ -131,9 +132,9 @@ class VideoJoker(commands.Bot):
 
 
 def setup_root_commands(bot: VideoJoker):
-    @bot.tree.command(name='ping', description='A simple command to check if the bot is responsive.')
+    @bot.tree.command(name='ping', description='Checks the bot is awake and shows which version is running.')
     async def ping(interaction: discord.Interaction) -> None:
-        await interaction.response.send_message('pong')
+        await interaction.response.send_message(f'pong · {get_version()}')
 
     @bot.tree.command(name='listcommands', description='Shows list of all commands')
     async def listcommands(interaction: discord.Interaction) -> None:

@@ -39,7 +39,7 @@ _See `DESIGNDOCUMENT.md` for information on what might come in the future_
 
 ### Main Bot Commands
 - **/listcommands** (*Lists all available commands in the bot along with their descriptions.*)
-- **/ping** (*Checks that the bot is awake: it answers "pong".*)
+- **/ping** (*Checks that the bot is awake: it answers "pong" and the version that's running.*)
 
 ### Permissions Cog Commands
 - **/checkpermissions** (*Checks the permissions of a user.*)

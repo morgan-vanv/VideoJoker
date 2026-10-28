@@ -49,6 +49,7 @@ handcrafted, and sentimental. **Treat it like a friend's workshop, not a codebas
   globally in `bot.global_interaction_check`.
 - Use `logging` with `%s` args, not f-strings. Max line length 120 (`.pylintrc`).
 - When you add or rename a command, update the README's command list in the same PR.
+- `main` is always deployable: merging a PR that changes bot code creates a release automatically (`.github/workflows/release.yml`). There is no `dev` branch.
 
 ## Checks before opening a PR
 
