@@ -68,7 +68,7 @@ class Utility(Cog, name="Utility"):
         await self.bot.db.add_bot_xp(interaction.user.id, 1)
 
     @app_commands.command(name='rank', description="Check your or another user's XP rank.")
-    async def rank(self, interaction: discord.Interaction, user: discord.User = None) -> None:
+    async def rank(self, interaction: discord.Interaction, user: discord.User | None = None) -> None:
         target_user = user or interaction.user
         server_xp, bot_xp = await self.bot.db.get_xp(target_user.id)
         
