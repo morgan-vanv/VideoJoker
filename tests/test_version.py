@@ -1,4 +1,5 @@
 """Tests for core/version.py."""
+
 from core.version import get_version
 
 

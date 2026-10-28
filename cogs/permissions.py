@@ -5,11 +5,13 @@ from discord.ext.commands import Cog
 
 from core.custom_exceptions import ExecutingUserNotVIPError
 
+
 def is_vip():
     async def predicate(interaction: discord.Interaction) -> bool:
         if interaction.user.id in interaction.client.db.vips:
             return True
         raise ExecutingUserNotVIPError(interaction.user)
+
     return app_commands.check(predicate)
 
 
@@ -64,13 +66,8 @@ class Permissions(Cog, name="Permissions"):
             status = "No special permissions"
             color = discord.Colour.orange()
 
-        embed = discord.Embed(
-            title=f"Permissions for: {user.name}",
-            description=f"Status: {status}",
-            color=color
-        )
+        embed = discord.Embed(title=f"Permissions for: {user.name}", description=f"Status: {status}", color=color)
         await interaction.followup.send(embed=embed)
-
 
     @app_commands.command(name='listbannedusers', description='Lists all banned users')
     async def list_banned_users(self, interaction: discord.Interaction) -> None:
@@ -89,13 +86,8 @@ class Permissions(Cog, name="Permissions"):
 
         banned_ids = self.bot.db.banned
         description = format_user_list(banned_ids, "No banned users found.")
-        embed = discord.Embed(
-            title="BANNED Users",
-            description=description,
-            color=discord.Colour.red()
-        )
+        embed = discord.Embed(title="BANNED Users", description=description, color=discord.Colour.red())
         await interaction.followup.send(embed=embed)
-
 
     @app_commands.command(name='listvipusers', description='Lists all VIP users')
     async def list_vip_users(self, interaction: discord.Interaction) -> None:
@@ -114,13 +106,8 @@ class Permissions(Cog, name="Permissions"):
 
         vip_ids = self.bot.db.vips
         description = format_user_list(vip_ids, "No VIP users found.")
-        embed = discord.Embed(
-            title="VIP Users",
-            description=description,
-            color=discord.Colour.green()
-        )
+        embed = discord.Embed(title="VIP Users", description=description, color=discord.Colour.green())
         await interaction.followup.send(embed=embed)
-
 
     @app_commands.command(name='grantbanuser', description='Bans a user from using the bot')
     @is_vip()
@@ -139,7 +126,7 @@ class Permissions(Cog, name="Permissions"):
         """
 
         await interaction.response.defer()
-        
+
         if user.id == self.bot.db.owner_id:
             await interaction.followup.send("Cannot ban the bot owner.")
             return
@@ -150,7 +137,6 @@ class Permissions(Cog, name="Permissions"):
 
         await self.bot.db.set_user_role(user.id, 'BANNED')
         await interaction.followup.send(f"User {user.name} has been banned from the bot.")
-
 
     @app_commands.command(name='grantvipuser', description='Grants VIP status to a user')
     @is_vip()
@@ -181,7 +167,6 @@ class Permissions(Cog, name="Permissions"):
         await self.bot.db.set_user_role(user.id, 'VIP')
         await interaction.followup.send(f"User {user.name} has been granted VIP status.")
 
-
     @app_commands.command(name='resetpermissions', description='Resets permissions for a user')
     @is_vip()
     async def reset_permissions(self, interaction: discord.Interaction, user: discord.User) -> None:
@@ -199,9 +184,10 @@ class Permissions(Cog, name="Permissions"):
         """
 
         await interaction.response.defer()
-        
+
         await self.bot.db.remove_user_role(user.id)
         await interaction.followup.send(f"Permissions for user {user.name} have been reset.")
+
 
 async def setup(bot):
     await bot.add_cog(Permissions(bot))
