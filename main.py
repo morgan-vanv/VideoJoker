@@ -12,10 +12,8 @@ from bot import VideoJoker
 if __name__ == "__main__":
     # creating necessary directories if they don't exist
     data_dir = Path(__file__).resolve().parent / "data"
-    permissions_dir = data_dir / "permissions"
     logs_dir = data_dir / "logs"
 
-    permissions_dir.mkdir(parents=True, exist_ok=True)
     logs_dir.mkdir(parents=True, exist_ok=True)
 
     from logging.handlers import RotatingFileHandler
