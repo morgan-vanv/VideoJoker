@@ -67,24 +67,33 @@ class VideoJoker(commands.Bot):
 
     async def on_app_command_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
         """Global error handler for all app_commands"""
+        # interaction.command is None when Discord sends a command the bot no longer has
+        # (e.g. renamed or removed, but still synced in Discord), so never assume it exists.
+        command_name = interaction.command.name if interaction.command else "unknown command"
+
         if isinstance(error, ExecutingUserNotVIPError):
             logging.warning("User %s (ID: %s) attempted to use a VIP-only command without VIP status.",
                             interaction.user.name, interaction.user.id)
             message = "🚫👑 You lack the VIP status required for this command."
         elif isinstance(error, app_commands.CommandOnCooldown):
             logging.warning("User %s (ID: %s) attempted to use command '%s' which is on cooldown.",
-                            interaction.user.name, interaction.user.id, interaction.command.name)
+                            interaction.user.name, interaction.user.id, command_name)
             message = "⏳ This command is on cooldown. Try again later."
         else:
-            logging.error("Unhandled/Unexpected error in command '%s': %s", interaction.command.name, repr(error),
-                          exc_info=True)
+            # exc_info=error logs the error's own traceback (exc_info=True only works inside an except block)
+            logging.error("Unhandled/Unexpected error in command '%s': %s", command_name, repr(error),
+                          exc_info=error)
             message = "❗ An unexpected error occurred. Please try again later."
 
         # Handling if the interaction has already been responded to
-        if interaction.response.is_done():
-            await interaction.followup.send(message, ephemeral=True)
-        else:
-            await interaction.response.send_message(message, ephemeral=True)
+        try:
+            if interaction.response.is_done():
+                await interaction.followup.send(message, ephemeral=True)
+            else:
+                await interaction.response.send_message(message, ephemeral=True)
+        except discord.HTTPException as send_error:
+            # e.g. the interaction expired (3 s to respond, 15 min for followups): nothing left to reply to
+            logging.warning("Could not send the error message for '%s': %s", command_name, send_error)
 
     async def global_interaction_check(self, interaction: discord.Interaction) -> bool:
         """Global app command check to prevent banned users from using commands."""
