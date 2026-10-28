@@ -1,0 +1,49 @@
+# CI: runs on every pull request into main (and on main itself after a merge).
+# What it checks, in order:
+#   1. pylint over the WHOLE repo, using .pylintrc (score must stay >= 9.5, and any error fails)
+#   2. every cog still imports (catches typos and missing dependencies before Discord does)
+#   3. the pytest suite in tests/ (database + game logic, no Discord needed)
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:   # adds a "Run workflow" button on the Actions tab
+
+# The workflow only needs to read the code. (Least privilege: a compromised step can't push or comment.)
+permissions:
+  contents: read
+
+# A new push to the same PR cancels the old, now-outdated run.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint, import check and tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version-file: .python-version   # same version as Docker and local dev
+          cache: pip   # reuses downloaded packages between runs
+          cache-dependency-path: requirements*.txt
+
+      - name: Install dependencies (bot + dev tools)
+        run: pip install -r requirements-dev.txt
+
+      - name: Pylint (whole repo)
+        run: pylint --rcfile=.pylintrc $(git ls-files '*.py')
+
+      - name: Import check (every cog loads)
+        run: python -c "import bot, cogs.games, cogs.fun, cogs.utility, cogs.permissions, cogs.music, cogs.economy, cogs.reaction_roles"
+
+      - name: Tests (pytest)
+        run: python -m pytest

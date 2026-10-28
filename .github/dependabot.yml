@@ -12,6 +12,11 @@ updates:
     groups:
       python-packages:
         patterns: ["*"]
+    ignore:
+      # discord.py 2.7.1 (the latest) requires PyNaCl<1.6, so 1.6+ can't install yet.
+      # Remove this once a discord.py release allows PyNaCl 1.6.
+      - dependency-name: "pynacl"
+        versions: [">=1.6"]
 
   # Actions used in .github/workflows (e.g. actions/setup-python)
   - package-ecosystem: "github-actions"
