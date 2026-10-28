@@ -1,0 +1,7 @@
+# Tool settings for VideoJoker. (The bot itself isn't installed as a package; this file only configures tools.)
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# Lets tests be plain `async def` functions without a decorator on each one
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
