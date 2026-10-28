@@ -1,0 +1,29 @@
+# The DEV bot: a second Discord application you test with in a private test server,
+# so experiments never touch the real bot, the real server, or the real economy.
+#
+#   First time:  cp .env.example .env.dev   (fill in the DEV bot's token and DEV_GUILD_ID)
+#   Run:         docker compose -f compose.dev.yml up --build
+#   After edits: docker compose -f compose.dev.yml restart   (Python reads code at startup)
+#
+# Differences from docker-compose.yml (the real bot):
+#   - its own token and test server, from .env.dev
+#   - its own database and logs in data-dev/, so test USh never mixes with the real ones
+#   - your working folder is mounted over the image's code, so edits apply on restart
+#   - no auto-restart: it runs while you're working on it
+name: videojoker-dev
+
+services:
+  videojoker-dev:
+    build: .
+    container_name: videojoker_dev
+    env_file:
+      - .env.dev
+    stop_signal: SIGINT
+    volumes:
+      - .:/app
+      - ./data-dev:/app/data
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
