@@ -49,6 +49,7 @@ if __name__ == "__main__":
         sys.exit(1)
     if not owner:
         logging.warning("OWNER is not set, so nobody is VIP and nobody can grant VIP. See SETUP_GUIDE.md step 2.")
+        os.environ.pop('OWNER', None)  # treat an empty "OWNER=" line in .env the same as no line at all
 
     bot = VideoJoker(token=token)
     asyncio.run(bot.start_bot())

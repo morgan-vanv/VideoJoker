@@ -14,7 +14,7 @@ class Database:
     """
 
     def __init__(self):
-        self.owner_id = int(os.getenv("OWNER") or 0)  # `or 0` also covers an empty "OWNER=" line in .env
+        self.owner_id = int(os.getenv("OWNER", "0"))
         self.vips = set()
         self.banned = set()
         self.conn: Optional[aiosqlite.Connection] = None
