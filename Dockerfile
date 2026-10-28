@@ -1,4 +1,5 @@
-FROM python:3.11-slim
+# Pinned to an exact Python patch + Debian release so rebuilds are reproducible; Dependabot proposes bumps.
+FROM python:3.14.10-slim-trixie
 
 # Set environment variables to avoid Python writing .pyc files and to ensure stdout is unbuffered
 ENV PYTHONDONTWRITEBYTECODE=1

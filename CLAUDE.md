@@ -25,7 +25,7 @@ handcrafted, and sentimental. **Treat it like a friend's workshop, not a codebas
 
 ## Stack
 
-- Python 3.11 (Docker image `python:3.11-slim`), discord.py 2.7 (slash commands via `app_commands`),
+- Python 3.14 (Docker image `python:3.14.10-slim-trixie`; `.python-version` for CI and local tools), discord.py 2.7 (slash commands via `app_commands`),
   aiosqlite, python-dotenv. ffmpeg/libopus are installed for future music work.
 - Entry point `main.py` → `bot.py` (`VideoJoker(commands.Bot)`), which loads cogs in `setup_hook`.
 
