@@ -67,8 +67,9 @@ class Database:
                 elif role == 'BANNED':
                     self.banned.add(user_id)
 
-        # Owner is implicitly VIP
-        self.vips.add(self.owner_id)
+        # Owner is implicitly VIP (0 means OWNER isn't set, and 0 isn't a real user)
+        if self.owner_id:
+            self.vips.add(self.owner_id)
         logging.info("Database loaded. VIPs: %d, Banned: %d", len(self.vips), len(self.banned))
 
     async def close(self):
