@@ -45,6 +45,15 @@ if __name__ == "__main__":
 
     bot = VideoJoker(token=token)
 
+    # Optional, for the dev bot only: the ID of your private test server (see compose.dev.yml)
+    dev_guild_id = os.getenv('DEV_GUILD_ID', '').strip()
+    if dev_guild_id:
+        if not dev_guild_id.isdigit():
+            logging.error("DEV_GUILD_ID must be a numeric Discord server ID (got %r).", dev_guild_id)
+            sys.exit(1)
+        bot.dev_guild_id = int(dev_guild_id)
+        logging.info("Dev mode: commands will only be registered in server %s", dev_guild_id)
+
     async def run_bot():
         # `async with` guarantees bot.close() runs on the way out (closing the database cleanly),
         # whether the bot stops normally, crashes, or is told to stop.

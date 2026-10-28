@@ -24,6 +24,8 @@ class VideoJoker(commands.Bot):
         
         self.token = token
         self.db = Database()
+        # Set by main.py from DEV_GUILD_ID: when set, slash commands sync only to that test server
+        self.dev_guild_id: int | None = None
 
     async def setup_hook(self):
         """Called when the bot is setting up (load cogs, sync commands, etc.)"""
@@ -46,8 +48,16 @@ class VideoJoker(commands.Bot):
         
         setup_root_commands(self)
         
-        await self.tree.sync()
-        logging.info("Commands synced")
+        if self.dev_guild_id:
+            # Dev bot: register commands in the test server only. Server commands update instantly,
+            # while global ones (below) can take a while to appear and are rate-limited.
+            dev_guild = discord.Object(id=self.dev_guild_id)
+            self.tree.copy_global_to(guild=dev_guild)
+            await self.tree.sync(guild=dev_guild)
+            logging.info("Commands synced to dev server %s", self.dev_guild_id)
+        else:
+            await self.tree.sync()
+            logging.info("Commands synced")
 
     def restart_bot(self):
         """Restarts the bot by re-executing the current script."""

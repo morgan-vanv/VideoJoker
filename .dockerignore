@@ -1,4 +1,6 @@
 .env
+.env.*
+data-dev/
 .venv/
 venv/
 __pycache__/
