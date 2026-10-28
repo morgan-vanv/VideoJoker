@@ -22,7 +22,7 @@ class Database:
         self.conn: Optional[aiosqlite.Connection] = None
         self.lock = asyncio.Lock()
 
-    async def setup(self):
+    async def setup(self) -> None:
         """Initializes the database, creates the table, and loads the cache."""
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self.conn = await aiosqlite.connect(self.db_path)
@@ -72,12 +72,12 @@ class Database:
             self.vips.add(self.owner_id)
         logging.info("Database loaded. VIPs: %d, Banned: %d", len(self.vips), len(self.banned))
 
-    async def close(self):
+    async def close(self) -> None:
         """Closes the database connection."""
         if self.conn:
             await self.conn.close()
 
-    async def _execute(self, query: str, parameters: tuple = ()):
+    async def _execute(self, query: str, parameters: tuple = ()) -> None:
         """Helper to execute a query securely using aiosqlite."""
         if self.conn is None:
             raise RuntimeError("Database connection is not initialized. Did you call setup()?")
@@ -89,7 +89,7 @@ class Database:
                 logging.error("Database execution error: %s | Query: %s | Params: %s", e, query, parameters)
                 raise
 
-    async def set_user_role(self, user_id: int, role: str):
+    async def set_user_role(self, user_id: int, role: str) -> None:
         """Sets a user's role to VIP or BANNED."""
         if role not in ('VIP', 'BANNED'):
             raise ValueError("Role must be 'VIP' or 'BANNED'")
@@ -111,7 +111,7 @@ class Database:
             self.banned.add(user_id)
             self.vips.discard(user_id)
 
-    async def remove_user_role(self, user_id: int):
+    async def remove_user_role(self, user_id: int) -> None:
         """Removes a user's role, reverting them to a normal user."""
         await self._execute("DELETE FROM user_roles WHERE user_id = ?", (user_id,))
         
@@ -133,7 +133,7 @@ class Database:
                 logging.error("Database read error in get_balance for user %s: %s", user_id, e)
                 raise
 
-    async def add_balance(self, user_id: int, amount: int):
+    async def add_balance(self, user_id: int, amount: int) -> None:
         await self._execute("""
             INSERT INTO economy (user_id, balance) 
             VALUES (?, ?)
@@ -192,14 +192,14 @@ class Database:
                 logging.error("Database read error in get_xp for user %s: %s", user_id, e)
                 raise
 
-    async def add_server_xp(self, user_id: int, amount: int = 1):
+    async def add_server_xp(self, user_id: int, amount: int = 1) -> None:
         await self._execute("""
             INSERT INTO xp (user_id, server_xp, bot_xp) 
             VALUES (?, ?, 0)
             ON CONFLICT(user_id) DO UPDATE SET server_xp = server_xp + excluded.server_xp
         """, (user_id, amount))
 
-    async def add_bot_xp(self, user_id: int, amount: int = 1):
+    async def add_bot_xp(self, user_id: int, amount: int = 1) -> None:
         await self._execute("""
             INSERT INTO xp (user_id, server_xp, bot_xp) 
             VALUES (?, 0, ?)
@@ -207,7 +207,7 @@ class Database:
         """, (user_id, amount))
 
     # Reaction Role Methods
-    async def add_reaction_role(self, message_id: int, emoji: str, role_id: int):
+    async def add_reaction_role(self, message_id: int, emoji: str, role_id: int) -> None:
         await self._execute("""
             INSERT INTO reaction_roles (message_id, emoji, role_id) 
             VALUES (?, ?, ?)

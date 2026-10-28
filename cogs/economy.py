@@ -18,7 +18,7 @@ class Economy(Cog, name="Economy"):
         await self.bot.db.add_balance(message.author.id, 1)
 
     @app_commands.command(name='balance', description="Check your or another user's balance.")
-    async def balance(self, interaction: discord.Interaction, user: discord.User = None) -> None:
+    async def balance(self, interaction: discord.Interaction, user: discord.User | None = None) -> None:
         target_user = user or interaction.user
 
         balance = await self.bot.db.get_balance(target_user.id)
