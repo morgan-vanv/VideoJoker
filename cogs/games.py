@@ -74,7 +74,7 @@ class Games(Cog, name="Games"):
         view = MonteView(winning_card=card, user_id=interaction.user.id, invocation=interaction)
 
         # Send the ephemeral selection message
-        message = await interaction.followup.send(f"Pick a card, any card!", view=view, ephemeral=True)
+        message = await interaction.followup.send("Pick a card, any card!", view=view, ephemeral=True)
         view.message = message
 
 async def setup(bot):

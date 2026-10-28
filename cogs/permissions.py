@@ -13,6 +13,25 @@ def is_vip():
     return app_commands.check(predicate)
 
 
+def format_user_list(user_ids, empty_text: str) -> str:
+    """Turns user IDs into a newline-separated list of mentions that fits in an embed description.
+
+    A mention is just the text <@id>: Discord displays it as the user's name, so we don't need an API
+    call per user (fetch_user is slow, rate-limited, and raises an error for deleted accounts).
+    """
+    if not user_ids:
+        return empty_text
+    lines = [f"<@{user_id}>" for user_id in sorted(user_ids)]
+    shown, length = [], 0
+    for line in lines:
+        if length + len(line) + 1 > 4000:  # embed descriptions max out at 4096 characters
+            break
+        shown.append(line)
+        length += len(line) + 1  # +1 for the newline
+    hidden = len(lines) - len(shown)
+    return "\n".join(shown) + (f"\n...and {hidden} more" if hidden else "")
+
+
 class Permissions(Cog, name="Permissions"):
     """**A cog that provides permission-related commands**"""
 
@@ -69,13 +88,7 @@ class Permissions(Cog, name="Permissions"):
         await interaction.response.defer()
 
         banned_ids = self.bot.db.banned
-        banned_names = []
-
-        for user_id in banned_ids:
-            user = await self.bot.fetch_user(user_id)
-            banned_names.append(user.mention if user else f"Unknown User ({user_id})")
-
-        description = "\n".join(banned_names) if banned_names else "No banned users found."
+        description = format_user_list(banned_ids, "No banned users found.")
         embed = discord.Embed(
             title="BANNED Users",
             description=description,
@@ -100,13 +113,7 @@ class Permissions(Cog, name="Permissions"):
         await interaction.response.defer()
 
         vip_ids = self.bot.db.vips
-        vip_names = []
-
-        for user_id in vip_ids:
-            user = await self.bot.fetch_user(user_id)
-            vip_names.append(user.mention if user else f"Unknown User ({user_id})")
-
-        description = "\n".join(vip_names) if vip_names else "No VIP users found."
+        description = format_user_list(vip_ids, "No VIP users found.")
         embed = discord.Embed(
             title="VIP Users",
             description=description,
