@@ -13,7 +13,9 @@ class Database:
     Roles are mutually exclusive.
     """
 
-    def __init__(self):
+    def __init__(self, db_path: Path = DB_PATH):
+        # db_path defaults to the real database; tests pass a throwaway file instead
+        self.db_path = db_path
         self.owner_id = int(os.getenv("OWNER", "0"))
         self.vips = set()
         self.banned = set()
@@ -22,8 +24,8 @@ class Database:
 
     async def setup(self):
         """Initializes the database, creates the table, and loads the cache."""
-        DB_PATH.parent.mkdir(parents=True, exist_ok=True)
-        self.conn = await aiosqlite.connect(DB_PATH)
+        self.db_path.parent.mkdir(parents=True, exist_ok=True)
+        self.conn = await aiosqlite.connect(self.db_path)
         
         await self.conn.execute('''
             CREATE TABLE IF NOT EXISTS user_roles (
