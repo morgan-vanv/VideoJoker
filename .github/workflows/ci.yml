@@ -1,5 +1,6 @@
 # CI: runs on every pull request into main (and on main itself after a merge).
 # What it checks, in order:
+#   0. code is formatted with ruff (run `ruff format .` before committing)
 #   1. pylint over the WHOLE repo, using .pylintrc (score must stay >= 9.5, and any error fails)
 #   2. every cog still imports (catches typos and missing dependencies before Discord does)
 #   3. the pytest suite in tests/ (database + game logic, no Discord needed)
@@ -38,6 +39,9 @@ jobs:
 
       - name: Install dependencies (bot + dev tools)
         run: pip install -r requirements-dev.txt
+
+      - name: Formatting (ruff format --check)
+        run: ruff format --check .
 
       - name: Pylint (whole repo)
         run: pylint --rcfile=.pylintrc $(git ls-files '*.py')
