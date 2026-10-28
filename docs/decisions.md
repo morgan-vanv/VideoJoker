@@ -25,3 +25,4 @@ reconstructed from git history — correct anything that's off.
 - **2026-10-28** Protect `main`: PRs and a passing lint check required, no force-push or deletion, no required approvals (two people; approvals would stall).
 - **2026-10-28** Merged branches are archived as `archive/<name>` tags, then deleted; GitHub auto-deletes head branches from now on.
 - **2026-10-28** MIT license proposed, pending Frankie's agreement since it covers his code too. README will credit the crew in Morgan's words.
+- **2026-10-28** License: MIT (Morgan's call, confirmed after the line above), copyright "Morgan Van Valkenburgh and the VideoJoker contributors" so the crew's work is covered too.

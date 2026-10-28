@@ -81,3 +81,7 @@ _See `DESIGNDOCUMENT.md` for information on what might come in the future_
 - **/queue** *(Coming Soon)* (*Shows the current music queue.*)
 - **/stop** *(Coming Soon)* (*Stops the music and clears the queue.*)
 - **/effects [effect]** *(Coming Soon)* (*Applies an audio effect to the music.*)
+
+## License
+
+[MIT](LICENSE): fork it, remix it, make your own VJ. Just keep the copyright notice.
