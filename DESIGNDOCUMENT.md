@@ -21,7 +21,7 @@
 
 **Core & Configuration:**
 - ✅ ping command (to check if bot is online)
-- ✅ sync command (to sync slash commands)
+- sync command (to sync slash commands) (built in 2025, removed later: commands now sync automatically on startup)
 - ✅ listcommands command (list all commands the bot has)
 - configuration system
   - we should have a config that is loaded from / saved to, and is user manipulable
@@ -43,15 +43,16 @@
   - option to make the role sticky.
 - **XP Leaderboard**:
   - Two specific categories: server engagement and bot engagement.
-  - Server engagement: users get 1xp for every message sent.
-  - Bot engagement: users get 1xp for every command executed.
+  - ✅ Server engagement: users get 1xp for every message sent.
+  - ✅ Bot engagement: users get 1xp for every command executed.
+  - ✅ `/rank` shows a user's XP; the leaderboard itself is still to do.
 - raffle system 
   - randomly selects user of a role, or from a list of users, or from a list of people who react
 - reminders (user can set a reminder, bot DMs them when time is up, or sends to a channel)
 
 **Economy System (Currency: UGX - Ugandan Shillings):**
-- Users get 1 USh for every message they send.
-- Users can send USh between themselves (`pay` command).
+- ✅ Users get 1 USh for every message they send.
+- ✅ Users can send USh between themselves (`pay` command), and check it with `/balance`.
 - USh can be gambled on games we will add in the future.
 - Might be fun with blackjack, robbing, etc.
 
@@ -70,11 +71,12 @@
 - ✅ rock paper scissors
 - ✅ say, (repeat after me)
 - ✅ roast
+- ✅ three card monte (by Frankie)
 - tarot readings
 - slots
 - bacarrat
 - blackjack
-- russian roulette (solo? or only with multiple people?)
+- ✅ russian roulette (solo for now, by Frankie; multiplayer still an idea)
 - trivia (general knowledge, or specific categories) (idk this is kinda lame)
 - Text to Speech
 - translation (input language & message) (google translate api?)
