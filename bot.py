@@ -1,5 +1,3 @@
-import sys
-import os
 import logging
 
 import discord
@@ -48,10 +46,6 @@ class VideoJoker(commands.Bot):
         
         await self.tree.sync()
         logging.info("Commands synced")
-
-    def restart_bot(self):
-        """Restarts the bot by re-executing the current script."""
-        os.execv(sys.executable, ['python'] + sys.argv)
 
     async def on_ready(self):
         """Called when the bot is ready to start working"""
