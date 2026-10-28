@@ -31,7 +31,8 @@ class Games(Cog, name="Games"):
         await interaction.response.send_message(f"{interaction.user.name} rolled a **{result}** on a {sides}-sided die.")
 
     @app_commands.command(name='8ball', description='Ask the magic 8 ball a question')
-    async def eightball(self, interaction: discord.Interaction, question: str) -> None:
+    # Range makes Discord itself cap the question at 300 characters (the reply must fit Discord's 2000 limit)
+    async def eightball(self, interaction: discord.Interaction, question: app_commands.Range[str, 1, 300]) -> None:
         """Ask the magic 8-ball a question"""
         answer = random.choice(EIGHT_BALL_RESPONSES)
 
