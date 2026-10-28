@@ -23,8 +23,8 @@ class VideoJoker(commands.Bot):
         # (like /8ball) can't be used to ping @everyone or a role; @user mentions still work.
         # A single send can still override this by passing its own allowed_mentions (see /say).
         safe_mentions = discord.AllowedMentions(everyone=False, roles=False, users=True, replied_user=True)
-        # Slash commands don't use a prefix. commands.Bot still requires one, and when_mentioned (only "@VideoJoker ...")
-        # works without the message content intent.
+        # Slash commands don't use a prefix, but commands.Bot still requires one. when_mentioned
+        # (only "@VideoJoker ...") works without the message content intent.
         super().__init__(intents=intents, command_prefix=commands.when_mentioned, allowed_mentions=safe_mentions)
         
         self.token = token
