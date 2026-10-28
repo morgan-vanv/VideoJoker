@@ -112,3 +112,13 @@ async def test_reaction_role_lookup_and_overwrite(db):
     assert await db.get_reaction_role(555, "🎮") == 42
     await db.add_reaction_role(555, "🎮", 43)  # same message + emoji: the role is replaced
     assert await db.get_reaction_role(555, "🎮") == 43
+
+
+@pytest.mark.parametrize("amount", [0, -50])
+async def test_transfer_rejects_zero_and_negative_amounts(db, amount):
+    # /pay already refuses these, but the database must too: a negative transfer
+    # would otherwise move money backwards (from the receiver to the sender).
+    await db.add_balance(ALICE, 10)
+    assert await db.transfer_balance(ALICE, BOB, amount) is False
+    assert await db.get_balance(ALICE) == 10
+    assert await db.get_balance(BOB) == 0
