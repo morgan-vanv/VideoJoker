@@ -77,10 +77,19 @@ _See `DESIGNDOCUMENT.md` for information on what might come in the future_
 - **/link_rr [message_id] [role] [emoji]** *(Coming Soon)* (*Links a reaction role to an existing message.*)
 
 ### Music Cog Commands
-- **/play [query]** *(Coming Soon)* (*Plays a song from a link or search query.*)
-- **/skip** *(Coming Soon)* (*Skips the currently playing song.*)
-- **/queue** *(Coming Soon)* (*Shows the current music queue.*)
-- **/stop** *(Coming Soon)* (*Stops the music and clears the queue.*)
+_Plays from YouTube, SoundCloud and Spotify links (tracks, playlists, albums) or a search. The now-playing card has buttons._
+- **/play [query] [play_next]** (*Plays a song from a link or search query. Playlists queue every song.*)
+- **/join** (*Summons the VJ to your voice channel.*)
+- **/leave** (*Sends the VJ home. Clears the queue.*)
+- **/pause** / **/resume** (*Intermission, and back.*)
+- **/skip** (*Skips the currently playing song.*)
+- **/stop** (*Stops the music and clears the queue.*)
+- **/queue [page]** (*Shows the current music queue.*)
+- **/nowplaying** (*Shows what's playing, with the controls.*)
+- **/volume [level]** (*Shows or sets the volume, 0–200%.*)
+- **/loop [mode]** (*Loops this song, the whole queue, or nothing.*)
+- **/shuffle** (*Shuffles the upcoming songs.*)
+- **/remove [position]** (*Removes a song from the queue.*)
 - **/effects [effect]** *(Coming Soon)* (*Applies an audio effect to the music.*)
 
 ## License
