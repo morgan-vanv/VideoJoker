@@ -39,7 +39,7 @@ _See `DESIGNDOCUMENT.md` for information on what might come in the future_
 
 ### Main Bot Commands
 - **/listcommands** (*Lists all available commands in the bot along with their descriptions.*)
-- **/ping** (*Checks the bot's latency and responsiveness.*)
+- **/ping** (*Checks that the bot is awake: it answers "pong".*)
 
 ### Permissions Cog Commands
 - **/checkpermissions** (*Checks the permissions of a user.*)
@@ -51,9 +51,10 @@ _See `DESIGNDOCUMENT.md` for information on what might come in the future_
 
 ### Games Cog Commands
 - **/coinflip** (*Flips a virtual coin, returning either "Heads" or "Tails."*)
-- **/roll [sides]** (*Rolls a virtual die with the specified number of sides (default is 6).*)
+- **/diceroll [sides]** (*Rolls a virtual die with the specified number of sides (default is 6).*)
 - **/8ball [question]** (*Answers a yes/no question with a random response, mimicking a Magic 8-Ball.*)
 - **/rockpaperscissors [choice]** (*Plays a game of Rock-Paper-Scissors against the bot.*)
+- **/threecardmonte** (*Find the winning card among three face-down cards before the dealer packs up.*)
 
 ### Fun Cog Commands
 - **/say [message]** (*The bot repeats the given message.*)
@@ -90,3 +91,7 @@ _Plays from YouTube, SoundCloud and Spotify links (tracks, playlists, albums) or
 - **/shuffle** (*Shuffles the upcoming songs.*)
 - **/remove [position]** (*Removes a song from the queue.*)
 - **/effects [effect]** *(Coming Soon)* (*Applies an audio effect to the music.*)
+
+## License
+
+[MIT](LICENSE): fork it, remix it, make your own VJ. Just keep the copyright notice.

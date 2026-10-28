@@ -3,9 +3,19 @@ services:
     build: .
     container_name: videojoker_bot
     restart: unless-stopped
-    volumes:
-      # Mount the current directory into /app so local edits in NeoVim apply instantly
-      - .:/app
+    # `docker compose stop` sends SIGINT (like Ctrl+C), which Python turns into a clean shutdown.
+    # The default SIGTERM is ignored by Python, so Docker would kill the bot after 10 seconds.
+    stop_signal: SIGINT
     env_file:
       # Load environment variables from .env
       - .env
+    volumes:
+      # Only runtime data (SQLite DB + logs) lives on your disk, so it survives rebuilds.
+      # The code itself is baked into the image: after editing, run `docker compose up --build`.
+      - ./data:/app/data
+    logging:
+      # Cap Docker's own copy of the bot's console output (the app's data/logs/ already rotates)
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

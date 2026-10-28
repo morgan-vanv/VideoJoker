@@ -1,4 +1,6 @@
 .env
+.env.*
+data-dev/
 .venv/
 venv/
 __pycache__/
@@ -6,3 +8,14 @@ __pycache__/
 .git/
 data/
 *.log
+
+# Not needed inside the image (smaller build context, nothing dev-only shipped)
+.github/
+docs/
+tests/
+.pytest_cache/
+.ruff_cache/
+.idea/
+.vscode/
+*.md
+requirements-dev.txt

@@ -1,5 +1,3 @@
-import sys
-import os
 import logging
 
 import discord
@@ -14,16 +12,23 @@ class VideoJoker(commands.Bot):
 
     def __init__(self, token: str):
         """ Initializes the VideoJoker bot with necessary intents. """
-        intents = discord.Intents.all()
-        intents.message_content = True
+        # Intents = which events Discord sends us. default() is everything except the three "privileged"
+        # ones (members, presences, message content), which this bot doesn't use: XP and USh only need to
+        # know that a message was sent, not what it says. Enable one here (and in the Developer Portal)
+        # when a feature needs it, e.g. intents.members = True for welcome messages.
+        intents = discord.Intents.default()
         # Bot-wide default for who a message is allowed to ping. Commands that echo user text
         # (like /8ball) can't be used to ping @everyone or a role; @user mentions still work.
         # A single send can still override this by passing its own allowed_mentions (see /say).
         safe_mentions = discord.AllowedMentions(everyone=False, roles=False, users=True, replied_user=True)
-        super().__init__(intents=intents, command_prefix="/", allowed_mentions=safe_mentions)
+        # Slash commands don't use a prefix, but commands.Bot still requires one. when_mentioned
+        # (only "@VideoJoker ...") works without the message content intent.
+        super().__init__(intents=intents, command_prefix=commands.when_mentioned, allowed_mentions=safe_mentions)
         
         self.token = token
         self.db = Database()
+        # Set by main.py from DEV_GUILD_ID: when set, slash commands sync only to that test server
+        self.dev_guild_id: int | None = None
 
     async def setup_hook(self):
         """Called when the bot is setting up (load cogs, sync commands, etc.)"""
@@ -46,12 +51,16 @@ class VideoJoker(commands.Bot):
         
         setup_root_commands(self)
         
-        await self.tree.sync()
-        logging.info("Commands synced")
-
-    def restart_bot(self):
-        """Restarts the bot by re-executing the current script."""
-        os.execv(sys.executable, ['python'] + sys.argv)
+        if self.dev_guild_id:
+            # Dev bot: register commands in the test server only. Server commands update instantly,
+            # while global ones (below) can take a while to appear and are rate-limited.
+            dev_guild = discord.Object(id=self.dev_guild_id)
+            self.tree.copy_global_to(guild=dev_guild)
+            await self.tree.sync(guild=dev_guild)
+            logging.info("Commands synced to dev server %s", self.dev_guild_id)
+        else:
+            await self.tree.sync()
+            logging.info("Commands synced")
 
     async def on_ready(self):
         """Called when the bot is ready to start working"""
@@ -67,24 +76,33 @@ class VideoJoker(commands.Bot):
 
     async def on_app_command_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
         """Global error handler for all app_commands"""
+        # interaction.command is None when Discord sends a command the bot no longer has
+        # (e.g. renamed or removed, but still synced in Discord), so never assume it exists.
+        command_name = interaction.command.name if interaction.command else "unknown command"
+
         if isinstance(error, ExecutingUserNotVIPError):
             logging.warning("User %s (ID: %s) attempted to use a VIP-only command without VIP status.",
                             interaction.user.name, interaction.user.id)
             message = "🚫👑 You lack the VIP status required for this command."
         elif isinstance(error, app_commands.CommandOnCooldown):
             logging.warning("User %s (ID: %s) attempted to use command '%s' which is on cooldown.",
-                            interaction.user.name, interaction.user.id, interaction.command.name)
+                            interaction.user.name, interaction.user.id, command_name)
             message = "⏳ This command is on cooldown. Try again later."
         else:
-            logging.error("Unhandled/Unexpected error in command '%s': %s", interaction.command.name, repr(error),
-                          exc_info=True)
+            # exc_info=error logs the error's own traceback (exc_info=True only works inside an except block)
+            logging.error("Unhandled/Unexpected error in command '%s': %s", command_name, repr(error),
+                          exc_info=error)
             message = "❗ An unexpected error occurred. Please try again later."
 
         # Handling if the interaction has already been responded to
-        if interaction.response.is_done():
-            await interaction.followup.send(message, ephemeral=True)
-        else:
-            await interaction.response.send_message(message, ephemeral=True)
+        try:
+            if interaction.response.is_done():
+                await interaction.followup.send(message, ephemeral=True)
+            else:
+                await interaction.response.send_message(message, ephemeral=True)
+        except discord.HTTPException as send_error:
+            # e.g. the interaction expired (3 s to respond, 15 min for followups): nothing left to reply to
+            logging.warning("Could not send the error message for '%s': %s", command_name, send_error)
 
     async def global_interaction_check(self, interaction: discord.Interaction) -> bool:
         """Global app command check to prevent banned users from using commands."""

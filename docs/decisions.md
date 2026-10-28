@@ -25,8 +25,8 @@ reconstructed from git history — correct anything that's off.
 - **2026-10-28** Protect `main`: PRs and a passing lint check required, no force-push or deletion, no required approvals (two people; approvals would stall).
 - **2026-10-28** Merged branches are archived as `archive/<name>` tags, then deleted; GitHub auto-deletes head branches from now on.
 - **2026-10-28** MIT license proposed, pending Frankie's agreement since it covers his code too. README will credit the crew in Morgan's words.
+- **2026-10-28** License: MIT (Morgan's call, confirmed after the line above), copyright "Morgan Van Valkenburgh and the VideoJoker contributors" so the crew's work is covered too.
 - **2026-10-28** Music is built in pure Python: yt-dlp + ffmpeg inside discord.py, no Lavalink. One more container would be more robust, but the play loop is the part worth learning and owning.
 - **2026-10-28** Spotify links resolve to "Artist - Title" and the audio comes from YouTube (Spotify's API doesn't stream). Playlists are read "flat" and each track's stream URL is fetched right before it plays, because stream URLs expire.
 - **2026-10-28** Music lives in `music/` (queue/sources/player/ui/lines), same logic-vs-UI split as `games/`. All VJ copy for music is in `music/lines.py`. `cogs/` got an empty `__init__.py` so pylint stops mistaking `cogs/music.py` for the `music` package (same bug existed for `cogs/games.py`).
 - **2026-10-28** Music v1 is playback + queue + the now-playing card with buttons. Effects, autoplay, 24/7, radio and DJ roles come as separate PRs (see `docs/music-design.md`).
-
