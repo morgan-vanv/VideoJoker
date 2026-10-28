@@ -56,10 +56,12 @@ handcrafted, and sentimental. **Treat it like a friend's workshop, not a codebas
 pip install -r requirements-dev.txt                 # bot deps + dev tools (pylint)
 pylint --rcfile=.pylintrc $(git ls-files '*.py')     # CI runs exactly this on the whole repo: fails below 9.5 or on any error
 python -c "import bot, cogs.games, cogs.fun, cogs.utility, cogs.permissions, cogs.music, cogs.economy, cogs.reaction_roles"
+python -m pytest                                     # tests in tests/: database + game logic, no Discord needed
 ```
 
-There's no test suite yet. Running the bot for real needs a Discord token (`docker compose up --build`),
-so say in the PR when a change still needs a manual test in Discord.
+Tests can't cover anything that needs Discord itself. Running the bot for real needs a token
+(`docker compose up --build`), so say in the PR when a change still needs a manual test in Discord.
+When you change `core/database.py` or game logic, add or update a test in `tests/`.
 
 ## Decisions
 

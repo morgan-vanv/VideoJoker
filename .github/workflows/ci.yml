@@ -2,6 +2,7 @@
 # What it checks, in order:
 #   1. pylint over the WHOLE repo, using .pylintrc (score must stay >= 9.5, and any error fails)
 #   2. every cog still imports (catches typos and missing dependencies before Discord does)
+#   3. the pytest suite in tests/ (database + game logic, no Discord needed)
 name: CI
 
 on:
@@ -22,7 +23,7 @@ concurrency:
 
 jobs:
   lint:
-    name: Lint and import check
+    name: Lint, import check and tests
     runs-on: ubuntu-latest
     steps:
       - name: Check out the code
@@ -43,3 +44,6 @@ jobs:
 
       - name: Import check (every cog loads)
         run: python -c "import bot, cogs.games, cogs.fun, cogs.utility, cogs.permissions, cogs.music, cogs.economy, cogs.reaction_roles"
+
+      - name: Tests (pytest)
+        run: python -m pytest
