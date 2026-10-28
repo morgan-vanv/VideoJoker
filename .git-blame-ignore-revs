@@ -1,0 +1,6 @@
+# Commits that only reformatted code. `git blame` skips them, so it keeps showing who really wrote each line.
+# GitHub's blame view reads this file automatically. For your local git, run this once per clone:
+#   git config blame.ignoreRevsFile .git-blame-ignore-revs
+
+# ruff format, whole repo (2026-10-28)
+25e1d16f83584b06470bebe8cceed3d94ee8c3a2
