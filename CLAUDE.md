@@ -53,7 +53,7 @@ handcrafted, and sentimental. **Treat it like a friend's workshop, not a codebas
 ## Checks before opening a PR
 
 ```bash
-pip install -r requirements.txt
+pip install -r requirements-dev.txt                 # bot deps + dev tools (pylint)
 pylint --rcfile=.pylintrc $(git ls-files '*.py')     # CI lints changed files only; keep the score from dropping
 python -c "import bot, cogs.games, cogs.fun, cogs.utility, cogs.permissions, cogs.music, cogs.economy, cogs.reaction_roles"
 ```

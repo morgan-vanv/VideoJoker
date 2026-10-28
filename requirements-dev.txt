@@ -1,0 +1,4 @@
+# Tools for developing VideoJoker (linting, later tests). Not installed in the Docker image.
+# Usage: pip install -r requirements-dev.txt   (this also installs everything the bot needs)
+-r requirements.txt
+pylint==4.1.3
