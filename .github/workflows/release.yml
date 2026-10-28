@@ -59,8 +59,12 @@ jobs:
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
 
       - name: Build the image
+        # --provenance=false: publish one plain image per release. With provenance on, Docker publishes an
+        # index plus separate parts that GitHub's package page lists as "untagged" versions; deleting those
+        # (an easy mistake) silently breaks the tagged release.
         run: |
           docker build \
+            --provenance=false \
             --build-arg VERSION="${{ steps.version.outputs.version }}" \
             --label org.opencontainers.image.source="${{ github.server_url }}/${{ github.repository }}" \
             --label org.opencontainers.image.version="${{ steps.version.outputs.version }}" \
