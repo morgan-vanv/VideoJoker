@@ -16,7 +16,11 @@ class VideoJoker(commands.Bot):
         """ Initializes the VideoJoker bot with necessary intents. """
         intents = discord.Intents.all()
         intents.message_content = True
-        super().__init__(intents=intents, command_prefix="/")
+        # Bot-wide default for who a message is allowed to ping. Commands that echo user text
+        # (like /8ball) can't be used to ping @everyone or a role; @user mentions still work.
+        # A single send can still override this by passing its own allowed_mentions (see /say).
+        safe_mentions = discord.AllowedMentions(everyone=False, roles=False, users=True, replied_user=True)
+        super().__init__(intents=intents, command_prefix="/", allowed_mentions=safe_mentions)
         
         self.token = token
         self.db = Database()
