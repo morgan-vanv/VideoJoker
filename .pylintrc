@@ -2,6 +2,10 @@
 # Specify the Python version used in the project
 py-version=3.11
 
+# Resolve imports from the repo root, like the bot does. Without this, pylint puts cogs/ on its path
+# (it has no __init__.py) and `games` wrongly resolves to cogs/games.py instead of the games/ package.
+source-roots=.
+
 # List of directories or files to ignore
 ignore=venv, .venv, .github
 
