@@ -2,12 +2,14 @@ import logging
 import random
 import discord
 
+
 class MonteView(discord.ui.View):
     """Class for the Three Card Monte UI"""
+
     CARD_LABEL = "🃏"
 
     def __init__(self, winning_card: str, user_id: int, invocation: discord.Interaction):
-        super().__init__(timeout=30)    # times out automatically if user doesn't press a button
+        super().__init__(timeout=30)  # times out automatically if user doesn't press a button
         self.user_id = user_id
         self.winning_card = winning_card
         self.invocation = invocation
@@ -16,11 +18,7 @@ class MonteView(discord.ui.View):
         # Randomizing button styles
         # This works because __init__() runs after the decorator function @discord.ui.button so
         # it overwrites the already existing button style when the user runs the game
-        available_styles = [
-            discord.ButtonStyle.primary,
-            discord.ButtonStyle.success,
-            discord.ButtonStyle.danger
-        ]
+        available_styles = [discord.ButtonStyle.primary, discord.ButtonStyle.success, discord.ButtonStyle.danger]
         random.shuffle(available_styles)
 
         self.card_a.style = available_styles[0]
@@ -30,7 +28,9 @@ class MonteView(discord.ui.View):
     async def handle_choice(self, interaction: discord.Interaction, choice: str) -> None:
         """Handles the user's choice and clears the response"""
         if interaction.user.id != self.user_id:
-            await interaction.response.send_message("This game of Three Card Monte isn't yours to play!", ephemeral=True)
+            await interaction.response.send_message(
+                "This game of Three Card Monte isn't yours to play!", ephemeral=True
+            )
             return
 
         if choice == self.winning_card:
@@ -45,7 +45,9 @@ class MonteView(discord.ui.View):
         except Exception as e:
             logging.warning(f"Could not delete ephemeral selection message: {e}. Editing instead.")
             try:
-                await interaction.edit_original_response(content="Card selected! Check the main chat for results.", view=None)
+                await interaction.edit_original_response(
+                    content="Card selected! Check the main chat for results.", view=None
+                )
             except Exception as e2:
                 logging.error(f"Failed to edit ephemeral message: {e2}")
 
@@ -61,7 +63,9 @@ class MonteView(discord.ui.View):
     async def on_timeout(self) -> None:
         """Handles the case where the user did not make a selection in time"""
         try:
-            await self.invocation.edit_original_response(content="Three Card Monte timed out! The dealer packed up their cards.")
+            await self.invocation.edit_original_response(
+                content="Three Card Monte timed out! The dealer packed up their cards."
+            )
         except Exception:
             pass
 

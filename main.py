@@ -25,12 +25,14 @@ if __name__ == "__main__":
         level=logging.INFO,  # Set logging level
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
         handlers=[
-            RotatingFileHandler(logs_dir / 'bot.log',
-                                maxBytes=5 * 1024 * 1024,  # 5 MB
-                                backupCount=3,
-                                encoding='utf-8'),
-            logging.StreamHandler()
-        ]
+            RotatingFileHandler(
+                logs_dir / 'bot.log',
+                maxBytes=5 * 1024 * 1024,  # 5 MB
+                backupCount=3,
+                encoding='utf-8',
+            ),
+            logging.StreamHandler(),
+        ],
     )
     logging.getLogger("discord").setLevel(logging.INFO)
     logging.getLogger("discord.http").setLevel(logging.WARNING)
