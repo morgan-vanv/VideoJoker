@@ -54,10 +54,13 @@ class Games(Cog, name="Games"):
             await interaction.response.send_message("A die must have at least 1 side!", ephemeral=True)
             return
         elif sides > max_sides:
-            await interaction.response.send_message(f"Sorry, we don't have any {max_sides}-sided dice :(", ephemeral=True)
+            await interaction.response.send_message(f"Sorry, we don't have any {sides}-sided dice :(", ephemeral=True)
             return
 
-        all_rolls = ", ".join(str(random.randint(1, sides)) for _ in range(dice))
+        rolls = [random.randint(1, sides) for _ in range(dice)]
+        all_rolls = ", ".join(str(roll) for roll in rolls)
+        if dice > 1:
+            all_rolls += f" (total: {sum(rolls)})"
         await interaction.response.send_message(f"Rolling: {dice}d{sides}\n\nYou Rolled: {all_rolls}")
 
     @app_commands.command(name='8ball', description='Ask the magic 8 ball a question')
