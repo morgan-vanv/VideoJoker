@@ -175,3 +175,10 @@ def test_bad_channel_id_switches_flexing_off(monkeypatch, caplog):
     assert "isn't a text channel" in caplog.text
     with pytest.raises(flexing.FlexingNotSetUp):
         flexing.flexing_channels(bot)
+
+
+def test_webhook_pictures_exist():
+    # The flexing gnome and the pointing banshee, as the old webhooks had them. Discord wants them as bytes.
+    for name in (flexing.WEBHOOK_NAME, flexing.DEATHS_WEBHOOK_NAME):
+        picture = flexing._avatar(name)  # pylint: disable=protected-access
+        assert picture and picture.startswith(b"\x89PNG")
