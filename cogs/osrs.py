@@ -103,7 +103,7 @@ class Osrs(commands.GroupCog, group_name="osrs", group_description="Link your OS
             marks = (" ⭐" if account.is_default else "") + (" 🏰" if self.in_clan(account, clan) else "")
             rows.append(f"**{discord.utils.escape_markdown(account.rsn)}**{marks}")
         embed = discord.Embed(
-            title=f"📼 {member.display_name}'s tapes", description="\n".join(rows), colour=EMBED_COLOUR
+            title=f"{member.display_name}'s OSRS accounts", description="\n".join(rows), colour=EMBED_COLOUR
         )
         embed.set_footer(text=lines.ACCOUNTS_LEGEND)
         return embed
