@@ -15,6 +15,7 @@ Nothing here logs a stream link or a token: the links carry the server's IP addr
 """
 
 import audioop  # pylint: disable=deprecated-module  # on 3.13+ it comes from audioop-lts (with discord.py[voice])
+import collections
 import json
 import logging
 import os
@@ -23,6 +24,7 @@ import subprocess
 import sys
 import tempfile
 import threading
+import time
 from urllib.parse import parse_qs, urlparse
 
 import discord
@@ -30,8 +32,14 @@ import yt_dlp
 
 from music import sources
 
-# -vn: ignore any video. Audio effects (nightcore etc.) will slot in here later as an `-af` filter.
-FFMPEG_OPTIONS = "-vn"
+# Every song is evened out to the same loudness with ffmpeg's loudnorm filter (the EBU R128 broadcast standard),
+# so YouTube and SoundCloud sound alike, and a bit quieter than streaming apps (they aim for about -14 LUFS).
+# I = target loudness in LUFS (lower = quieter), TP = loudest peak allowed, LRA = how much the loudness may vary.
+LOUDNESS = "loudnorm=I=-20:TP=-2:LRA=11"
+# -vn: ignore any video. Audio effects (nightcore etc.) will slot in later, chained onto the same -af filter.
+FFMPEG_OPTIONS = f"-vn -af {LOUDNESS}"
+PREBUFFER_BYTES = 64 * 1024  # wait for ~3 s of YouTube audio (or the whole song, if shorter) before playing
+PREBUFFER_TIMEOUT = 5  # seconds; after that, start anyway
 # ffmpeg reads from a pipe now, so its messages can't contain a link; keep them to real problems
 FFMPEG_BEFORE = "-hide_banner -loglevel warning"
 
@@ -65,18 +73,88 @@ def _log_ytdlp_errors(stream) -> None:
     stream.close()
 
 
-class _CountingReader:  # pylint: disable=too-few-public-methods  # a file-like needs only read()
-    """Wraps yt-dlp's output pipe and counts the bytes passing through, for the voice check in the log
-    ("did the download deliver anything at all?"). discord.py only ever calls read() on it."""
+class _ReadAhead:
+    """Downloads ahead of playback, so a slow moment on the network isn't a stutter.
+
+    Without it, yt-dlp writes into a small pipe (about 64 KB, ~3 s of YouTube audio) that only empties as fast
+    as Discord plays. yt-dlp is held back to playback speed, its connection to YouTube sits mostly idle, and
+    YouTube drops idle connections: every reconnect is a gap, and a gap longer than the few seconds in the pipe
+    is a stutter (discord.py then rushes the late frames out, which sounds like a tempo jump).
+
+    So a small thread reads yt-dlp's output as fast as it comes into memory, up to LIMIT bytes ahead (32 MB is
+    ~25 min of YouTube audio), and ffmpeg is fed from that buffer. The chunks sit in a deque (a list that's
+    cheap to take from the front), and a Condition lets the two threads wait for each other without busy-looping.
+    """
+
+    CHUNK = 64 * 1024
+    LIMIT = 32 * 1024 * 1024
 
     def __init__(self, pipe):
         self._pipe = pipe
-        self.bytes_read = 0
+        self._chunks: collections.deque[bytes] = collections.deque()
+        self._buffered = 0  # bytes waiting in _chunks
+        self._finished = False  # yt-dlp's output has ended (or we're closing)
+        self._changed = threading.Condition()
+        self.received = 0  # total bytes yt-dlp has delivered (for the voice check)
+        self.started_at = time.monotonic()
+        threading.Thread(target=self._fill, name="yt-dlp read-ahead", daemon=True).start()
+
+    def _fill(self) -> None:
+        try:
+            while True:
+                with self._changed:
+                    while self._buffered >= self.LIMIT and not self._finished:
+                        self._changed.wait()  # far enough ahead: wait for playback to catch up a bit
+                    if self._finished:
+                        return
+                chunk = self._pipe.read1(self.CHUNK)  # whatever has arrived, up to CHUNK bytes
+                if not chunk:
+                    return  # yt-dlp finished (or was stopped)
+                with self._changed:
+                    if self._finished:  # close() ran while we were reading: drop it
+                        return
+                    self._chunks.append(chunk)
+                    self._buffered += len(chunk)
+                    self.received += len(chunk)
+                    self._changed.notify_all()
+        except OSError, ValueError:  # the pipe was closed under us while stopping
+            pass
+        finally:
+            with self._changed:
+                self._finished = True
+                self._changed.notify_all()
+
+    def wait_for(self, size: int, timeout: float) -> None:
+        """Waits until `size` bytes are buffered, the download has ended, or `timeout` seconds have passed."""
+        with self._changed:
+            self._changed.wait_for(lambda: self._buffered >= size or self._finished, timeout=timeout)
 
     def read(self, size: int = -1) -> bytes:
-        data = self._pipe.read(size)
-        self.bytes_read += len(data)
-        return data
+        """What discord.py's feeder thread calls: up to `size` bytes, waiting if none are there yet; b"" = the end."""
+        with self._changed:
+            self._changed.wait_for(lambda: self._chunks or self._finished)
+            if not self._chunks:
+                return b""
+            chunk = self._chunks.popleft()
+            if 0 <= size < len(chunk):  # give part of it, keep the rest at the front
+                chunk, rest = chunk[:size], chunk[size:]
+                self._chunks.appendleft(rest)
+            self._buffered -= len(chunk)
+            self._changed.notify_all()
+            return chunk
+
+    def close(self) -> None:
+        with self._changed:
+            self._finished = True
+            self._chunks.clear()
+            self._buffered = 0
+            self._changed.notify_all()
+
+    def status(self) -> str:
+        seconds = max(time.monotonic() - self.started_at, 0.001)
+        return (
+            f"{self.received} bytes from yt-dlp ({self.received / seconds / 1024:.0f} KB/s), {self._buffered} buffered"
+        )
 
 
 class YtdlpAudio(discord.FFmpegPCMAudio):
@@ -108,12 +186,38 @@ class YtdlpAudio(discord.FFmpegPCMAudio):
             command, cwd=WORK_DIR, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE
         )
         threading.Thread(target=_log_ytdlp_errors, args=(self._ytdlp.stderr,), daemon=True).start()
-        self.downloaded = _CountingReader(self._ytdlp.stdout)
+        self.downloaded = _ReadAhead(self._ytdlp.stdout)
         try:
             super().__init__(self.downloaded, pipe=True, before_options=FFMPEG_BEFORE, options=FFMPEG_OPTIONS)
         except Exception:
             self._stop_ytdlp()
             raise
+
+    def _pipe_writer(self, source) -> None:
+        """discord.py's background thread that copies our download into ffmpeg's input, with one change: flush().
+
+        Python 3.14 gives every pipe a 128 KB buffer (it was 8 KB), and discord.py's own copy of this loop never
+        flushes it. So ffmpeg only got audio once 128 KB had piled up: ~6 s of YouTube audio at a time, and any
+        slow moment on the network became a stutter. Flushing after every piece hands it to ffmpeg straight away.
+        """
+        while self._process:
+            data = source.read(self.BLOCKSIZE)
+            stdin = self._stdin
+            if not stdin:  # cleanup() already ran
+                return
+            try:
+                if not data:  # the download has ended: closing ffmpeg's input tells it to finish
+                    stdin.close()
+                    return
+                stdin.write(data)
+                stdin.flush()
+            except OSError, ValueError:  # ffmpeg has stopped (skip, or the song is over)
+                return
+
+    def prebuffer(self) -> None:
+        """Waits (up to PREBUFFER_TIMEOUT s) until a few seconds of audio are downloaded, so playback starts with a
+        cushion. It blocks, so the player runs it in a worker thread (asyncio.to_thread), never on the event loop."""
+        self.downloaded.wait_for(PREBUFFER_BYTES, timeout=PREBUFFER_TIMEOUT)
 
     def _stop_ytdlp(self) -> None:
         if self._ytdlp.poll() is None:  # still downloading (skip, stop, or the bot shutting down)
@@ -122,6 +226,7 @@ class YtdlpAudio(discord.FFmpegPCMAudio):
                 self._ytdlp.wait(timeout=5)
             except subprocess.TimeoutExpired:
                 logging.warning("yt-dlp (pid %s) didn't stop within 5 s", self._ytdlp.pid)
+        self.downloaded.close()
         try:
             os.remove(self._info_path)
         except FileNotFoundError:
@@ -133,7 +238,7 @@ class YtdlpAudio(discord.FFmpegPCMAudio):
         ffmpeg = getattr(self, "_process", None)  # discord.py's ffmpeg process (a placeholder once cleaned up)
         ffmpeg_state = ffmpeg.poll() if isinstance(ffmpeg, subprocess.Popen) else "?"
         return (
-            f"{self.downloaded.bytes_read} bytes from yt-dlp, "
+            f"{self.downloaded.status()}, "
             f"yt-dlp {'running' if self._ytdlp.poll() is None else f'exited {self._ytdlp.returncode}'}, "
             f"ffmpeg {'running' if ffmpeg_state is None else f'exited {ffmpeg_state}'}"
         )

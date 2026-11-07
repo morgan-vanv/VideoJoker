@@ -184,6 +184,7 @@ class GuildPlayer:  # pylint: disable=too-many-instance-attributes
             logging.error("Could not start the audio pipeline for %r: %s", track.title, error)
             await self._announce_text(lines.say(lines.LOAD_FAILED, title=track.title))
             return False
+        await asyncio.to_thread(audio.prebuffer)  # a few seconds of audio in hand before the first frame
         source = MeteredVolume(audio, volume=self.volume / 100)
 
         self._track_done.clear()
