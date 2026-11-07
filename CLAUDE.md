@@ -49,13 +49,32 @@ handcrafted, and sentimental. **Treat it like a friend's workshop, not a codebas
   globally in `bot.global_interaction_check`.
 - Use `logging` with `%s` args, not f-strings. Max line length 120 (`.pylintrc`).
 - When you add or rename a command, update the README's command list in the same PR.
+- `main` is always deployable: merging a PR that changes bot code creates a release automatically (`.github/workflows/release.yml`). There is no `dev` branch.
+
+## Production hosting (live since 2026-11-07)
+
+Every approved merge to `main` that changes the bot is live on Morgan's server within ~10 minutes: the host
+watches for new GitHub Releases, switches over, and rolls back on its own if the bot doesn't come up. So
+these rules hold for every PR. If a change has to break one, say so in the PR:
+
+1. The log line `… is now running and ready to serve!` (`bot.py` `on_ready`) stays word for word: the host's start check looks for it.
+2. SIGINT shuts down cleanly and closes the database within a few seconds.
+3. The container runs as UID 1000 with a **read-only** filesystem. The only writable places are `/app/data`
+   (database, logs, heartbeat) and `/tmp` (256 MB). Downloads and caches (yt-dlp included) must go there.
+4. Schema changes must be **forward-compatible**, because a rollback runs the *old* code against the *new*
+   database: add tables, or add columns with a default. Never rename, drop, or change what a column means.
+5. `Intents.default()` only. The production bot is invited with View Channels, Send Messages, Embed Links
+   and Read Message History. A feature that needs more (e.g. `Connect`/`Speak` for music, `Manage Roles`
+   for reaction roles) or a privileged intent must say so in its PR, so Morgan can re-invite the bot.
+6. Production has no `DEV_GUILD_ID` (commands sync globally). The dev bot stays in the test server.
 
 ## Checks before opening a PR
 
 ```bash
 pip install -r requirements-dev.txt                 # bot deps + dev tools (pylint)
+ruff format .                                        # format first: CI fails if anything isn't formatted
 pylint --rcfile=.pylintrc $(git ls-files '*.py')     # CI runs exactly this on the whole repo: fails below 9.5 or on any error
-python -c "import bot, cogs.games, cogs.fun, cogs.utility, cogs.permissions, cogs.music, cogs.economy, cogs.reaction_roles"
+python -c "import bot, cogs.games, cogs.fun, cogs.utility, cogs.permissions, cogs.music, cogs.economy, cogs.reaction_roles, cogs.heartbeat"
 python -m pytest                                     # tests in tests/: database + game logic, no Discord needed
 ```
 

@@ -3,8 +3,10 @@ import discord
 from discord import app_commands
 from discord.ext.commands import Cog
 
+
 class Economy(Cog, name="Economy"):
     """A cog that provides economy commands"""
+
     def __init__(self, bot):
         logging.info("Economy cog initialized.")
         self.bot = bot
@@ -13,7 +15,7 @@ class Economy(Cog, name="Economy"):
     async def on_message(self, message: discord.Message):
         if message.author.bot or message.guild is None:
             return
-        
+
         # Add 1 USh for every message
         await self.bot.db.add_balance(message.author.id, 1)
 
@@ -30,7 +32,7 @@ class Economy(Cog, name="Economy"):
         if amount <= 0:
             await interaction.response.send_message("Amount must be greater than 0.", ephemeral=True)
             return
-        
+
         success = await self.bot.db.transfer_balance(interaction.user.id, user.id, amount)
         if not success:
             await interaction.response.send_message("You don't have enough USh or the transfer failed.", ephemeral=True)
@@ -43,6 +45,7 @@ class Economy(Cog, name="Economy"):
 
         # TODO: Implement actual gambling games
         await interaction.response.send_message(f"Stub: Gambled {amount} USh. Features coming soon!", ephemeral=True)
+
 
 async def setup(bot):
     await bot.add_cog(Economy(bot))

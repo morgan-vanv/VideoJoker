@@ -146,9 +146,12 @@ The dev bot uses its own `data-dev/` database and mounts your working folder, so
 ```bash
 python3 -m venv .venv && source .venv/bin/activate    # Python 3.14, see .python-version
 pip install -r requirements-dev.txt
+ruff format .                                          # format the code (or turn on format-on-save in your editor)
 pylint --rcfile=.pylintrc $(git ls-files '*.py')       # CI fails below 9.5 or on any error
 python -m pytest                                       # quick tests, no Discord needed
 ```
+
+Once per clone, run `git config blame.ignoreRevsFile .git-blame-ignore-revs` so `git blame` skips the one-time formatting commit and keeps showing who really wrote each line.
 
 CI runs the same checks on every pull request. Work on a branch, open a PR, and a human merges it.
 
@@ -164,3 +167,16 @@ CI runs the same checks on every pull request. Work on a branch, open a PR, and 
   `sudo chown -R "$(id -u):$(id -g)" data`. If `id -u` isn't 1000, build with `docker compose build --build-arg UID=$(id -u)`.
 - **Commands not showing up?** Global commands can take a little while to appear after a change. Restarting Discord (Ctrl+R) helps.
 
+---
+
+## 10. Releases and versions
+
+`main` is always the version that should be running. There's no `dev` branch: changes are tested in CI and on the dev bot (section 7), then merged.
+
+- **Every merge to `main` that changes the bot is a release, automatically.** The Release workflow picks a date version (`v2026.10.28`, then `v2026.10.28.2` for a second one that day), builds the Docker image with that version inside, publishes it as `ghcr.io/morgan-vanv/videojoker:<version>` (and `:latest`), and creates a GitHub Release whose notes list the merged PRs and who wrote them. Docs-only merges don't release.
+- **Which version is running?** `/ping` answers `pong · v2026.10.28`. Bots you build yourself say `pong · dev`.
+- **Hotfix:** a normal `fix/...` branch and PR. Merging it releases immediately.
+- **Rollback:** run the previous version's image (every release keeps its own tag) while you fix forward.
+- **Release by hand** (e.g. to rebuild with a newer base image): Actions tab → Release → **Run workflow**, from `main` (runs from any other branch are skipped).
+- **Monthly rebuild:** on the 1st of each month the workflow releases on its own (same code, freshly rebuilt), so security fixes in the base image and ffmpeg still ship in a quiet month.
+- **Package versions:** each release is one image with its version tag (the newest also has `latest`). Older releases built before 2026-10-29 may show extra "untagged" versions on the package page: those are parts of a tagged release, so don't delete them.

@@ -5,3 +5,11 @@ testpaths = ["tests"]
 # Lets tests be plain `async def` functions without a decorator on each one
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
+
+[tool.ruff]
+line-length = 120          # same limit as .pylintrc
+target-version = "py314"
+
+[tool.ruff.format]
+# Keep each file's existing ' vs " choice, so formatting only changes what matters
+quote-style = "preserve"

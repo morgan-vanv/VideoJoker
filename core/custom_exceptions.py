@@ -1,6 +1,7 @@
 import discord
 from discord import app_commands
 
+
 class ExecutingUserNotVIPError(app_commands.CheckFailure):
     """Exception thrown when the executing user lacks VIP status."""
 

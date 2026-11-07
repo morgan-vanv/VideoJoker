@@ -8,8 +8,10 @@ from discord.ext.commands import Cog
 from core.constants import EIGHT_BALL_RESPONSES, RPS_CHOICES, RPS_WINNING_CONDITIONS
 from games.three_card_monte import MonteView, deal_winning_card
 
+
 class Games(Cog, name="Games"):
     """A cog that provides simple game commands"""
+
     def __init__(self, bot):
         logging.info("Games cog initialized.")
         self.bot = bot
@@ -28,7 +30,42 @@ class Games(Cog, name="Games"):
             return
 
         result = random.randint(1, sides)
-        await interaction.response.send_message(f"{interaction.user.name} rolled a **{result}** on a {sides}-sided die.")
+        await interaction.response.send_message(
+            f"{interaction.user.name} rolled a **{result}** on a {sides}-sided die."
+        )
+
+    @app_commands.command(name='droll', description='Roll any number of dice of one number of sides')
+    async def droll(self, interaction: discord.Interaction, dice: int = 1, sides: int = 6) -> None:
+        """
+        Rolls dice and allows user to roll multiple ones of the same dice: If no arguments are given, defaults to 1d6.
+
+        To use this command on discord, user can enter as an example "/droll 2 20" -> this would roll 2 20-sided dice.
+
+        Output will be each dice roll so with the example "/droll 2 20",
+        the output would be, for example: "You rolled: 7, 20."
+        """
+        max_dice = 10
+        max_sides = 20
+
+        if dice < 1:
+            await interaction.response.send_message("You did not roll any dice!", ephemeral=True)
+            return
+        elif dice > max_dice:
+            await interaction.response.send_message(f"You can only roll up to {max_dice} dice!", ephemeral=True)
+            return
+
+        if sides < 1:
+            await interaction.response.send_message("A die must have at least 1 side!", ephemeral=True)
+            return
+        elif sides > max_sides:
+            await interaction.response.send_message(f"Sorry, we don't have any {sides}-sided dice :(", ephemeral=True)
+            return
+
+        rolls = [random.randint(1, sides) for _ in range(dice)]
+        all_rolls = ", ".join(str(roll) for roll in rolls)
+        if dice > 1:
+            all_rolls += f" (total: {sum(rolls)})"
+        await interaction.response.send_message(f"Rolling: {dice}d{sides}\n\nYou Rolled: {all_rolls}")
 
     @app_commands.command(name='8ball', description='Ask the magic 8 ball a question')
     # Range makes Discord itself cap the question at 300 characters (the reply must fit Discord's 2000 limit)
@@ -36,14 +73,18 @@ class Games(Cog, name="Games"):
         """Ask the magic 8-ball a question"""
         answer = random.choice(EIGHT_BALL_RESPONSES)
 
-        await interaction.response.send_message(f"{interaction.user.name} asked: '{question}'\n🎱 Magic 8 Ball says: **{answer}**")
+        await interaction.response.send_message(
+            f"{interaction.user.name} asked: '{question}'\n🎱 Magic 8 Ball says: **{answer}**"
+        )
 
     @app_commands.command(name='rockpaperscissors', description='Play rock-paper-scissors against the bot')
-    @app_commands.choices(choice=[
-        app_commands.Choice(name='Rock', value='rock'),
-        app_commands.Choice(name='Paper', value='paper'),
-        app_commands.Choice(name='Scissors', value='scissors')
-    ])
+    @app_commands.choices(
+        choice=[
+            app_commands.Choice(name='Rock', value='rock'),
+            app_commands.Choice(name='Paper', value='paper'),
+            app_commands.Choice(name='Scissors', value='scissors'),
+        ]
+    )
     async def rockpaperscissors(self, interaction: discord.Interaction, choice: app_commands.Choice[str]) -> None:
         """Play rock-paper-scissors against the bot"""
         user_choice = choice.value
@@ -55,16 +96,18 @@ class Games(Cog, name="Games"):
         else:
             result = "I win!"
 
-        await interaction.response.send_message(f"{interaction.user.name} chose **{choice.name}**. I chose **{bot_choice.capitalize()}**. {result}")
+        await interaction.response.send_message(
+            f"{interaction.user.name} chose **{choice.name}**. I chose **{bot_choice.capitalize()}**. {result}"
+        )
 
     @app_commands.command(name="threecardmonte", description="Play a game of Three Card Monte with the User")
     async def threecardmonte(self, interaction: discord.Interaction) -> None:
         """Runs the Three Card Monte game with the User using buttons
 
-            1. User calls command for /threecardmonte
-            2. bot sends an ephemeral message to channel with buttons selection
-            3. bot deletes ephemeral message once the selection is made
-            4. bot replies to the interaction with results in the message
+        1. User calls command for /threecardmonte
+        2. bot sends an ephemeral message to channel with buttons selection
+        3. bot deletes ephemeral message once the selection is made
+        4. bot replies to the interaction with results in the message
         """
 
         # Respond publicly so the results can be linked to the command invocation
@@ -76,6 +119,7 @@ class Games(Cog, name="Games"):
         # Send the ephemeral selection message
         message = await interaction.followup.send("Pick a card, any card!", view=view, ephemeral=True)
         view.message = message
+
 
 async def setup(bot):
     await bot.add_cog(Games(bot))

@@ -7,6 +7,7 @@ from pathlib import Path
 
 DB_PATH = Path(__file__).resolve().parent.parent / "data" / "videojoker.db"
 
+
 class Database:
     """
     Manages the SQLite database and provides an in-memory cache for user roles (VIP & BANNED).
@@ -26,7 +27,7 @@ class Database:
         """Initializes the database, creates the table, and loads the cache."""
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self.conn = await aiosqlite.connect(self.db_path)
-        
+
         await self.conn.execute('''
             CREATE TABLE IF NOT EXISTS user_roles (
                 user_id INTEGER PRIMARY KEY,
@@ -57,7 +58,7 @@ class Database:
         # Drop the old permissions table if it exists to keep the schema clean
         await self.conn.execute("DROP TABLE IF EXISTS permissions")
         await self.conn.commit()
-        
+
         # Load the cache
         async with self.conn.execute("SELECT user_id, role FROM user_roles") as cursor:
             rows = await cursor.fetchall()
@@ -97,11 +98,14 @@ class Database:
         if user_id == self.owner_id and role == 'BANNED':
             raise ValueError("The bot owner cannot be banned.")
 
-        await self._execute("""
+        await self._execute(
+            """
             INSERT INTO user_roles (user_id, role) 
             VALUES (?, ?)
             ON CONFLICT(user_id) DO UPDATE SET role = excluded.role
-        """, (user_id, role))
+        """,
+            (user_id, role),
+        )
 
         # Update cache
         if role == 'VIP':
@@ -114,7 +118,7 @@ class Database:
     async def remove_user_role(self, user_id: int) -> None:
         """Removes a user's role, reverting them to a normal user."""
         await self._execute("DELETE FROM user_roles WHERE user_id = ?", (user_id,))
-        
+
         # Update cache
         if user_id != self.owner_id:
             self.vips.discard(user_id)
@@ -134,11 +138,14 @@ class Database:
                 raise
 
     async def add_balance(self, user_id: int, amount: int) -> None:
-        await self._execute("""
+        await self._execute(
+            """
             INSERT INTO economy (user_id, balance) 
             VALUES (?, ?)
             ON CONFLICT(user_id) DO UPDATE SET balance = balance + excluded.balance
-        """, (user_id, amount))
+        """,
+            (user_id, amount),
+        )
 
     async def transfer_balance(self, sender_id: int, receiver_id: int, amount: int) -> bool:
         """Atomically transfers balance from sender to receiver. Returns True if successful."""
@@ -150,25 +157,31 @@ class Database:
             try:
                 # We use an atomic update where sender balance must be >= amount
                 await self.conn.execute("BEGIN IMMEDIATE TRANSACTION")
-                
+
                 # Deduct from sender
-                cursor = await self.conn.execute("""
+                cursor = await self.conn.execute(
+                    """
                     UPDATE economy 
                     SET balance = balance - ? 
                     WHERE user_id = ? AND balance >= ?
-                """, (amount, sender_id, amount))
-                
+                """,
+                    (amount, sender_id, amount),
+                )
+
                 if cursor.rowcount == 0:
                     await self.conn.rollback()
                     return False  # Insufficient funds or user not found
-                    
+
                 # Add to receiver (insert if not exists)
-                await self.conn.execute("""
+                await self.conn.execute(
+                    """
                     INSERT INTO economy (user_id, balance) 
                     VALUES (?, ?)
                     ON CONFLICT(user_id) DO UPDATE SET balance = balance + excluded.balance
-                """, (receiver_id, amount))
-                
+                """,
+                    (receiver_id, amount),
+                )
+
                 await self.conn.commit()
                 return True
             except Exception as e:
@@ -185,7 +198,9 @@ class Database:
             raise RuntimeError("Database connection is not initialized. Did you call setup()?")
         async with self.lock:
             try:
-                async with self.conn.execute("SELECT server_xp, bot_xp FROM xp WHERE user_id = ?", (user_id,)) as cursor:
+                async with self.conn.execute(
+                    "SELECT server_xp, bot_xp FROM xp WHERE user_id = ?", (user_id,)
+                ) as cursor:
                     row = await cursor.fetchone()
                     return row if row else (0, 0)
             except Exception as e:
@@ -193,33 +208,44 @@ class Database:
                 raise
 
     async def add_server_xp(self, user_id: int, amount: int = 1) -> None:
-        await self._execute("""
+        await self._execute(
+            """
             INSERT INTO xp (user_id, server_xp, bot_xp) 
             VALUES (?, ?, 0)
             ON CONFLICT(user_id) DO UPDATE SET server_xp = server_xp + excluded.server_xp
-        """, (user_id, amount))
+        """,
+            (user_id, amount),
+        )
 
     async def add_bot_xp(self, user_id: int, amount: int = 1) -> None:
-        await self._execute("""
+        await self._execute(
+            """
             INSERT INTO xp (user_id, server_xp, bot_xp) 
             VALUES (?, 0, ?)
             ON CONFLICT(user_id) DO UPDATE SET bot_xp = bot_xp + excluded.bot_xp
-        """, (user_id, amount))
+        """,
+            (user_id, amount),
+        )
 
     # Reaction Role Methods
     async def add_reaction_role(self, message_id: int, emoji: str, role_id: int) -> None:
-        await self._execute("""
+        await self._execute(
+            """
             INSERT INTO reaction_roles (message_id, emoji, role_id) 
             VALUES (?, ?, ?)
             ON CONFLICT(message_id, emoji) DO UPDATE SET role_id = excluded.role_id
-        """, (message_id, emoji, role_id))
+        """,
+            (message_id, emoji, role_id),
+        )
 
     async def get_reaction_role(self, message_id: int, emoji: str) -> Optional[int]:
         if self.conn is None:
             raise RuntimeError("Database connection is not initialized. Did you call setup()?")
         async with self.lock:
             try:
-                async with self.conn.execute("SELECT role_id FROM reaction_roles WHERE message_id = ? AND emoji = ?", (message_id, emoji)) as cursor:
+                async with self.conn.execute(
+                    "SELECT role_id FROM reaction_roles WHERE message_id = ? AND emoji = ?", (message_id, emoji)
+                ) as cursor:
                     row = await cursor.fetchone()
                     return row[0] if row else None
             except Exception as e:

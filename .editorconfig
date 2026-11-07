@@ -1,0 +1,21 @@
+# Editor settings most editors pick up automatically (NeoVim has built-in support), so everyone's editor
+# agrees on the basics before ruff ever runs. https://editorconfig.org
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.py]
+indent_style = space
+indent_size = 4
+max_line_length = 120
+
+[*.{yml,yaml,toml}]
+indent_style = space
+indent_size = 2
+
+[*.md]
+trim_trailing_whitespace = false   # two trailing spaces = a line break in Markdown

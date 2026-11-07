@@ -32,5 +32,10 @@ RUN useradd --create-home --uid "${UID}" videojoker \
     && chown videojoker:videojoker /app/data
 USER videojoker
 
+# The release workflow passes the version (e.g. v2026.10.28); local builds say "dev".
+# Declared last so changing it never invalidates the cached layers above.
+ARG VERSION=dev
+ENV VIDEOJOKER_VERSION=${VERSION}
+
 # Start the bot
 CMD ["python", "main.py"]

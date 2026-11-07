@@ -9,9 +9,11 @@ from core.constants import ROASTS
 
 class Fun(Cog, name="Fun"):
     """A cog that provides fun commands"""
+
     def __init__(self, bot):
         logging.info("Fun cog initialized.")
         self.bot = bot
+
     @app_commands.command(name='say', description='Repeat after me')
     # Range makes Discord itself cap the message at 2000 characters, the most one Discord message can hold
     async def say(self, interaction: discord.Interaction, message: app_commands.Range[str, 1, 2000]) -> None:
@@ -36,6 +38,7 @@ class Fun(Cog, name="Fun"):
             await interaction.response.send_message(f"Boom! You are dead comrade.")
         else:
             await interaction.response.send_message(f"You live another day comrade.")
+
 
 async def setup(bot):
     await bot.add_cog(Fun(bot))
