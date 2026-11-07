@@ -17,6 +17,7 @@ SOURCE_BADGE = {
     "youtube": ("YouTube", discord.Colour(0xFF0000)),
     "soundcloud": ("SoundCloud", discord.Colour(0xFF5500)),
     "spotify": ("Spotify", discord.Colour(0x1DB954)),
+    "tidal": ("TIDAL", discord.Colour(0x33FFEE)),
     "other": ("Link", discord.Colour.dark_grey()),
 }
 LOOP_ICON = {LoopMode.OFF: "➡️ off", LoopMode.TRACK: "🔂 track", LoopMode.QUEUE: "🔁 queue"}

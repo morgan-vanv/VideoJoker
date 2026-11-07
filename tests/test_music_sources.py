@@ -58,10 +58,15 @@ def test_read_only_cookies_file_is_skipped(monkeypatch, tmp_path):
 
 
 def test_startup_with_no_optional_settings(monkeypatch, caplog):
-    for name in ("SPOTIFY_CLIENT_ID", "SPOTIFY_CLIENT_SECRET", "YTDLP_COOKIES_FILE", "SOUNDCLOUD_OAUTH_TOKEN"):
+    for name in (
+        "SPOTIFY_CLIENT_ID", "SPOTIFY_CLIENT_SECRET", "TIDAL_CLIENT_ID", "TIDAL_CLIENT_SECRET",
+        "YTDLP_COOKIES_FILE", "SOUNDCLOUD_OAUTH_TOKEN",
+    ):  # fmt: skip
         monkeypatch.delenv(name, raising=False)
+    caplog.set_level("INFO")
     sources.log_optional_settings()  # must not raise: the bot has to start with every extra missing
-    assert "Spotify links are off" in caplog.text
+    assert "Spotify links are read from Spotify's public embed pages only" in caplog.text
+    assert "Tidal links are off" in caplog.text
 
 
 def test_stream_log_line_has_no_link_or_token(monkeypatch):

@@ -54,10 +54,25 @@ The bot refuses to start without `DISCORD_TOKEN`, and warns you if `OWNER` is mi
 The music player works out of the box for YouTube and SoundCloud links and searches. These extras are optional:
 
 ```env
-# Spotify links (track/album/playlist). Create a free app at https://developer.spotify.com/dashboard
-# Spotify only gives us the track names; the audio is found on YouTube.
+# Spotify links work without any setup: the bot reads the track list from Spotify's public embed page and
+# YouTube plays the songs. These two make single tracks and albums use Spotify's official API instead (sturdier).
+# Create an app at https://developer.spotify.com/dashboard (Web API). Since February 2026 the app only works
+# while its owner's account has Spotify Premium. Playlists always come from the embed page: Spotify's API no
+# longer lists other people's playlists for apps like ours.
+# Heads-up: Spotify's Developer Policy forbids apps that combine Spotify with another service's streams (which
+# is what this bot does), so we leave these unset in production. If you set them, use a throwaway account.
 SPOTIFY_CLIENT_ID=...
 SPOTIFY_CLIENT_SECRET=...
+
+# Tidal links (track/album/playlist). Register a free app at https://developer.tidal.com (no subscription
+# needed) and copy its Client ID and Client Secret. Like Spotify, Tidal only gives us track names; YouTube plays.
+# Without these, Tidal links get a polite "not set up" reply and everything else still works.
+# TIDAL's developer guidelines want written approval for apps that mix TIDAL with another service: we use a
+# separate TIDAL account for the app, so the worst case is that TIDAL revokes it.
+TIDAL_CLIENT_ID=...
+TIDAL_CLIENT_SECRET=...
+# Optional: the country whose Tidal catalogue to use (two letters). Default US.
+# TIDAL_COUNTRY_CODE=US
 
 # Cookies from a logged-in YouTube account (Premium is ideal) avoid YouTube's "confirm you're not a bot" wall.
 # Export with a "Get cookies.txt" browser extension and keep the file in data/ (gitignored, mounted in Docker).

@@ -13,8 +13,8 @@ Guiding ideas:
 - **One card, edited in place.** The now-playing card is the player. Pause, loop, shuffle update the card; they
   don't post new messages. When a song ends the card collapses into a one-line "Previously:" so old buttons
   never linger.
-- **Links just work.** Paste anything: a YouTube video or playlist, a SoundCloud track or set, a Spotify
-  track/album/playlist, or plain words. No autocomplete popup to eat your paste (that's eara's double-paste bug).
+- **Links just work.** Paste anything: a YouTube video or playlist, a SoundCloud track or set, a Spotify or
+  Tidal track/album/playlist, or plain words. No autocomplete popup to eat your paste (that's eara's double-paste bug).
 - **Say it in the VJ's voice.** Every line lives in `music/lines.py`. "The VJ loads the reel", "Intermission!",
   "The VJ ejects the tape. Movie over, comrades."
 - **Controls for the audience.** Anyone in the VJ's voice channel can press the buttons; anyone else gets told
@@ -29,7 +29,8 @@ container and the play loop is exactly the part worth learning.
 ```
 cogs/music.py          slash commands + the "are you in my voice channel" checks   (thin)
 music/queue.py         Track + Queue + LoopMode. Pure Python, no Discord, testable
-music/sources.py       link/search → Tracks (yt-dlp), Spotify → "Artist - Title" → YouTube
+music/sources.py       link/search → Tracks (yt-dlp); Spotify/Tidal links go to catalogs.py
+music/catalogs.py      Spotify + Tidal: read the track list → "Artist - Title" → YouTube
 music/player.py        GuildPlayer: voice connection + the loop that plays the queue
 music/ui.py            now-playing card, queue embed, the buttons (NowPlayingView)
 music/lines.py         the VJ's copy
@@ -50,9 +51,12 @@ How a `/play` flows:
 5. When the song ends discord.py calls back (from its audio thread; we hop back to the event loop), the loop
    advances by loop mode, and the card is retired and replaced.
 
-Spotify: the Web API never gives audio, so a link becomes `Artist - Title` searches answered by YouTube.
-Credentials are a free dev app (`SPOTIFY_CLIENT_ID/SECRET`). Known limit: new dev apps can't read Spotify's
-own editorial playlists (they 404); user playlists, albums and tracks are fine.
+Spotify and Tidal never give audio, so a link becomes `Artist - Title` searches answered by YouTube
+(`music/catalogs.py`). Spotify: the official Web API for tracks and albums when `SPOTIFY_CLIENT_ID/SECRET` are
+set (a dev app; since Feb 2026 its owner needs Premium), otherwise, and always for playlists, Spotify's public
+embed page (the API stopped listing other people's playlists for dev apps). The embed page is unofficial: if
+Spotify changes it, `parse_spotify_embed()` needs an update. Tidal: the official TIDAL API
+(`TIDAL_CLIENT_ID/SECRET`, free); without them Tidal links are off. Both cap a link at 500 songs.
 
 Accounts that help (all optional env vars, see SETUP_GUIDE): a logged-in YouTube cookie file (Premium account)
 dodges the "sign in to confirm you're not a bot" wall; a SoundCloud Go+ OAuth token unlocks HQ streams.
@@ -60,7 +64,7 @@ dodges the "sign in to confirm you're not a bot" wall; a SoundCloud Go+ OAuth to
 ## v1 scope (this PR)
 
 `/play [query] [play_next]`, `/join`, `/leave`, `/pause`, `/resume`, `/skip`, `/stop`, `/queue [page]`,
-`/nowplaying`, `/volume`, `/loop`, `/shuffle`, `/remove`. YouTube + SoundCloud + Spotify + text search.
+`/nowplaying`, `/volume`, `/loop`, `/shuffle`, `/remove`. YouTube + SoundCloud + Spotify + Tidal + text search.
 Now-playing card with Pause/Resume, Skip, Stop, Shuffle, Loop, Queue buttons. Idle for 5 minutes → VJ leaves.
 
 ## Later phases (each its own PR, in rough order)

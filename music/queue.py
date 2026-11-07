@@ -25,7 +25,7 @@ class Track:  # pylint: disable=too-many-instance-attributes
 
     title: str
     url: str | None = None  # the page we can link people to (YouTube watch page, SoundCloud page)
-    search_query: str | None = None  # used instead of `url` for Spotify tracks ("Artist - Title")
+    search_query: str | None = None  # used instead of `url` for Spotify/Tidal tracks ("Artist - Title")
     # yt-dlp's full answer about the chosen audio format, handed to the yt-dlp that downloads it (music/stream.py).
     # Filled in by sources.resolve_stream. repr=False: it holds signed links, which must never end up in a log.
     stream_info: dict | None = field(default=None, repr=False)
@@ -33,7 +33,7 @@ class Track:  # pylint: disable=too-many-instance-attributes
     duration: int | None = None  # seconds, if known
     artist: str | None = None  # uploader / channel / Spotify artist
     thumbnail: str | None = None
-    source: str = "youtube"  # "youtube", "soundcloud", "spotify" — decides the embed's badge
+    source: str = "youtube"  # "youtube", "soundcloud", "spotify", "tidal" — decides the embed's badge
     requester_id: int = 0
     requester_name: str = ""
 

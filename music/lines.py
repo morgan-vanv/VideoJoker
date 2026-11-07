@@ -53,10 +53,10 @@ WRONG_CHANNEL = "The VJ is showing a film in **{channel}**. Join the audience th
 SEARCHING = "🔎 The VJ rummages through the tapes for **{query}**..."
 NOT_FOUND = "The VJ searched every shelf and found nothing for **{query}**."
 LOAD_FAILED = "The tape for **{title}** is damaged. The VJ skips it and moves on."
-SPOTIFY_NOT_CONFIGURED = (
-    "Spotify links need `SPOTIFY_CLIENT_ID` and `SPOTIFY_CLIENT_SECRET` in `.env`. See SETUP_GUIDE.md — it's free."
+TIDAL_NOT_CONFIGURED = (
+    "Tidal links need `TIDAL_CLIENT_ID` and `TIDAL_CLIENT_SECRET` in `.env`. See SETUP_GUIDE.md — it's free."
 )
-SPOTIFY_FAILED = "Spotify wouldn't hand over that one. Check the link, comrade."
+LINK_FAILED = "{service} wouldn't hand over that one. Check the link (private playlists stay private), comrade."
 
 
 def say(line: str | list[str], **kwargs) -> str:
