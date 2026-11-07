@@ -45,15 +45,19 @@ suggestions as you type.
 ```
 /osrs register rsn:"Iron Morph"
   "📼 The VJ adds Iron Morph to your tapes."
-  ├─ Clan question, ONLY if none of your accounts is in the clan yet:
-  │    "Is Iron Morph joining the clan?"  [Join the clan]  [Already a member]  [No thanks]
-  │       Join             → how to apply in game (clan name, where to apply, who to ask)
-  │       Already a member → noted; you won't be asked again
-  │       No thanks        → noted for this account
-  └─ Flexing offer, ONLY if you aren't enrolled yet:
-       "Want your drops flexed in #automated-rs-flexing?"  [Set me up]  [Not now]
-          Set me up → the flexing kit (same as /osrs flexing)
+  1. Flexing, ONLY if you haven't got the kit yet:
+       "Want your drops flexed in #automated-rs-flexing?"   [Set me up]  [Not now]
+  2. Deaths, ONLY after "Set me up", and only if a deaths channel is set:
+       "And your deaths? Want them in #everyone-point-and-laugh?"   [Shame me]  [Keep my dignity]
+     → the flexing kit, matching that answer (same as /osrs flexing)
+  3. Clan, ONLY while none of your accounts is in the clan:
+       "Is Iron Morph joining the clan?"   [Join the clan]  [Already a member]  [No thanks]
+         Join             → join the "Ugandans" clan chat in game and apply
+         Already a member → noted; you won't be asked again
+         No thanks        → noted for this account
 ```
+(Order changed 2026-11-07: flexing → deaths → clan, so the death notifications restored from the old setup sit
+next to the flexing setup.)
 
 "In the clan" means: you said "Already a member" for any of your accounts, **or** any of your accounts is
 in the clan's Wise Old Man group, which syncs with the in-game clan by itself. The bot reads that group from
@@ -71,6 +75,13 @@ The flexing kit, shown privately by `/osrs flexing`:
    unless people clear them.)
 3. Advanced → **Dynamic Config URL**: replace what's there with
    `https://raw.githubusercontent.com/morgan-vanv/VideoJoker/main/osrs/dink-settings.json`
+
+**Deaths are opt-in per player.** They post in their own channel (`#everyone-point-and-laugh`) through a second
+bot-owned webhook named "sit, respectfully", after the old one. "Shame me" → the kit says to tick Dink's
+*Enable Death* and paste the deaths URL into *Death Webhook Override*. "Keep my dignity" → the kit says to untick
+*Enable Death*. For that reason `deathEnabled` is **not** in the shared settings file: Dink re-imports the shared
+settings every few hours and would switch deaths back on for people who said no (a test enforces this). The
+rest of swannobi's death settings (message, min value, PvP) stay shared.
 
 Why separate pastes? The **settings** (loot threshold, which notifiers, screenshots…) are the same for everyone and
 contain nothing secret, so they live in our public repo (`osrs/dink-settings.json`, swannobi's `Dink-Config` minus

@@ -60,18 +60,33 @@ class Osrs(commands.GroupCog, group_name="osrs", group_description="Link your OS
         """An account counts as in the clan if they told us so, or Wise Old Man says so."""
         return account.clan_answer == "member" or (clan is not None and account.rsn_key in clan)
 
-    async def flexing_offer_channel(self, user_id: int) -> Optional[discord.TextChannel]:
-        """The flexing channel, if flexing is set up and this person hasn't got the webhook yet."""
+    def _channels(self) -> tuple[Optional[discord.TextChannel], Optional[discord.TextChannel]]:
+        """(flexing channel, deaths channel); either is None when it isn't set up."""
         try:
-            channel, _ = flexing.flexing_channels(self.bot)
+            return flexing.flexing_channels(self.bot)
         except flexing.FlexingNotSetUp:
-            return None
-        return None if await self.bot.db.is_flexer(user_id) else channel
+            return None, None
 
-    async def flexing_kit_for(self, user_id: int) -> str:
-        """The flexing kit text (and remember them as a flexer), or a message saying what's missing."""
+    def flexing_channel_mention(self) -> str:
+        main, _ = self._channels()
+        return main.mention if main else "the flexing channel"
+
+    def deaths_channel_mention(self) -> str:
+        _, deaths = self._channels()
+        return deaths.mention if deaths else "the deaths channel"
+
+    async def flexing_steps(self, user_id: int) -> list[str]:
+        """The flexing questions to ask this person: none if flexing isn't set up or they have the kit already."""
+        main, deaths = self._channels()
+        if main is None or await self.bot.db.is_flexer(user_id):
+            return []
+        return ["flexing", "deaths"] if deaths else ["flexing"]
+
+    async def flexing_kit_for(self, user_id: int, deaths: bool) -> str:
+        """The flexing kit text (and remember them as a flexer), or a message saying what's missing.
+        deaths: whether they want their deaths posted in the deaths channel."""
         try:
-            kit = await flexing.make_kit(self.bot)
+            kit = await flexing.make_kit(self.bot, deaths)
         except flexing.FlexingNotSetUp:
             return lines.FLEX_NOT_SET_UP
         except discord.Forbidden:
@@ -121,17 +136,17 @@ class Osrs(commands.GroupCog, group_name="osrs", group_description="Link your OS
         this_one = next(account for account in accounts if account.rsn_key == key)
         intro = lines.REGISTERED.format(rsn=shown) + (lines.REGISTERED_DEFAULT if this_one.is_default else "")
 
-        flow = RegisterFlow(self, interaction, shown, key, intro)
+        # The questions, in order: flexing → deaths → clan. Each is skipped when it doesn't apply.
+        steps = await self.flexing_steps(interaction.user.id)
         clan = await self.clan_keys()
-        flex_channel = await self.flexing_offer_channel(interaction.user.id)
         if not any(self.in_clan(account, clan) for account in accounts):  # one clan account = never ask again
-            flow.ask_clan()
-        elif flex_channel:
-            flow.offer_flexing(flex_channel)
+            steps.append("clan")
+
+        flow = RegisterFlow(self, interaction, steps, name=name, intro=intro)
+        if flow.next_step():
+            await interaction.edit_original_response(content=flow.text(), view=flow)
         else:
             await interaction.edit_original_response(content=intro)
-            return
-        await interaction.edit_original_response(content=flow.text(), view=flow)
 
     @app_commands.command(name="accounts", description="Shows the OSRS accounts linked to your Discord")
     async def accounts(self, interaction: discord.Interaction) -> None:
@@ -193,7 +208,14 @@ class Osrs(commands.GroupCog, group_name="osrs", group_description="Link your OS
     @app_commands.command(name="flexing", description="Get what to paste into Dink to flex your drops")
     async def flexing(self, interaction: discord.Interaction) -> None:
         await interaction.response.defer(ephemeral=True)  # only you see it: the webhook link is a secret
-        await interaction.edit_original_response(content=await self.flexing_kit_for(interaction.user.id))
+        _, deaths = self._channels()
+        if deaths is None:  # no deaths channel (or flexing not set up): nothing to ask, straight to the kit
+            await interaction.edit_original_response(content=await self.flexing_kit_for(interaction.user.id, False))
+            return
+        # Ask the deaths question first, so the kit matches the answer
+        flow = RegisterFlow(self, interaction, steps=["deaths"])
+        flow.next_step()
+        await interaction.edit_original_response(content=flow.text(), view=flow)
 
     @app_commands.command(name="rotate-webhook", description="VIP: replace a leaked flexing webhook")
     @is_vip()
@@ -205,9 +227,9 @@ class Osrs(commands.GroupCog, group_name="osrs", group_description="Link your OS
             await interaction.edit_original_response(content=lines.FLEX_NOT_SET_UP)
             return
         try:
-            for channel in (main, deaths):
-                if channel:
-                    await flexing.replace_webhook(channel, self.bot.user)
+            await flexing.replace_webhook(main, self.bot.user)
+            if deaths:
+                await flexing.replace_webhook(deaths, self.bot.user, flexing.DEATHS_WEBHOOK_NAME)
         except discord.Forbidden:
             await interaction.edit_original_response(content=lines.FLEX_NO_PERMISSION.format(channel=main.mention))
             return
