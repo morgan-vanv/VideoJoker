@@ -8,6 +8,7 @@ The bot creates the webhooks itself (that needs the Manage Webhooks permission) 
 anywhere: when someone needs one, it asks Discord. Discord is the only place the secret lives.
 """
 
+import logging
 import os
 from typing import Optional
 
@@ -29,6 +30,19 @@ def _channel_from_env(bot: discord.Client, variable: str) -> Optional[discord.Te
         return None
     channel = bot.get_channel(int(channel_id))  # from discord.py's cache: no API call
     return channel if isinstance(channel, discord.TextChannel) else None
+
+
+def log_settings(bot: discord.Client) -> None:
+    """Says in the log whether flexing is on. Missing or wrong settings only switch flexing off: the bot must
+    always start, because the production host rolls back a release that doesn't. Run once the bot is
+    connected, since before that discord.py doesn't know any channels yet."""
+    for variable, required in (("OSRS_FLEXING_CHANNEL_ID", True), ("OSRS_DEATHS_CHANNEL_ID", False)):
+        value = os.getenv(variable, "").strip()
+        if not value:
+            if required:
+                logging.warning("%s not set: OSRS drop flexing is off (/osrs flexing says so).", variable)
+        elif _channel_from_env(bot, variable) is None:
+            logging.warning("%s=%s isn't a text channel the bot can see: that part of flexing is off.", variable, value)
 
 
 def flexing_channels(bot: discord.Client) -> tuple[discord.TextChannel, Optional[discord.TextChannel]]:

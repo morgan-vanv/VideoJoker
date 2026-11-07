@@ -2,6 +2,7 @@
 and the osrs_accounts / osrs_flexers database methods. No Discord or network needed."""
 
 import json
+import types
 import re
 from pathlib import Path
 
@@ -143,3 +144,22 @@ async def test_flexers_are_remembered_once(db):
     await db.add_flexer(BOB)
     assert await db.is_flexer(ALICE)
     assert sorted(await db.get_flexers()) == [ALICE, BOB]
+
+
+def test_flexing_off_when_not_configured(monkeypatch, caplog):
+    monkeypatch.delenv("OSRS_FLEXING_CHANNEL_ID", raising=False)
+    monkeypatch.delenv("OSRS_DEATHS_CHANNEL_ID", raising=False)
+    bot = types.SimpleNamespace(get_channel=lambda channel_id: None)
+    flexing.log_settings(bot)  # must not raise: the bot has to start with flexing unconfigured
+    assert "flexing is off" in caplog.text
+    with pytest.raises(flexing.FlexingNotSetUp):
+        flexing.flexing_channels(bot)
+
+
+def test_bad_channel_id_switches_flexing_off(monkeypatch, caplog):
+    monkeypatch.setenv("OSRS_FLEXING_CHANNEL_ID", "not-a-number")
+    bot = types.SimpleNamespace(get_channel=lambda channel_id: None)
+    flexing.log_settings(bot)
+    assert "isn't a text channel" in caplog.text
+    with pytest.raises(flexing.FlexingNotSetUp):
+        flexing.flexing_channels(bot)

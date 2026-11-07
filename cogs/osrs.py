@@ -32,6 +32,7 @@ class Osrs(commands.GroupCog, group_name="osrs", group_description="Link your OS
         logging.info("OSRS cog initialized.")
         self.bot = bot
         self.session: Optional[aiohttp.ClientSession] = None
+        self.settings_checked = False
 
     async def cog_load(self):
         # One web session for the cog's whole life (for Wise Old Man), closed again on shutdown
@@ -40,6 +41,13 @@ class Osrs(commands.GroupCog, group_name="osrs", group_description="Link your OS
     async def cog_unload(self):
         if self.session:
             await self.session.close()
+
+    @commands.Cog.listener()
+    async def on_ready(self):
+        # on_ready runs again after every reconnect; once per start is enough
+        if not self.settings_checked:
+            self.settings_checked = True
+            flexing.log_settings(self.bot)
 
     # ---- helpers (also used by the buttons in osrs/ui.py)
 
