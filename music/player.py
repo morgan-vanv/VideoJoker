@@ -3,6 +3,7 @@
 import asyncio
 import logging
 import time
+from importlib.metadata import PackageNotFoundError, version
 
 import discord
 
@@ -171,6 +172,7 @@ class GuildPlayer:  # pylint: disable=too-many-instance-attributes
 
         if not self.voice.is_connected():
             return False
+        await self._wait_for_voice_encryption()
 
         # How we got this stream (yt-dlp version, YouTube client, PO token, cookies), once per song, no links
         logging.info("Playing %r: %s", track.title, describe(track.stream_info))
@@ -198,6 +200,23 @@ class GuildPlayer:  # pylint: disable=too-many-instance-attributes
         self.bot.loop.create_task(self._voice_check(track, source))
         return True
 
+    async def _wait_for_voice_encryption(self) -> None:
+        """Discord voice calls are end-to-end encrypted (DAVE). Right after the VJ joins, it needs a moment to get
+        its encryption key, and audio sent before that is dropped by everyone's Discord. So wait for the key, up to
+        5 s, before starting the song. Only reads discord.py internals defensively: no key info, no harm done."""
+        connection = getattr(self.voice, "_connection", None)
+        if not getattr(connection, "dave_protocol_version", 0):
+            return  # not an encrypted call (or an older discord.py): nothing to wait for
+        for _ in range(50):
+            if getattr(connection, "can_encrypt", False):
+                return
+            await asyncio.sleep(0.1)
+        logging.warning(
+            "Voice encryption key still missing after 5 s (davey %s): listeners may hear nothing. "
+            "See tests/test_voice_deps.py.",
+            _davey_version(),
+        )
+
     async def _voice_check(self, track: Track, source: MeteredVolume) -> None:
         """Five seconds into a song, logs whether audio is really going out, and how it's encrypted.
 
@@ -215,7 +234,7 @@ class GuildPlayer:  # pylint: disable=too-many-instance-attributes
         download = original.status() if isinstance(original, YtdlpAudio) else "?"
         logging.info(
             "Voice check for %r after 5 s: %s, %s frames sent, loudest rms %s, DAVE protocol %s, encrypting %s, "
-            "privacy code %s, transport %s, channel members %s",
+            "privacy code %s, transport %s, channel members %s, davey %s",
             track.title,
             download,
             source.frames,
@@ -225,6 +244,7 @@ class GuildPlayer:  # pylint: disable=too-many-instance-attributes
             "yes" if getattr(self.voice, "voice_privacy_code", None) else "no",
             getattr(self.voice, "mode", "?"),
             len(getattr(self.voice.channel, "members", [])),
+            _davey_version(),
         )
 
     def _on_track_end(self, error: Exception | None) -> None:
@@ -262,3 +282,11 @@ class GuildPlayer:  # pylint: disable=too-many-instance-attributes
             await self.text_channel.send(text)
         except discord.HTTPException as error:
             logging.warning("Could not send to music channel: %s", error)
+
+
+def _davey_version() -> str:
+    """The installed davey (the voice encryption library), for the log. "missing" if it isn't installed."""
+    try:
+        return version("davey")
+    except PackageNotFoundError:
+        return "missing"

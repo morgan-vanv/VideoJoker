@@ -17,6 +17,10 @@ updates:
       # Remove this once a discord.py release allows PyNaCl 1.6.
       - dependency-name: "pynacl"
         versions: [">=1.6"]
+      # davey 0.2 makes discord.py 2.7.1's voice silent (keys never installed). Remove this together with the
+      # davey pin in requirements.txt once a discord.py release supports davey 0.2 (Rapptz/discord.py#10549).
+      - dependency-name: "davey"
+        versions: [">=0.2"]
 
   # Actions used in .github/workflows (e.g. actions/setup-python)
   - package-ecosystem: "github-actions"
