@@ -33,9 +33,10 @@ import yt_dlp
 from music import sources
 
 # Every song is evened out to the same loudness with ffmpeg's loudnorm filter (the EBU R128 broadcast standard),
-# so YouTube and SoundCloud sound alike, and a bit quieter than streaming apps (they aim for about -14 LUFS).
+# so YouTube and SoundCloud sound alike. -26 LUFS is well below streaming apps (about -14), so nobody joining the
+# call gets blasted; /volume 200 doubles the signal (+6), which brings it back up to about -20.
 # I = target loudness in LUFS (lower = quieter), TP = loudest peak allowed, LRA = how much the loudness may vary.
-LOUDNESS = "loudnorm=I=-20:TP=-2:LRA=11"
+LOUDNESS = "loudnorm=I=-26:TP=-2:LRA=11"
 # -vn: ignore any video. Audio effects (nightcore etc.) will slot in later, chained onto the same -af filter.
 FFMPEG_OPTIONS = f"-vn -af {LOUDNESS}"
 PREBUFFER_BYTES = 64 * 1024  # wait for ~3 s of YouTube audio (or the whole song, if shorter) before playing
