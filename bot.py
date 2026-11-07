@@ -44,6 +44,7 @@ class VideoJoker(commands.Bot):
             'cogs.music',
             'cogs.economy',
             'cogs.reaction_roles',
+            'cogs.heartbeat',
         ]
         for extension in initial_extensions:
             await self.load_extension(extension)
