@@ -87,7 +87,7 @@ _Link your Old School RuneScape accounts (alts welcome) and flex your drops with
 - **/link_rr [message_id] [role] [emoji]** *(Coming Soon)* (*Links a reaction role to an existing message.*)
 
 ### Music Cog Commands
-_Plays from YouTube, SoundCloud and Spotify links (tracks, playlists, albums) or a search. The now-playing card has buttons._
+_Plays from YouTube, SoundCloud, Spotify and Tidal links (tracks, playlists, albums) or a search. The now-playing card has buttons._
 - **/play [query] [play_next]** (*Plays a song from a link or search query. Playlists queue every song.*)
 - **/join** (*Summons the VJ to your voice channel.*)
 - **/leave** (*Sends the VJ home. Clears the queue.*)

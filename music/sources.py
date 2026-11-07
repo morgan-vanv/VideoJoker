@@ -4,12 +4,11 @@ Two jobs, kept separate on purpose:
 - fetch_tracks(): fast. A link or search becomes one or many Tracks with just titles (playlists are read "flat").
 - resolve_stream(): slow, done per track right before it plays. Gets the actual audio URL for ffmpeg.
 
-YouTube and SoundCloud (and ~1,000 other sites) go through yt-dlp. Spotify's API doesn't stream audio, so a
-Spotify link becomes "Artist - Title" search queries that YouTube answers. That's how every music bot does it.
+YouTube and SoundCloud (and ~1,000 other sites) go through yt-dlp. Spotify and Tidal never give out audio, so
+their links become "Artist - Title" search queries that YouTube answers (music/catalogs.py).
 """
 
 import asyncio
-import base64
 import contextlib
 import functools
 import logging
@@ -20,9 +19,9 @@ import time
 from pathlib import Path
 from urllib.parse import urlparse
 
-import aiohttp
 import yt_dlp
 
+from music import catalogs
 from music.queue import Track
 
 STREAM_URL_TTL = 60 * 60  # yt-dlp stream URLs expire after a few hours; refresh anything older than this
@@ -42,16 +41,9 @@ os.environ.setdefault("DENO_DIR", str(Path(tempfile.gettempdir()) / "videojoker-
 # file, lookups take turns. Each one takes a second or two, so nobody will notice the wait.
 _cookies_lock = asyncio.Lock()
 
-SPOTIFY_LINK = re.compile(r"open\.spotify\.com/(?:intl-\w+/)?(track|album|playlist)/([A-Za-z0-9]+)")
-SPOTIFY_URI = re.compile(r"spotify:(track|album|playlist):([A-Za-z0-9]+)")
-
 
 class TrackNotFound(Exception):
     """Nothing matched the link or search."""
-
-
-class SpotifyNotConfigured(Exception):
-    """A Spotify link was given but there are no API credentials in .env."""
 
 
 class _BlankOutLinks(logging.Filter):  # pylint: disable=too-few-public-methods  # a logging filter needs only filter()
@@ -97,8 +89,7 @@ def _ytdl_options() -> dict:
 def log_optional_settings() -> None:
     """Says at startup which optional music extras are on. A missing one only switches that extra off:
     the bot must always start, because the production host rolls back a release that doesn't."""
-    if not (os.getenv("SPOTIFY_CLIENT_ID") and os.getenv("SPOTIFY_CLIENT_SECRET")):
-        logging.warning("SPOTIFY_CLIENT_ID/SECRET not set: Spotify links are off (YouTube and SoundCloud still work).")
+    catalogs.log_settings()  # Spotify and Tidal
     if os.getenv("YTDLP_COOKIES_FILE"):
         _cookies_file()  # checks the file now, so a problem shows up in the startup log, not at the first /play
     else:
@@ -202,10 +193,18 @@ def _fill_stream(track: Track, info: dict) -> None:
 
 async def fetch_tracks(query: str, requester_id: int, requester_name: str) -> tuple[list[Track], str | None]:
     """Returns (tracks, playlist_title). playlist_title is None for a single track."""
-    spotify_match = SPOTIFY_LINK.search(query) or SPOTIFY_URI.search(query)
-    if spotify_match:
-        kind, spotify_id = spotify_match.groups()
-        return await SpotifyClient.shared().fetch(kind, spotify_id, requester_id, requester_name)
+    requester = (requester_id, requester_name)
+    for pattern, client in (
+        (catalogs.SPOTIFY_LINK, catalogs.SpotifyClient),
+        (catalogs.SPOTIFY_URI, catalogs.SpotifyClient),
+        (catalogs.TIDAL_LINK, catalogs.TidalClient),
+    ):
+        if match := pattern.search(query):
+            kind, item_id = match.groups()
+            tracks, title = await client.shared().fetch(kind, item_id, requester)
+            if not tracks:
+                raise TrackNotFound(query)
+            return tracks, title
 
     info = await _extract(query)
     if "entries" in info:  # playlist, album, set, or a search (which yt-dlp also returns as a "playlist")
@@ -237,102 +236,6 @@ async def resolve_stream(track: Track) -> Track:
     if not track.stream_info:
         raise TrackNotFound(query)
     return track
-
-
-class SpotifyClient:
-    """Tiny Spotify Web API client (client-credentials flow). No library needed; it's three HTTP calls.
-
-    Spotify never gives us audio. We read the track list and search YouTube for each "Artist - Title".
-    Note: since late 2024, new Spotify dev apps can't read Spotify's own editorial playlists (they 404);
-    user-made playlists, albums and tracks are fine.
-    """
-
-    _instance: "SpotifyClient | None" = None
-    API = "https://api.spotify.com/v1"
-
-    def __init__(self):
-        self.client_id = os.getenv("SPOTIFY_CLIENT_ID")
-        self.client_secret = os.getenv("SPOTIFY_CLIENT_SECRET")
-        self._token: str | None = None
-        self._token_expires = 0.0
-
-    @classmethod
-    def shared(cls) -> "SpotifyClient":
-        if cls._instance is None:
-            cls._instance = cls()
-        return cls._instance
-
-    async def _get_token(self, session: aiohttp.ClientSession) -> str:
-        if self._token and time.monotonic() < self._token_expires:
-            return self._token
-        if not self.client_id or not self.client_secret:
-            raise SpotifyNotConfigured()
-        auth = base64.b64encode(f"{self.client_id}:{self.client_secret}".encode()).decode()
-        async with session.post(
-            "https://accounts.spotify.com/api/token",
-            headers={"Authorization": f"Basic {auth}"},
-            data={"grant_type": "client_credentials"},
-        ) as response:
-            response.raise_for_status()
-            payload = await response.json()
-        self._token = payload["access_token"]
-        self._token_expires = time.monotonic() + payload.get("expires_in", 3600) - 60
-        return self._token
-
-    async def _get(self, session: aiohttp.ClientSession, path: str, **params) -> dict:
-        token = await self._get_token(session)
-        async with session.get(
-            f"{self.API}{path}", headers={"Authorization": f"Bearer {token}"}, params=params
-        ) as response:
-            response.raise_for_status()
-            return await response.json()
-
-    async def fetch(
-        self, kind: str, spotify_id: str, requester_id: int, requester_name: str
-    ) -> tuple[list[Track], str | None]:
-        """Returns (tracks, collection_title). kind is 'track', 'album' or 'playlist'."""
-        async with aiohttp.ClientSession() as session:
-            if kind == "track":
-                item = await self._get(session, f"/tracks/{spotify_id}")
-                return [self._track(item, requester_id, requester_name)], None
-
-            collection = await self._get(session, f"/{kind}s/{spotify_id}", fields="name,images")
-            items: list[dict] = []
-            page = await self._get(session, f"/{kind}s/{spotify_id}/tracks", limit=100 if kind == "playlist" else 50)
-            while True:
-                items.extend(page.get("items", []))
-                if not page.get("next"):
-                    break
-                token = await self._get_token(session)
-                async with session.get(page["next"], headers={"Authorization": f"Bearer {token}"}) as response:
-                    response.raise_for_status()
-                    page = await response.json()
-
-        tracks = []
-        for item in items:
-            # playlist items wrap the track in {"track": {...}}; album items are the track itself
-            data = item.get("track") if kind == "playlist" else item
-            if data and data.get("name"):
-                tracks.append(self._track(data, requester_id, requester_name))
-        if not tracks:
-            raise TrackNotFound(spotify_id)
-        return tracks, collection.get("name") or kind
-
-    @staticmethod
-    def _track(data: dict, requester_id: int, requester_name: str) -> Track:
-        artists = ", ".join(artist["name"] for artist in data.get("artists", []) if artist.get("name"))
-        images = (data.get("album") or {}).get("images") or []
-        duration_ms = data.get("duration_ms")
-        return Track(
-            title=data["name"],
-            search_query=f"{artists} - {data['name']}" if artists else data["name"],
-            duration=duration_ms // 1000 if duration_ms else None,
-            artist=artists or None,
-            thumbnail=images[0]["url"] if images else None,
-            source="spotify",
-            requester_id=requester_id,
-            requester_name=requester_name,
-        )
 
 
 logging.getLogger("yt_dlp").setLevel(logging.WARNING)

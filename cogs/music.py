@@ -9,9 +9,10 @@ from discord import app_commands
 from discord.ext.commands import Cog
 
 from music import lines
+from music.catalogs import LinkNotReadable, TidalNotConfigured
 from music.player import GuildPlayer
 from music.queue import LoopMode
-from music.sources import SpotifyNotConfigured, TrackNotFound, fetch_tracks, log_optional_settings
+from music.sources import TrackNotFound, fetch_tracks, log_optional_settings
 from music.ui import now_playing_embed, queue_embed
 
 SHUTDOWN_TIMEOUT = 5  # seconds; Client.close() disconnects from voice after this anyway
@@ -135,12 +136,16 @@ class Music(Cog, name="Music"):
         except TrackNotFound:
             await interaction.followup.send(lines.say(lines.NOT_FOUND, query=query), ephemeral=True)
             return
-        except SpotifyNotConfigured:
-            await interaction.followup.send(lines.SPOTIFY_NOT_CONFIGURED, ephemeral=True)
+        except TidalNotConfigured:
+            await interaction.followup.send(lines.TIDAL_NOT_CONFIGURED, ephemeral=True)
             return
-        except aiohttp.ClientError as error:
-            logging.warning("Spotify request failed for %r: %s", query, error)
-            await interaction.followup.send(lines.SPOTIFY_FAILED, ephemeral=True)
+        except LinkNotReadable as error:
+            logging.warning("Couldn't read the track list for %r: %s", query, error)
+            await interaction.followup.send(lines.say(lines.LINK_FAILED, service=error.service), ephemeral=True)
+            return
+        except aiohttp.ClientError as error:  # anything the services didn't catch themselves
+            logging.warning("Lookup failed for %r: %s", query, error)
+            await interaction.followup.send(lines.say(lines.LINK_FAILED, service="That service"), ephemeral=True)
             return
 
         # Post the now-playing card wherever /play was last used
