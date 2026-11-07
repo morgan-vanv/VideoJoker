@@ -1,7 +1,7 @@
 # OSRS linking + automated flexing — design
 
-**Status:** agreed direction, v1 not built yet (`feature/osrs-linking`). Written 2026-11-07 by Morgan + Claude,
-revised the same night after Morgan's feedback. The remaining blanks are config (clan name, IDs), not design.
+**Status:** v1 built on `feature/osrs-linking` (PR #65), awaiting a dev-bot test. Written 2026-11-07 by Morgan + Claude,
+revised after Morgan's feedback the same night.
 
 ## Why
 
@@ -65,15 +65,16 @@ Everything is ephemeral (only you see it) and uses buttons, like Three Card Mont
 
 The flexing kit, shown privately by `/osrs flexing`:
 
-1. In RuneLite, install **Dink** from the Plugin Hub.
-2. Dink settings → **Primary Webhook URLs**: paste `<the webhook URL>`.
-3. Dink settings → Advanced → **Dynamic Config URL**: paste
+1. Dink settings → **Primary Webhook URLs**: delete anything there, paste `<the webhook URL>`.
+2. **Webhook Overrides**: paste the deaths webhook into *Death Webhook Override* (if a deaths channel is set),
+   otherwise make sure every override box is empty. (Dink *merges* webhook lists on import, so old URLs linger
+   unless people clear them.)
+3. Advanced → **Dynamic Config URL**: replace what's there with
    `https://raw.githubusercontent.com/morgan-vanv/VideoJoker/main/osrs/dink-settings.json`
-4. If you used the old shared config: replace that Dynamic Config URL, and delete any old webhook URLs from
-   Primary Webhook URLs.
 
-Why two pastes? The **settings** (loot threshold, which notifiers, screenshots…) are the same for everyone and
-contain nothing secret, so they live in our public repo, and changing them is a normal PR. Dink re-reads them on
+Why separate pastes? The **settings** (loot threshold, which notifiers, screenshots…) are the same for everyone and
+contain nothing secret, so they live in our public repo (`osrs/dink-settings.json`, swannobi's `Dink-Config` minus
+its webhook keys, credited), and changing them is a normal PR. Dink re-reads them on
 start and every few hours. The **webhook URL** is the secret, so it only ever appears in your private message.
 Dink keeps the URL you pasted, because the settings file contains no webhook keys. A test in `tests/` fails if
 anyone ever adds one, so this leak can't happen again from our repo.
@@ -113,10 +114,12 @@ CREATE TABLE IF NOT EXISTS osrs_flexers (   -- who to ping when the webhook is r
 RSN check: 1–12 characters, letters, digits, spaces, `-` and `_` (OSRS's own rules). We don't check that the
 account exists; we trust people.
 
-## Config (`.env`)
-- `OSRS_FLEXING_CHANNEL_ID`: the channel the webhook posts in.
-- `WOM_CLAN_GROUP_ID`: optional; enables "already in the clan" detection.
-- Clan join instructions (clan name, how to apply) live in `osrs/lines.py`, the VJ's copy, so editing them is a PR.
+## Config
+- `.env`: `OSRS_FLEXING_CHANNEL_ID` (the channel drops post in) and, optionally, `OSRS_DEATHS_CHANNEL_ID`.
+  The old setup sent deaths to their own channel through Dink's *Death Webhook Override*. If this is set,
+  the bot makes a second webhook there and the kit includes that paste too.
+- In code, not `.env` (same for dev and prod): the clan's WOM group, 7117 (`osrs/wom.py`), and the clan name and
+  how to join ("join the **Ugandans** clan chat and apply"), which live in `osrs/lines.py` as the VJ's copy.
 
 ## Permissions and hosting contract
 - **New permission: Manage Webhooks** (add it to the prod invite). Nothing else: ephemeral replies need no

@@ -69,6 +69,7 @@ Because we are preparing for future music bot capabilities, this project uses Do
 4. Under **Bot Permissions**, select only what the bot uses:
    - `View Channels`, `Send Messages`, `Embed Links`, `Read Message History`, `Add Reactions`
    - Later, when those features are built: `Manage Roles` (reaction roles), `Connect` + `Speak` (music).
+   - `Manage Webhooks` for OSRS drop flexing (the bot creates the flexing webhook itself; see `.env.example`).
    - Avoid **Administrator**: it turns any bug into a server-wide one.
 5. Copy the generated URL at the bottom of the page.
 6. Paste the URL into your web browser, select your Discord server, and authorize the bot.

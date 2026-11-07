@@ -72,6 +72,16 @@ _See `DESIGNDOCUMENT.md` for information on what might come in the future_
 - **/pay [user] [amount]** (*Send USh to another user.*)
 - **/gamble [amount]** *(Coming Soon)* (*Gamble your USh.*)
 
+### OSRS Cog Commands
+_Link your Old School RuneScape accounts (alts welcome) and flex your drops with the Dink plugin. Design: `docs/osrs-design.md`._
+- **/osrs register [rsn]** (*Links an account to your Discord, then asks about the clan and flexing.*)
+- **/osrs accounts** (*Shows your linked accounts. ⭐ default · 🏰 in the clan.*)
+- **/osrs whois [member]** (*Shows which accounts someone plays.*)
+- **/osrs default [rsn]** (*Picks your main account.*)
+- **/osrs remove [rsn]** (*Unlinks an account.*)
+- **/osrs flexing** (*Privately shows what to paste into Dink to post your drops.*)
+- **/osrs rotate-webhook** (*VIP: replaces a leaked flexing webhook and pings everyone to grab the new one.*)
+
 ### Reaction Roles Cog Commands
 - **/create_rr_message [title] [description] [role] [emoji]** *(Coming Soon)* (*Creates a new message that users can react to for a role.*)
 - **/link_rr [message_id] [role] [emoji]** *(Coming Soon)* (*Links a reaction role to an existing message.*)
