@@ -16,7 +16,10 @@ import discord
 
 from osrs import lines
 
+# The name each webhook posts under (what everyone sees above the drop). The deaths one keeps the name the old
+# setup used in #everyone-point-and-laugh, after swannobi's death message "Sit respectfully %USERNAME%".
 WEBHOOK_NAME = "Ugandan Flexing"
+DEATHS_WEBHOOK_NAME = "sit, respectfully"
 
 
 class FlexingNotSetUp(Exception):
@@ -62,23 +65,27 @@ async def _our_webhooks(channel: discord.TextChannel, bot_user: discord.ClientUs
     ]
 
 
-async def get_or_create_webhook(channel: discord.TextChannel, bot_user: discord.ClientUser) -> discord.Webhook:
+async def get_or_create_webhook(
+    channel: discord.TextChannel, bot_user: discord.ClientUser, name: str = WEBHOOK_NAME
+) -> discord.Webhook:
     """The bot's webhook in this channel, created the first time it's needed."""
     existing = await _our_webhooks(channel, bot_user)
     if existing:
         return existing[0]
-    return await channel.create_webhook(name=WEBHOOK_NAME, reason="VideoJoker: OSRS drop flexing")
+    return await channel.create_webhook(name=name, reason="VideoJoker: OSRS drop flexing")
 
 
-async def replace_webhook(channel: discord.TextChannel, bot_user: discord.ClientUser) -> discord.Webhook:
+async def replace_webhook(
+    channel: discord.TextChannel, bot_user: discord.ClientUser, name: str = WEBHOOK_NAME
+) -> discord.Webhook:
     """Deletes the bot's webhook(s) here and makes a new one with the same name and picture.
 
     Deleting is what stops a leaked URL: from that moment it posts nothing, wherever it was pasted.
     """
     old_hooks = await _our_webhooks(channel, bot_user)
-    name, avatar = WEBHOOK_NAME, None
+    avatar = None
     if old_hooks:
-        name = old_hooks[0].name or WEBHOOK_NAME
+        name = old_hooks[0].name or name  # keep a name someone changed in Discord
         if old_hooks[0].avatar:  # someone gave it a picture in Discord's settings: keep it
             avatar = await old_hooks[0].avatar.read()
     for hook in old_hooks:
@@ -88,23 +95,29 @@ async def replace_webhook(channel: discord.TextChannel, bot_user: discord.Client
 
 def build_kit(main_url: str, deaths_url: Optional[str]) -> str:
     """The step-by-step "what to paste into Dink" message. Each URL sits in its own code block, which
-    makes it easy to copy on a phone (long-press → copy)."""
+    makes it easy to copy on a phone (long-press → copy).
+
+    deaths_url is the deaths channel's webhook if they want their deaths shown there, otherwise None.
+    """
     parts = [lines.FLEX_KIT_TITLE, lines.FLEX_KIT_PRIMARY.format(url=main_url)]
     if deaths_url:
         parts.append(lines.FLEX_KIT_DEATHS.format(url=deaths_url))
     else:
-        parts.append(lines.FLEX_KIT_NO_OVERRIDES)
+        parts.append(lines.FLEX_KIT_NO_DEATHS)
     parts.append(lines.FLEX_KIT_SETTINGS.format(url=lines.DINK_SETTINGS_URL))
     parts.append(lines.FLEX_KIT_SECRET)
     return "\n".join(parts)
 
 
-async def make_kit(bot: discord.Client) -> str:
-    """Builds someone's flexing kit, creating the webhook(s) if this is the first time.
+async def make_kit(bot: discord.Client, deaths: bool) -> str:
+    """Builds someone's flexing kit, creating the webhook(s) the first time they're needed.
 
+    deaths: whether they want their deaths posted in the deaths channel (ignored if there isn't one).
     Raises FlexingNotSetUp, or discord.Forbidden if the bot lacks Manage Webhooks.
     """
-    main, deaths = flexing_channels(bot)
+    main, deaths_channel = flexing_channels(bot)
     main_hook = await get_or_create_webhook(main, bot.user)
-    deaths_hook = await get_or_create_webhook(deaths, bot.user) if deaths else None
+    deaths_hook = None
+    if deaths and deaths_channel:
+        deaths_hook = await get_or_create_webhook(deaths_channel, bot.user, DEATHS_WEBHOOK_NAME)
     return build_kit(main_hook.url, deaths_hook.url if deaths_hook else None)

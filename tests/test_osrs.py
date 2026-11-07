@@ -66,23 +66,35 @@ def test_dink_settings_have_no_webhooks():
     assert not re.search(r"discord(app)?\.com/api/webhooks", DINK_SETTINGS.read_text())
     # Dink ignores this key on import anyway, but pointing at ourselves would just be confusing
     assert "dynamicConfigUrl" not in settings
+    # Deaths are each player's choice (/osrs register asks). Dink re-imports these settings every few hours,
+    # so a shared "deathEnabled" would switch deaths back on for people who said no.
+    assert "deathEnabled" not in settings
 
 
 # ---- the flexing kit
 
 
-def test_kit_without_a_deaths_channel():
+def test_kit_without_deaths():
     kit = flexing.build_kit("https://example.com/main-hook", None)
     assert "https://example.com/main-hook" in kit
     assert lines.DINK_SETTINGS_URL in kit
-    assert lines.FLEX_KIT_NO_OVERRIDES in kit
+    assert lines.FLEX_KIT_NO_DEATHS in kit  # untick Enable Death, empty overrides
     assert len(kit) < 2000  # Discord's message limit
 
 
-def test_kit_with_a_deaths_channel():
+def test_kit_with_deaths():
     kit = flexing.build_kit("https://example.com/main-hook", "https://example.com/deaths-hook")
     assert "https://example.com/deaths-hook" in kit
-    assert lines.FLEX_KIT_NO_OVERRIDES not in kit
+    assert lines.FLEX_KIT_NO_DEATHS not in kit
+    # the whole register message (intro + answers + kit + the clan question) must fit in one Discord message
+    worst_case = "\n".join(
+        [lines.REGISTERED.format(rsn="x" * 12) + lines.REGISTERED_DEFAULT, lines.FLEX_YES, lines.DEATHS_YES, kit]
+        + [lines.CLAN_JOIN.format(clan=lines.CLAN_NAME)]
+    )
+    assert (
+        len(worst_case.replace("https://example.com/", "https://discord.com/api/webhooks/" + "9" * 19 + "/" + "x" * 68))
+        < 2000
+    )
 
 
 # ---- database: osrs_accounts

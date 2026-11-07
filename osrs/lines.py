@@ -24,6 +24,10 @@ CLAN_NO = "🏰 No problem. The door stays open, comrade."
 
 # ---- flexing
 FLEX_QUESTION = "💰 Want your drops flexed in {channel}?"
+FLEX_YES = "💰 The VJ readies the projector."
+DEATHS_QUESTION = "💀 And your deaths? Want them in {channel}, so everyone can point and laugh?"
+DEATHS_YES = "💀 Brave. Sit respectfully."
+DEATHS_NO = "💀 Your deaths stay between you and the VJ."
 FLEX_LATER = "💰 Whenever you're ready: `/osrs flexing`."
 FLEX_NOT_SET_UP = "🚧 Flexing isn't set up on this server yet (the bot needs `OSRS_FLEXING_CHANNEL_ID`)."
 FLEX_NO_PERMISSION = "🚫 The VJ needs the **Manage Webhooks** permission in {channel} to run flexing. Ask Morgan."
@@ -31,8 +35,14 @@ FLEX_KIT_TITLE = (
     "## 💰 Your flexing kit\nIn RuneLite, open the **Dink** plugin's settings (install it from the Plugin Hub first):"
 )
 FLEX_KIT_PRIMARY = "**1.** **Primary Webhook URLs**: delete anything already there, then paste:\n```\n{url}\n```"
-FLEX_KIT_DEATHS = "**2.** **Webhook Overrides → Death Webhook Override**: paste:\n```\n{url}\n```"
-FLEX_KIT_NO_OVERRIDES = "**2.** **Webhook Overrides**: make sure every box is empty (old setups sent deaths elsewhere)."
+FLEX_KIT_DEATHS = (
+    "**2.** **Death** section: tick **Enable Death**. Then **Webhook Overrides → Death Webhook Override**: paste:"
+    "\n```\n{url}\n```Leave the other override boxes empty."
+)
+FLEX_KIT_NO_DEATHS = (
+    "**2.** **Death** section: untick **Enable Death**. And make sure every **Webhook Overrides** box is empty "
+    "(the old setup sent deaths elsewhere)."
+)
 FLEX_KIT_SETTINGS = (
     "**3.** **Advanced → Dynamic Config URL**: replace whatever's there with:\n```\n{url}\n```"
     "That keeps your settings in step with everyone's. Close and reopen the panel, then go get that drop."
