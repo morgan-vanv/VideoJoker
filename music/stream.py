@@ -14,6 +14,7 @@ chunks) with its own downloader. ffmpeg only ever sees "pipe:0", never a link.
 Nothing here logs a stream link or a token: the links carry the server's IP address and YouTube's signatures.
 """
 
+import audioop  # pylint: disable=deprecated-module  # on 3.13+ it comes from audioop-lts (with discord.py[voice])
 import json
 import logging
 import os
@@ -115,3 +116,22 @@ class YtdlpAudio(discord.FFmpegPCMAudio):
         """discord.py calls this when the song ends or is stopped: stop ffmpeg (super), then yt-dlp."""
         super().cleanup()
         self._stop_ytdlp()
+
+
+class MeteredVolume(discord.PCMVolumeTransformer):
+    """The volume knob from discord.py, plus a meter: it counts the 20 ms frames that go out to Discord and
+    remembers the loudest one. The player logs both a few seconds into each song, so "no sound" can be told
+    apart: no frames (nothing reached Discord), silent frames (the audio itself is empty), or loud frames
+    (the audio is fine and gets lost between Discord and the listeners)."""
+
+    def __init__(self, original: discord.AudioSource, volume: float = 1.0):
+        super().__init__(original, volume=volume)
+        self.frames = 0
+        self.loudest = 0  # RMS of the loudest frame so far (0 = silence, a normal song reaches thousands)
+
+    def read(self) -> bytes:
+        frame = super().read()
+        if frame:
+            self.frames += 1
+            self.loudest = max(self.loudest, audioop.rms(frame, 2))  # 2 = 16-bit samples
+        return frame

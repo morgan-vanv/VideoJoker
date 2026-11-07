@@ -9,7 +9,7 @@ import discord
 from music import lines, ui
 from music.queue import Queue, Track
 from music.sources import TrackNotFound, resolve_stream
-from music.stream import YtdlpAudio, describe
+from music.stream import MeteredVolume, YtdlpAudio, describe
 
 IDLE_TIMEOUT = 5 * 60  # seconds with an empty queue before the VJ packs up and leaves
 
@@ -182,7 +182,7 @@ class GuildPlayer:  # pylint: disable=too-many-instance-attributes
             logging.error("Could not start the audio pipeline for %r: %s", track.title, error)
             await self._announce_text(lines.say(lines.LOAD_FAILED, title=track.title))
             return False
-        source = discord.PCMVolumeTransformer(audio, volume=self.volume / 100)
+        source = MeteredVolume(audio, volume=self.volume / 100)
 
         self._track_done.clear()
         self.started_at = time.monotonic()
@@ -195,7 +195,34 @@ class GuildPlayer:  # pylint: disable=too-many-instance-attributes
             return False
 
         await self._announce_track(track)
+        self.bot.loop.create_task(self._voice_check(track, source))
         return True
+
+    async def _voice_check(self, track: Track, source: MeteredVolume) -> None:
+        """Five seconds into a song, logs whether audio is really going out, and how it's encrypted.
+
+        DAVE is Discord's end-to-end encryption for voice. If the bot's DAVE session isn't ready ("encrypting:
+        no") while the call expects it, listeners get audio they can't decode: silence, with a speaking ring.
+        The voice details come from discord.py internals, so every read is guarded: this must never break playback.
+        """
+        await asyncio.sleep(5)
+        if self.current is not track or not self.voice.is_connected():
+            return
+        connection = getattr(self.voice, "_connection", None)
+        dave_version = getattr(connection, "dave_protocol_version", "?")
+        encrypting = getattr(connection, "can_encrypt", "?")
+        logging.info(
+            "Voice check for %r after 5 s: %s frames sent, loudest rms %s, DAVE protocol %s, encrypting %s, "
+            "privacy code %s, transport %s, channel members %s",
+            track.title,
+            source.frames,
+            source.loudest,
+            dave_version,
+            encrypting,
+            "yes" if getattr(self.voice, "voice_privacy_code", None) else "no",
+            getattr(self.voice, "mode", "?"),
+            len(getattr(self.voice.channel, "members", [])),
+        )
 
     def _on_track_end(self, error: Exception | None) -> None:
         """Runs on discord.py's audio thread, not the event loop. That's why we go through call_soon_threadsafe:
