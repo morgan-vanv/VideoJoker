@@ -8,17 +8,14 @@ DINK_SETTINGS_URL = "https://raw.githubusercontent.com/morgan-vanv/VideoJoker/ma
 
 # ---- /osrs register
 INVALID_RSN = "🚫 **{rsn}** can't be an OSRS name. Names are 1–12 letters, numbers, spaces, `-` or `_`."
-REGISTERED = "📼 The VJ adds **{rsn}** to your tapes."
+REGISTERED = "✅ **{rsn}** is now one of your accounts."
 REGISTERED_DEFAULT = " It's your default."
-ALREADY_YOURS = "📼 **{rsn}** is already on your shelf, comrade."
-TAKEN = "🚫 **{rsn}** is already on {owner}'s shelf. If that's wrong, ask them to `/osrs remove` it."
+ALREADY_YOURS = "👍 **{rsn}** is already one of your accounts."
+TAKEN = "🚫 **{rsn}** is already registered to {owner}. If that's wrong, ask them to `/osrs remove` it."
 
 # ---- the clan question
 CLAN_QUESTION = "🏰 Is **{rsn}** joining the clan?"
-CLAN_JOIN = (
-    "🏰 Welcome to the audition! In game, join the **{clan}** clan chat and apply. "
-    "A ranked member will take it from there."
-)
+CLAN_JOIN = "🏰 In game, join the **{clan}** clan chat and apply. A ranked member will take it from there."
 CLAN_ALREADY = "🏰 A true Ugandan. Noted. The VJ won't ask again."
 CLAN_NO = "🏰 No problem. The door stays open, comrade."
 
@@ -53,15 +50,13 @@ FLEX_KIT_SECRET = (
 )
 
 # ---- /osrs accounts, /osrs whois, /osrs default, /osrs remove
-NO_ACCOUNTS = "📼 Your shelf is empty. Start with `/osrs register`."
+NO_ACCOUNTS = "You haven't registered any OSRS accounts yet. Start with `/osrs register`."
 NOT_YOURS = "🚫 You don't have **{rsn}** registered. `/osrs accounts` shows what you do have."
 NEW_DEFAULT = "⭐ **{rsn}** is now your default."
-REMOVED = "🗑️ The VJ takes **{rsn}** off your shelf."
-WHOIS_NOBODY = "📼 {member} hasn't registered any OSRS accounts. A mystery, comrade."
+REMOVED = "🗑️ **{rsn}** is no longer one of your accounts."
+WHOIS_NOBODY = "{member} hasn't registered any OSRS accounts."
 ACCOUNTS_LEGEND = "⭐ default · 🏰 in the clan"
 
 # ---- /osrs rotate-webhook
-ROTATED_PING = (
-    "📽️ The projector got a new bulb! The old flexing link is dead. {mentions}: run `/osrs flexing` for the new one."
-)
+ROTATED_PING = "📽️ New flexing link: the old one no longer works. {mentions}: run `/osrs flexing` to get yours."
 ROTATED_DONE = "🔄 Done: the old webhook is gone and a fresh one is up. Pinged {count} flexer(s) in {channel}."

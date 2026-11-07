@@ -44,7 +44,7 @@ suggestions as you type.
 
 ```
 /osrs register rsn:"Iron Morph"
-  "📼 The VJ adds Iron Morph to your tapes."
+  "✅ **Iron Morph** is now one of your accounts."
   1. Flexing, ONLY if you haven't got the kit yet:
        "Want your drops flexed in #automated-rs-flexing?"   [Set me up]  [Not now]
   2. Deaths, ONLY after "Set me up", and only if a deaths channel is set:
