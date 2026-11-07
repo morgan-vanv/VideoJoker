@@ -80,6 +80,19 @@ def _ytdl_options() -> dict:
     return options
 
 
+def log_optional_settings() -> None:
+    """Says at startup which optional music extras are on. A missing one only switches that extra off:
+    the bot must always start, because the production host rolls back a release that doesn't."""
+    if not (os.getenv("SPOTIFY_CLIENT_ID") and os.getenv("SPOTIFY_CLIENT_SECRET")):
+        logging.warning("SPOTIFY_CLIENT_ID/SECRET not set: Spotify links are off (YouTube and SoundCloud still work).")
+    if os.getenv("YTDLP_COOKIES_FILE"):
+        _cookies_file()  # checks the file now, so a problem shows up in the startup log, not at the first /play
+    else:
+        logging.info("YTDLP_COOKIES_FILE not set: YouTube without cookies (may hit the 'not a bot' wall).")
+    if not os.getenv("SOUNDCLOUD_OAUTH_TOKEN"):
+        logging.info("SOUNDCLOUD_OAUTH_TOKEN not set: SoundCloud plays in standard quality.")
+
+
 @functools.cache  # checked once per run, so a problem is logged once instead of on every song
 def _cookies_file() -> str | None:
     """The YouTube cookies file from .env, or None if it's missing or unusable.

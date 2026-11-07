@@ -55,3 +55,10 @@ def test_read_only_cookies_file_is_skipped(monkeypatch, tmp_path):
     # Pretend the file is read-only. (chmod wouldn't work everywhere: root can write to anything.)
     monkeypatch.setattr(sources.os, "access", lambda path, mode: False)
     assert "cookiefile" not in sources._ytdl_options()  # pylint: disable=protected-access
+
+
+def test_startup_with_no_optional_settings(monkeypatch, caplog):
+    for name in ("SPOTIFY_CLIENT_ID", "SPOTIFY_CLIENT_SECRET", "YTDLP_COOKIES_FILE", "SOUNDCLOUD_OAUTH_TOKEN"):
+        monkeypatch.delenv(name, raising=False)
+    sources.log_optional_settings()  # must not raise: the bot has to start with every extra missing
+    assert "Spotify links are off" in caplog.text

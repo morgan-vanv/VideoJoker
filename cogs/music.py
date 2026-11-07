@@ -11,7 +11,7 @@ from discord.ext.commands import Cog
 from music import lines
 from music.player import GuildPlayer
 from music.queue import LoopMode
-from music.sources import SpotifyNotConfigured, TrackNotFound, fetch_tracks
+from music.sources import SpotifyNotConfigured, TrackNotFound, fetch_tracks, log_optional_settings
 from music.ui import now_playing_embed, queue_embed
 
 SHUTDOWN_TIMEOUT = 5  # seconds; Client.close() disconnects from voice after this anyway
@@ -28,6 +28,9 @@ class Music(Cog, name="Music"):
         logging.info("Music cog initialized.")
         self.bot = bot
         self.players: dict[int, GuildPlayer] = {}  # one player per guild (server)
+
+    async def cog_load(self):
+        log_optional_settings()  # which extras (Spotify, cookies, SoundCloud) are on, in the startup log
 
     async def cog_unload(self):
         """discord.py runs this when the bot shuts down (a deploy, or Ctrl+C). The music is about to stop and
