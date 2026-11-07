@@ -1,0 +1,31 @@
+# The DEV bot, locked down exactly like production. Use it to test a PR before it merges, because once
+# it's on main it's live within ~10 minutes (CLAUDE.md, "Production hosting").
+#
+#   Run:   docker compose -f compose.prodlike.yml up --build
+#   Stop:  Ctrl+C, or `docker compose -f compose.prodlike.yml stop` (sends SIGINT, like production)
+#
+# Differences from compose.dev.yml: the code is baked into the image (nothing mounted over /app), and the
+# container gets production's restrictions. Same .env.dev and data-dev/ as the dev bot.
+# On Linux, data-dev/ must be writable by UID 1000 (the image's user): `sudo chown -R 1000 data-dev`.
+name: videojoker-prodlike
+
+services:
+  videojoker-prodlike:
+    build: .
+    container_name: videojoker_prodlike
+    env_file:
+      - .env.dev
+    volumes:
+      - ./data-dev:/app/data # the only writable folder besides /tmp
+    read_only: true # everything else is read-only, like production
+    tmpfs:
+      - /tmp:size=256m,mode=1777 # Docker mounts it noexec,nosuid: nothing may run from /tmp
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    stop_signal: SIGINT
+    stop_grace_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
