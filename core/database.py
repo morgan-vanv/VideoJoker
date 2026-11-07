@@ -2,10 +2,20 @@ import os
 import asyncio
 import aiosqlite
 import logging
-from typing import Optional
+from typing import NamedTuple, Optional
 from pathlib import Path
 
 DB_PATH = Path(__file__).resolve().parent.parent / "data" / "videojoker.db"
+
+
+class OsrsAccount(NamedTuple):
+    """One OSRS account linked to a Discord user (a row of osrs_accounts). A NamedTuple is a tuple whose
+    parts have names, so code can say account.rsn instead of account[0]."""
+
+    rsn: str  # the name as the player typed it, e.g. "Iron Morph"
+    rsn_key: str  # the same name normalised for comparing, e.g. "iron morph" (see osrs/accounts.py)
+    is_default: bool
+    clan_answer: Optional[str]  # None (never asked), 'joining', 'member' or 'no'
 
 
 class Database:
@@ -53,6 +63,26 @@ class Database:
                 emoji TEXT,
                 role_id INTEGER,
                 PRIMARY KEY (message_id, emoji)
+            )
+        ''')
+        # OSRS accounts linked to Discord users (alts welcome). rsn_key is UNIQUE so two people can't
+        # claim the same character. See docs/osrs-design.md.
+        await self.conn.execute('''
+            CREATE TABLE IF NOT EXISTS osrs_accounts (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                discord_id INTEGER NOT NULL,
+                rsn TEXT NOT NULL,
+                rsn_key TEXT NOT NULL UNIQUE,
+                is_default INTEGER NOT NULL DEFAULT 0,
+                clan_answer TEXT,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+        # Who has the flexing webhook, so they can be pinged when it's replaced
+        await self.conn.execute('''
+            CREATE TABLE IF NOT EXISTS osrs_flexers (
+                discord_id INTEGER PRIMARY KEY,
+                enrolled_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
             )
         ''')
         # Drop the old permissions table if it exists to keep the schema clean
@@ -251,3 +281,127 @@ class Database:
             except Exception as e:
                 logging.error("Database read error in get_reaction_role: %s", e)
                 raise
+
+    # OSRS Methods (docs/osrs-design.md)
+    async def _fetch_all(self, query: str, parameters: tuple = ()) -> list:
+        """Helper for read queries: runs one SELECT and returns all its rows."""
+        if self.conn is None:
+            raise RuntimeError("Database connection is not initialized. Did you call setup()?")
+        async with self.lock:
+            try:
+                async with self.conn.execute(query, parameters) as cursor:
+                    return list(await cursor.fetchall())
+            except Exception as e:
+                logging.error("Database read error: %s | Query: %s | Params: %s", e, query, parameters)
+                raise
+
+    async def add_osrs_account(self, discord_id: int, rsn: str, rsn_key: str) -> Optional[int]:
+        """Links an OSRS account to a Discord user. Their first account becomes their default.
+
+        Returns None if it worked, or the Discord ID that already has this name (which can be the same
+        person registering it twice).
+        """
+        if self.conn is None:
+            raise RuntimeError("Database connection is not initialized. Did you call setup()?")
+        # The check and the insert happen under one lock, so two people registering the same name at the
+        # same moment can't both "win". (The UNIQUE on rsn_key would stop the second one anyway.)
+        async with self.lock:
+            try:
+                async with self.conn.execute(
+                    "SELECT discord_id FROM osrs_accounts WHERE rsn_key = ?", (rsn_key,)
+                ) as cursor:
+                    taken = await cursor.fetchone()
+                if taken:
+                    return taken[0]
+
+                async with self.conn.execute(
+                    "SELECT COUNT(*) FROM osrs_accounts WHERE discord_id = ?", (discord_id,)
+                ) as cursor:
+                    (account_count,) = await cursor.fetchone()
+
+                await self.conn.execute(
+                    "INSERT INTO osrs_accounts (discord_id, rsn, rsn_key, is_default) VALUES (?, ?, ?, ?)",
+                    (discord_id, rsn, rsn_key, int(account_count == 0)),
+                )
+                await self.conn.commit()
+                return None
+            except Exception as e:
+                await self.conn.rollback()
+                logging.error("Database error in add_osrs_account for %s (%s): %s", discord_id, rsn, e)
+                raise
+
+    async def get_osrs_accounts(self, discord_id: int) -> list[OsrsAccount]:
+        """A user's OSRS accounts: the default first, then in the order they were added."""
+        rows = await self._fetch_all(
+            """
+            SELECT rsn, rsn_key, is_default, clan_answer FROM osrs_accounts
+            WHERE discord_id = ? ORDER BY is_default DESC, id
+        """,
+            (discord_id,),
+        )
+        return [
+            OsrsAccount(rsn, rsn_key, bool(is_default), clan_answer) for rsn, rsn_key, is_default, clan_answer in rows
+        ]
+
+    async def remove_osrs_account(self, discord_id: int, rsn_key: str) -> bool:
+        """Unlinks one of a user's accounts. If it was their default, their oldest remaining account takes
+        over. Returns False if they don't have an account with that name."""
+        if self.conn is None:
+            raise RuntimeError("Database connection is not initialized. Did you call setup()?")
+        async with self.lock:
+            try:
+                cursor = await self.conn.execute(
+                    "DELETE FROM osrs_accounts WHERE discord_id = ? AND rsn_key = ? RETURNING is_default",
+                    (discord_id, rsn_key),
+                )
+                removed = await cursor.fetchone()
+                await cursor.close()
+                if removed is None:
+                    return False
+                if removed[0]:  # it was the default: promote the oldest one left (if any)
+                    await self.conn.execute(
+                        """
+                        UPDATE osrs_accounts SET is_default = 1
+                        WHERE id = (SELECT MIN(id) FROM osrs_accounts WHERE discord_id = ?)
+                    """,
+                        (discord_id,),
+                    )
+                await self.conn.commit()
+                return True
+            except Exception as e:
+                await self.conn.rollback()
+                logging.error("Database error in remove_osrs_account for %s (%s): %s", discord_id, rsn_key, e)
+                raise
+
+    async def set_default_osrs_account(self, discord_id: int, rsn_key: str) -> bool:
+        """Makes one of a user's accounts their default. Returns False if they don't have it."""
+        accounts = await self.get_osrs_accounts(discord_id)
+        if rsn_key not in (account.rsn_key for account in accounts):
+            return False
+        # One UPDATE does both jobs: is_default becomes 1 for the chosen account and 0 for the others,
+        # because (rsn_key = ?) is itself a true/false value in SQL.
+        await self._execute(
+            "UPDATE osrs_accounts SET is_default = (rsn_key = ?) WHERE discord_id = ?", (rsn_key, discord_id)
+        )
+        return True
+
+    async def set_clan_answer(self, discord_id: int, rsn_key: str, answer: str) -> None:
+        """Remembers what someone answered to "is this account joining the clan?"."""
+        if answer not in ('joining', 'member', 'no'):
+            raise ValueError("answer must be 'joining', 'member' or 'no'")
+        await self._execute(
+            "UPDATE osrs_accounts SET clan_answer = ? WHERE discord_id = ? AND rsn_key = ?",
+            (answer, discord_id, rsn_key),
+        )
+
+    async def add_flexer(self, discord_id: int) -> None:
+        """Remembers that this user has the flexing webhook (so they get pinged if it's ever replaced)."""
+        await self._execute("INSERT OR IGNORE INTO osrs_flexers (discord_id) VALUES (?)", (discord_id,))
+
+    async def is_flexer(self, discord_id: int) -> bool:
+        rows = await self._fetch_all("SELECT 1 FROM osrs_flexers WHERE discord_id = ?", (discord_id,))
+        return bool(rows)
+
+    async def get_flexers(self) -> list[int]:
+        rows = await self._fetch_all("SELECT discord_id FROM osrs_flexers ORDER BY enrolled_at")
+        return [discord_id for (discord_id,) in rows]

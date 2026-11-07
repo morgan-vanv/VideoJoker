@@ -18,6 +18,7 @@ on:
       - "cogs/**"
       - "core/**"
       - "games/**"
+      - "osrs/**"
       - "requirements.txt"
       - "Dockerfile"
   workflow_dispatch:
