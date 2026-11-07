@@ -31,6 +31,10 @@ STREAM_URL_TTL = 60 * 60  # yt-dlp stream URLs expire after a few hours; refresh
 # hosting"). yt-dlp caches YouTube's player code in ~/.cache by default, which is read-only there, so the
 # cache goes in /tmp. It's only a cache: a restart empties it and the first /play after is a bit slower.
 YTDLP_CACHE_DIR = Path(tempfile.gettempdir()) / "videojoker-yt-dlp"
+# Same idea for Deno, which runs YouTube's JavaScript puzzles for yt-dlp (see requirements.txt). It keeps a
+# cache in DENO_DIR (default ~/.cache/deno) even when told not to. yt-dlp passes our environment on to Deno.
+# setdefault: if someone already set DENO_DIR themselves, theirs wins.
+os.environ.setdefault("DENO_DIR", str(Path(tempfile.gettempdir()) / "videojoker-deno"))
 
 # yt-dlp rewrites the cookies file from scratch every time it finishes (YouTube keeps rotating them). Two
 # lookups at once (two servers, or a /play while the next song loads) could read a half-written file, or

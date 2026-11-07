@@ -26,6 +26,11 @@ def test_yt_dlp_cache_goes_in_tmp(monkeypatch):
     assert Path(options["cachedir"]).is_relative_to(tempfile.gettempdir())
 
 
+def test_deno_cache_goes_in_tmp():
+    # Set when music/sources.py is imported (unless someone set DENO_DIR themselves, which CI doesn't)
+    assert Path(sources.os.environ["DENO_DIR"]).is_relative_to(tempfile.gettempdir())
+
+
 def test_no_cookies_configured(monkeypatch):
     monkeypatch.delenv("YTDLP_COOKIES_FILE", raising=False)
     assert "cookiefile" not in sources._ytdl_options()  # pylint: disable=protected-access
