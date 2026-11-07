@@ -211,10 +211,13 @@ class GuildPlayer:  # pylint: disable=too-many-instance-attributes
         connection = getattr(self.voice, "_connection", None)
         dave_version = getattr(connection, "dave_protocol_version", "?")
         encrypting = getattr(connection, "can_encrypt", "?")
+        original = source.original  # the YtdlpAudio inside the volume knob
+        download = original.status() if isinstance(original, YtdlpAudio) else "?"
         logging.info(
-            "Voice check for %r after 5 s: %s frames sent, loudest rms %s, DAVE protocol %s, encrypting %s, "
+            "Voice check for %r after 5 s: %s, %s frames sent, loudest rms %s, DAVE protocol %s, encrypting %s, "
             "privacy code %s, transport %s, channel members %s",
             track.title,
+            download,
             source.frames,
             source.loudest,
             dave_version,
