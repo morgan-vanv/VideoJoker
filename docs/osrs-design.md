@@ -184,6 +184,7 @@ osrs/ui.py           the register flow's buttons (Views)
 osrs/lines.py        the VJ's copy
 core/database.py     the two new tables + queries (with tests, as always)
 ```
+Also add `osrs/**` to the `paths:` in `.github/workflows/release.yml`, or changes there won't ship.
 
 ## Shipping order (each PR safe to merge on its own)
 1. **Register + WOM groups**: tables, `/osrs register|me|unregister|whois`, the friends-group join, the clan
