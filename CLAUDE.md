@@ -63,10 +63,20 @@ these rules hold for every PR. If a change has to break one, say so in the PR:
    (database, logs, heartbeat) and `/tmp` (256 MB). Downloads and caches (yt-dlp included) must go there.
 4. Schema changes must be **forward-compatible**, because a rollback runs the *old* code against the *new*
    database: add tables, or add columns with a default. Never rename, drop, or change what a column means.
-5. `Intents.default()` only. The production bot is invited with View Channels, Send Messages, Embed Links
-   and Read Message History. A feature that needs more (e.g. `Connect`/`Speak` for music, `Manage Roles`
-   for reaction roles) or a privileged intent must say so in its PR, so Morgan can re-invite the bot.
+5. `Intents.default()` only. The production bot is invited server-wide with View Channels, Send Messages,
+   Embed Links, Read Message History, Add Reactions, Connect, Speak and Manage Webhooks (never Administrator).
+   A feature that needs more (e.g. `Manage Roles` for reaction roles) or a privileged intent must say so in
+   its PR, so Morgan can add it.
 6. Production has no `DEV_GUILD_ID` (commands sync globally). The dev bot stays in the test server.
+7. **The bot must start with any optional setting missing or wrong**: that feature switches off and the log
+   says so (a warning) at startup. A failed start makes the host roll back and hold the release. The host
+   passes the whole production `.env` into the container, so a new setting is just a `.env` line there.
+8. Secrets (`.env` values, `data/cookies.txt`) stay on the host and in Morgan's password manager. Backups hold
+   only `videojoker.db`; `/app/data` as a whole is kept across version switches.
+9. The host checks the container and the ready line; from mid-November 2026 also `data/heartbeat` (every 60 s).
+
+Test anything that touches files, processes or startup under production's container settings before it
+merges: `docker compose -f compose.prodlike.yml up --build` (dev bot, `.env.dev`; arrives with #54/#65).
 
 ## Checks before opening a PR
 

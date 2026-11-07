@@ -50,6 +50,26 @@ The bot refuses to start without `DISCORD_TOKEN`, and warns you if `OWNER` is mi
 
 *Note: The `.gitignore` file already contains `.env`, ensuring your credentials won't be committed.*
 
+### Optional: music settings
+The music player works out of the box for YouTube and SoundCloud links and searches. These extras are optional:
+
+```env
+# Spotify links (track/album/playlist). Create a free app at https://developer.spotify.com/dashboard
+# Spotify only gives us the track names; the audio is found on YouTube.
+SPOTIFY_CLIENT_ID=...
+SPOTIFY_CLIENT_SECRET=...
+
+# Cookies from a logged-in YouTube account (Premium is ideal) avoid YouTube's "confirm you're not a bot" wall.
+# Export with a "Get cookies.txt" browser extension and keep the file in data/ (gitignored, mounted in Docker).
+# It has to stay in data/: yt-dlp writes fresh cookies back into it, and data/ is the only writable folder
+# in production. If the file is missing or read-only, the bot logs a warning and plays without it.
+# These cookies are a logged-in session: treat the file like a password.
+YTDLP_COOKIES_FILE=data/cookies.txt
+
+# SoundCloud Go+ token for higher-quality streams (found in the "oauth_token" cookie on soundcloud.com).
+SOUNDCLOUD_OAUTH_TOKEN=...
+```
+
 ---
 
 ## 4. Setting up Docker & Dependencies
@@ -163,4 +183,5 @@ CI runs the same checks on every pull request. Work on a branch, open a PR, and 
 - **Rollback:** run the previous version's image (every release keeps its own tag) while you fix forward.
 - **Release by hand** (e.g. to rebuild with a newer base image): Actions tab → Release → **Run workflow**, from `main` (runs from any other branch are skipped).
 - **Monthly rebuild:** on the 1st of each month the workflow releases on its own (same code, freshly rebuilt), so security fixes in the base image and ffmpeg still ship in a quiet month.
+  - ⚠️ **GitHub switches it off quietly.** In a public repo, scheduled workflows are disabled after 60 days without any activity in the repository, and nobody is told. If the 1st of the month passes with no new Release, check the Actions tab → **Release**: if there's a banner saying the scheduled workflow is disabled, click **Enable workflow** (or run `gh workflow enable release.yml`). Any merge to `main` also counts as activity and resets the clock.
 - **Package versions:** each release is one image with its version tag (the newest also has `latest`). Older releases built before 2026-10-29 may show extra "untagged" versions on the package page: those are parts of a tagged release, so don't delete them.
