@@ -77,7 +77,7 @@ The flexing kit, shown privately by `/osrs flexing`:
    `https://raw.githubusercontent.com/morgan-vanv/VideoJoker/main/osrs/dink-settings.json`
 
 **Deaths are opt-in per player.** They post in their own channel (`#everyone-point-and-laugh`) through a second
-bot-owned webhook named "sit, respectfully", after the old one. "Shame me" → the kit says to tick Dink's
+bot-owned webhook named "sit, respectfully", after the old one, with a banshee pointing and laughing as its picture (the flexing webhook has the old flexing gnome; both in `osrs/avatars/`). "Shame me" → the kit says to tick Dink's
 *Enable Death* and paste the deaths URL into *Death Webhook Override*. "Keep my dignity" → the kit says to untick
 *Enable Death*. For that reason `deathEnabled` is **not** in the shared settings file: Dink re-imports the shared
 settings every few hours and would switch deaths back on for people who said no (a test enforces this). The

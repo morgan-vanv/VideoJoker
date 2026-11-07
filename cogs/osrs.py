@@ -48,6 +48,7 @@ class Osrs(commands.GroupCog, group_name="osrs", group_description="Link your OS
         if not self.settings_checked:
             self.settings_checked = True
             flexing.log_settings(self.bot)
+            await flexing.add_missing_avatars(self.bot)
 
     # ---- helpers (also used by the buttons in osrs/ui.py)
 

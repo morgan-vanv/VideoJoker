@@ -10,6 +10,7 @@ anywhere: when someone needs one, it asks Discord. Discord is the only place the
 
 import logging
 import os
+from pathlib import Path
 from typing import Optional
 
 import discord
@@ -20,6 +21,16 @@ from osrs import lines
 # setup used in #everyone-point-and-laugh, after swannobi's death message "Sit respectfully %USERNAME%".
 WEBHOOK_NAME = "Ugandan Flexing"
 DEATHS_WEBHOOK_NAME = "sit, respectfully"
+
+# Their pictures, as the old webhooks had them: the flexing gnome, and a banshee pointing and laughing.
+AVATARS = Path(__file__).resolve().parent / "avatars"
+AVATAR_FILES = {WEBHOOK_NAME: AVATARS / "flexing.png", DEATHS_WEBHOOK_NAME: AVATARS / "deaths.png"}
+
+
+def _avatar(name: str) -> Optional[bytes]:
+    """The picture for a webhook name, as bytes (what Discord's API wants), or None if there isn't one."""
+    path = AVATAR_FILES.get(name)
+    return path.read_bytes() if path and path.is_file() else None
 
 
 class FlexingNotSetUp(Exception):
@@ -72,7 +83,7 @@ async def get_or_create_webhook(
     existing = await _our_webhooks(channel, bot_user)
     if existing:
         return existing[0]
-    return await channel.create_webhook(name=name, reason="VideoJoker: OSRS drop flexing")
+    return await channel.create_webhook(name=name, avatar=_avatar(name), reason="VideoJoker: OSRS drop flexing")
 
 
 async def replace_webhook(
@@ -83,7 +94,7 @@ async def replace_webhook(
     Deleting is what stops a leaked URL: from that moment it posts nothing, wherever it was pasted.
     """
     old_hooks = await _our_webhooks(channel, bot_user)
-    avatar = None
+    avatar = _avatar(name)
     if old_hooks:
         name = old_hooks[0].name or name  # keep a name someone changed in Discord
         if old_hooks[0].avatar:  # someone gave it a picture in Discord's settings: keep it
@@ -91,6 +102,26 @@ async def replace_webhook(
     for hook in old_hooks:
         await hook.delete(reason="VideoJoker: /osrs rotate-webhook")
     return await channel.create_webhook(name=name, avatar=avatar, reason="VideoJoker: /osrs rotate-webhook")
+
+
+async def add_missing_avatars(bot: discord.Client) -> None:
+    """Gives the bot's existing webhooks their picture if they have none (the first ones were made without).
+    A picture someone set by hand in Discord is left alone. Runs once at startup; problems are only logged."""
+    main, deaths = None, None
+    try:
+        main, deaths = flexing_channels(bot)
+    except FlexingNotSetUp:
+        return
+    for channel, name in ((main, WEBHOOK_NAME), (deaths, DEATHS_WEBHOOK_NAME)):
+        if channel is None:
+            continue
+        try:
+            for hook in await _our_webhooks(channel, bot.user):
+                if hook.avatar is None and _avatar(name):
+                    await hook.edit(avatar=_avatar(name), reason="VideoJoker: webhook picture")
+                    logging.info("Gave the webhook in #%s its picture.", channel.name)
+        except discord.HTTPException as error:
+            logging.warning("Couldn't check the webhook picture in #%s: %s", channel.name, error)
 
 
 def build_kit(main_url: str, deaths_url: Optional[str]) -> str:
