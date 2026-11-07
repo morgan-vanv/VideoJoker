@@ -26,7 +26,7 @@ handcrafted, and sentimental. **Treat it like a friend's workshop, not a codebas
 ## Stack
 
 - Python 3.14 (Docker image `python:3.14.10-slim-trixie`; `.python-version` for CI and local tools), discord.py 2.7 (slash commands via `app_commands`),
-  aiosqlite, python-dotenv. ffmpeg/libopus are installed for future music work.
+  aiosqlite, python-dotenv. Music: yt-dlp + ffmpeg/libopus + Deno (for YouTube), see `docs/music-design.md`.
 - Entry point `main.py` → `bot.py` (`VideoJoker(commands.Bot)`), which loads cogs in `setup_hook`.
 
 ## Layout
@@ -76,7 +76,7 @@ these rules hold for every PR. If a change has to break one, say so in the PR:
 9. The host checks the container and the ready line; from mid-November 2026 also `data/heartbeat` (every 60 s).
 
 Test anything that touches files, processes or startup under production's container settings before it
-merges: `docker compose -f compose.prodlike.yml up --build` (dev bot, `.env.dev`; arrives with #54/#65).
+merges: `docker compose -f compose.prodlike.yml up --build` (the dev bot, with `.env.dev` and `data-dev/`).
 
 ## Checks before opening a PR
 
@@ -84,7 +84,7 @@ merges: `docker compose -f compose.prodlike.yml up --build` (dev bot, `.env.dev`
 pip install -r requirements-dev.txt                 # bot deps + dev tools (pylint)
 ruff format .                                        # format first: CI fails if anything isn't formatted
 pylint --rcfile=.pylintrc $(git ls-files '*.py')     # CI runs exactly this on the whole repo: fails below 9.5 or on any error
-python -c "import bot, cogs.games, cogs.fun, cogs.utility, cogs.permissions, cogs.music, cogs.economy, cogs.reaction_roles, cogs.heartbeat"
+python -c "import bot, cogs.games, cogs.fun, cogs.utility, cogs.permissions, cogs.music, cogs.economy, cogs.reaction_roles, cogs.heartbeat, cogs.osrs"
 python -m pytest                                     # tests in tests/: database + game logic, no Discord needed
 ```
 

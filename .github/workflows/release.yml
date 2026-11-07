@@ -19,6 +19,7 @@ on:
       - "core/**"
       - "games/**"
       - "music/**"
+      - "osrs/**"
       - "requirements.txt"
       - "Dockerfile"
   workflow_dispatch:
