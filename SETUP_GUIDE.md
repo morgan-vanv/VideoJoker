@@ -160,5 +160,6 @@ CI runs the same checks on every pull request. Work on a branch, open a PR, and 
 - **Which version is running?** `/ping` answers `pong · v2026.10.28`. Bots you build yourself say `pong · dev`.
 - **Hotfix:** a normal `fix/...` branch and PR. Merging it releases immediately.
 - **Rollback:** run the previous version's image (every release keeps its own tag) while you fix forward.
-- **Release by hand** (e.g. to rebuild with a newer base image): Actions tab → Release → **Run workflow**.
+- **Release by hand** (e.g. to rebuild with a newer base image): Actions tab → Release → **Run workflow**, from `main` (runs from any other branch are skipped).
+- **Monthly rebuild:** on the 1st of each month the workflow releases on its own (same code, freshly rebuilt), so security fixes in the base image and ffmpeg still ship in a quiet month.
 - **Package versions:** each release is one image with its version tag (the newest also has `latest`). Older releases built before 2026-10-29 may show extra "untagged" versions on the package page: those are parts of a tagged release, so don't delete them.
