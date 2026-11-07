@@ -93,6 +93,11 @@ def log_optional_settings() -> None:
         logging.info("SOUNDCLOUD_OAUTH_TOKEN not set: SoundCloud plays in standard quality.")
 
 
+def cookies_in_use() -> bool:
+    """Whether yt-dlp is using the YouTube cookies file (for the once-per-song log line)."""
+    return _cookies_file() is not None
+
+
 @functools.cache  # checked once per run, so a problem is logged once instead of on every song
 def _cookies_file() -> str | None:
     """The YouTube cookies file from .env, or None if it's missing or unusable.
@@ -170,7 +175,9 @@ def _first_thumbnail(info: dict) -> str | None:
 
 
 def _fill_stream(track: Track, info: dict) -> None:
-    track.stream_url = info.get("url")
+    # sanitize_info turns yt-dlp's answer into plain JSON-able data, so music/stream.py can hand it to the
+    # yt-dlp that downloads the audio (--load-info-json). Only kept if yt-dlp found a playable format.
+    track.stream_info = yt_dlp.YoutubeDL.sanitize_info(info) if info.get("url") else None
     track.resolved_at = time.monotonic()
     if info.get("duration"):
         track.duration = int(info["duration"])
@@ -200,8 +207,8 @@ async def fetch_tracks(query: str, requester_id: int, requester_name: str) -> tu
 
 
 async def resolve_stream(track: Track) -> Track:
-    """Makes sure `track.stream_url` is fresh. Called by the player right before playback."""
-    if track.stream_url and track.resolved_at and time.monotonic() - track.resolved_at < STREAM_URL_TTL:
+    """Makes sure `track.stream_info` is fresh. Called by the player right before playback."""
+    if track.stream_info and track.resolved_at and time.monotonic() - track.resolved_at < STREAM_URL_TTL:
         return track
 
     query = track.url or f"ytsearch1:{track.search_query}"
@@ -213,7 +220,7 @@ async def resolve_stream(track: Track) -> Track:
         info = entries[0]
         track.url = track.url or info.get("webpage_url")
     _fill_stream(track, info)
-    if not track.stream_url:
+    if not track.stream_info:
         raise TrackNotFound(query)
     return track
 

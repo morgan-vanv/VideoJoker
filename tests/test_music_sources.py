@@ -62,3 +62,26 @@ def test_startup_with_no_optional_settings(monkeypatch, caplog):
         monkeypatch.delenv(name, raising=False)
     sources.log_optional_settings()  # must not raise: the bot has to start with every extra missing
     assert "Spotify links are off" in caplog.text
+
+
+def test_stream_log_line_has_no_link_or_token(monkeypatch):
+    monkeypatch.delenv("YTDLP_COOKIES_FILE", raising=False)
+    from music.stream import describe  # pylint: disable=import-outside-toplevel
+
+    info = {
+        "url": "https://rr2---sn-abc.googlevideo.com/videoplayback?ip=203.0.113.7&c=TVHTML5&itag=251&pot=SECRETPOT&sig=SECRETSIG",
+        "extractor_key": "Youtube",
+        "format_id": "251",
+        "protocol": "https",
+    }
+    line = describe(info)
+    assert "client TVHTML5" in line and "format 251" in line and "PO token yes" in line and "cookies no" in line
+    for secret in ("googlevideo", "203.0.113.7", "SECRETPOT", "SECRETSIG", "://"):
+        assert secret not in line
+
+
+def test_track_repr_hides_stream_info():
+    from music.queue import Track  # pylint: disable=import-outside-toplevel
+
+    track = Track(title="Instant Crush", stream_info={"url": "https://example.com/videoplayback?sig=SECRET"})
+    assert "SECRET" not in repr(track)
