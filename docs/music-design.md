@@ -38,9 +38,13 @@ music/lines.py         the VJ's copy
 How a `/play` flows:
 1. `fetch_tracks()` turns the query into Track objects *fast*: playlists are read "flat" (titles only).
 2. Tracks go in the Queue; the loop wakes up.
-3. Right before a track plays, `resolve_stream()` asks yt-dlp for the real audio URL (they expire after a few
-   hours, so resolving at play time is the only way a long queue stays healthy).
-4. ffmpeg decodes the stream, `PCMVolumeTransformer` sets the volume, discord.py encodes Opus and sends it.
+3. Right before a track plays, `resolve_stream()` asks yt-dlp which audio format to use (the links expire after a few
+   hours, so this happens just in time).
+4. `music/stream.py`: a yt-dlp process **downloads** that exact format (`--load-info-json`) and pipes the bytes into
+   ffmpeg, which decodes them; `PCMVolumeTransformer` sets the volume, discord.py encodes Opus and sends it.
+   (Changed 2026-11-07: when ffmpeg fetched the link itself, YouTube answered 403 in production, because the signed
+   link is tied to the IP and headers yt-dlp used. One INFO log line per song says how the stream was obtained:
+   yt-dlp version, YouTube client, PO token, cookies. Never the link.)
 5. When the song ends discord.py calls back (from its audio thread; we hop back to the event loop), the loop
    advances by loop mode, and the card is retired and replaced.
 

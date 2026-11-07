@@ -9,11 +9,7 @@ import discord
 from music import lines, ui
 from music.queue import Queue, Track
 from music.sources import TrackNotFound, resolve_stream
-
-# Tell ffmpeg to reconnect if the audio host drops the connection mid-song (common with YouTube) and to
-# ignore any video stream. Audio effects (nightcore etc.) will slot in here later as an `-af` filter.
-FFMPEG_BEFORE = "-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5"
-FFMPEG_OPTIONS = "-vn"
+from music.stream import YtdlpAudio, describe
 
 IDLE_TIMEOUT = 5 * 60  # seconds with an empty queue before the VJ packs up and leaves
 
@@ -176,9 +172,16 @@ class GuildPlayer:  # pylint: disable=too-many-instance-attributes
         if not self.voice.is_connected():
             return False
 
-        # FFmpegPCMAudio decodes to raw PCM so PCMVolumeTransformer can scale it; discord.py then encodes
-        # to Opus. (FFmpegOpusAudio is cheaper on CPU but then volume can't be changed mid-song.)
-        audio = discord.FFmpegPCMAudio(track.stream_url, before_options=FFMPEG_BEFORE, options=FFMPEG_OPTIONS)
+        # How we got this stream (yt-dlp version, YouTube client, PO token, cookies), once per song, no links
+        logging.info("Playing %r: %s", track.title, describe(track.stream_info))
+        # yt-dlp downloads, ffmpeg decodes to raw PCM (see music/stream.py) so PCMVolumeTransformer can scale
+        # it; discord.py then encodes to Opus. (Opus straight from ffmpeg is cheaper, but volume would be fixed.)
+        try:
+            audio = YtdlpAudio(track.stream_info)
+        except OSError as error:  # couldn't start yt-dlp or ffmpeg at all
+            logging.error("Could not start the audio pipeline for %r: %s", track.title, error)
+            await self._announce_text(lines.say(lines.LOAD_FAILED, title=track.title))
+            return False
         source = discord.PCMVolumeTransformer(audio, volume=self.volume / 100)
 
         self._track_done.clear()

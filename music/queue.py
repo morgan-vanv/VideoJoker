@@ -18,16 +18,18 @@ class LoopMode(Enum):
 class Track:  # pylint: disable=too-many-instance-attributes
     """One song, as the queue knows it.
 
-    A Track is created cheaply (just title/url) and its `stream_url` is only resolved right before it plays.
-    Why: stream URLs from yt-dlp expire after a few hours, and resolving a 100-song playlist up front
+    A Track is created cheaply (just title/url) and its `stream_info` is only resolved right before it plays.
+    Why: stream links from yt-dlp expire after a few hours, and resolving a 100-song playlist up front
     would take ages. Spotify tracks don't even have a `url` to begin with, only a `search_query` we send to YouTube.
     """
 
     title: str
     url: str | None = None  # the page we can link people to (YouTube watch page, SoundCloud page)
     search_query: str | None = None  # used instead of `url` for Spotify tracks ("Artist - Title")
-    stream_url: str | None = None  # the actual audio URL ffmpeg reads; filled in by sources.resolve_stream
-    resolved_at: float | None = None  # time.monotonic() when stream_url was fetched; they go stale
+    # yt-dlp's full answer about the chosen audio format, handed to the yt-dlp that downloads it (music/stream.py).
+    # Filled in by sources.resolve_stream. repr=False: it holds signed links, which must never end up in a log.
+    stream_info: dict | None = field(default=None, repr=False)
+    resolved_at: float | None = None  # time.monotonic() when stream_info was fetched; the links in it go stale
     duration: int | None = None  # seconds, if known
     artist: str | None = None  # uploader / channel / Spotify artist
     thumbnail: str | None = None
