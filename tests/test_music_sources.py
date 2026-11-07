@@ -85,3 +85,27 @@ def test_track_repr_hides_stream_info():
 
     track = Track(title="Instant Crush", stream_info={"url": "https://example.com/videoplayback?sig=SECRET"})
     assert "SECRET" not in repr(track)
+
+
+def test_metered_volume_counts_frames_and_loudness():
+    import struct  # pylint: disable=import-outside-toplevel
+
+    import discord  # pylint: disable=import-outside-toplevel
+
+    from music.stream import MeteredVolume  # pylint: disable=import-outside-toplevel
+
+    class FakeSong(discord.AudioSource):
+        """Three 20 ms frames: silence, loud, silence. Then the end (b"")."""
+
+        def __init__(self):
+            loud = struct.pack("<1920h", *([8000, -8000] * 960))
+            self.frames = [bytes(3840), loud, bytes(3840)]
+
+        def read(self) -> bytes:
+            return self.frames.pop(0) if self.frames else b""
+
+    meter = MeteredVolume(FakeSong())
+    while meter.read():
+        pass
+    assert meter.frames == 3
+    assert meter.loudest > 5000  # the loud frame was noticed (silence alone would leave it at 0)
