@@ -10,11 +10,14 @@ Spotify link becomes "Artist - Title" search queries that YouTube answers. That'
 
 import asyncio
 import base64
+import contextlib
 import functools
 import logging
 import os
 import re
+import tempfile
 import time
+from pathlib import Path
 from urllib.parse import urlparse
 
 import aiohttp
@@ -23,6 +26,17 @@ import yt_dlp
 from music.queue import Track
 
 STREAM_URL_TTL = 60 * 60  # yt-dlp stream URLs expire after a few hours; refresh anything older than this
+
+# In production the container's files are read-only, except /app/data and /tmp (CLAUDE.md, "Production
+# hosting"). yt-dlp caches YouTube's player code in ~/.cache by default, which is read-only there, so the
+# cache goes in /tmp. It's only a cache: a restart empties it and the first /play after is a bit slower.
+YTDLP_CACHE_DIR = Path(tempfile.gettempdir()) / "videojoker-yt-dlp"
+
+# yt-dlp rewrites the cookies file from scratch every time it finishes (YouTube keeps rotating them). Two
+# lookups at once (two servers, or a /play while the next song loads) could read a half-written file, or
+# save a half-read one over the good one, and the logged-in cookies would be gone. So when there's a cookies
+# file, lookups take turns. Each one takes a second or two, so nobody will notice the wait.
+_cookies_lock = asyncio.Lock()
 
 SPOTIFY_LINK = re.compile(r"open\.spotify\.com/(?:intl-\w+/)?(track|album|playlist)/([A-Za-z0-9]+)")
 SPOTIFY_URI = re.compile(r"spotify:(track|album|playlist):([A-Za-z0-9]+)")
@@ -48,8 +62,9 @@ def _ytdl_options() -> dict:
         "logger": logging.getLogger("yt_dlp"),  # yt-dlp's own messages go to bot.log instead of raw stderr
         "skip_download": True,
         "source_address": "0.0.0.0",  # IPv4; some hosts stall over IPv6
+        "cachedir": str(YTDLP_CACHE_DIR),
     }
-    cookies = os.getenv("YTDLP_COOKIES_FILE")
+    cookies = _cookies_file()
     if cookies:
         # Logged-in cookies (a YouTube Premium account works great) avoid the "sign in to confirm you're not a bot" wall
         options["cookiefile"] = cookies
@@ -61,17 +76,44 @@ def _ytdl_options() -> dict:
     return options
 
 
+@functools.cache  # checked once per run, so a problem is logged once instead of on every song
+def _cookies_file() -> str | None:
+    """The YouTube cookies file from .env, or None if it's missing or unusable.
+
+    yt-dlp doesn't only read this file: when it's done, it writes the cookies back. So the file has to be
+    somewhere writable, like data/ (that's /app/data in Docker). If it's somewhere read-only, every /play
+    would crash at the moment yt-dlp saves. Playing without cookies (and saying why in the log) is better.
+    """
+    path = os.getenv("YTDLP_COOKIES_FILE")
+    if not path:
+        return None
+    if not os.path.isfile(path):
+        logging.warning("YTDLP_COOKIES_FILE=%s doesn't exist. Playing without YouTube cookies.", path)
+        return None
+    if not os.access(path, os.W_OK):
+        logging.warning(
+            "YTDLP_COOKIES_FILE=%s isn't writable, and yt-dlp saves cookies back. Keep it in data/. "
+            "Playing without YouTube cookies.",
+            path,
+        )
+        return None
+    return path
+
+
 async def _extract(query: str, **overrides) -> dict:
     """Runs yt-dlp in a worker thread. yt-dlp is blocking code; if we called it directly the whole bot would
     freeze (no buttons, no commands, audio stutter) for the seconds it takes."""
     options = {**_ytdl_options(), **overrides}
     loop = asyncio.get_running_loop()
-    with yt_dlp.YoutubeDL(options) as ytdl:
-        call = functools.partial(ytdl.extract_info, query, download=False)
-        try:
-            info = await loop.run_in_executor(None, call)
-        except yt_dlp.utils.DownloadError as error:
-            raise TrackNotFound(query) from error
+    # nullcontext() is a "do nothing" stand-in, so without cookies nobody waits for anybody
+    wait_our_turn = _cookies_lock if "cookiefile" in options else contextlib.nullcontext()
+    async with wait_our_turn:
+        with yt_dlp.YoutubeDL(options) as ytdl:  # leaving this block is when yt-dlp saves the cookies
+            call = functools.partial(ytdl.extract_info, query, download=False)
+            try:
+                info = await loop.run_in_executor(None, call)
+            except yt_dlp.utils.DownloadError as error:
+                raise TrackNotFound(query) from error
     if info is None:
         raise TrackNotFound(query)
     return info

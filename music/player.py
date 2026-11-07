@@ -104,10 +104,12 @@ class GuildPlayer:  # pylint: disable=too-many-instance-attributes
         if isinstance(source, discord.PCMVolumeTransformer):
             source.volume = percent / 100
 
-    async def disconnect(self) -> None:
-        """Leaves voice and shuts the loop down. The cog drops the player afterwards."""
+    async def disconnect(self, farewell: str | None = None) -> None:
+        """Leaves voice and shuts the loop down, saying `farewell` first if given. The cog drops the player."""
         self._task.cancel()
         await self._retire_now_playing()
+        if farewell:
+            await self._announce_text(farewell)
         if self.voice.is_connected():
             await self.voice.disconnect()
 

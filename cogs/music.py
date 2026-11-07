@@ -1,5 +1,6 @@
 """The VJ's music commands. Thin on purpose: commands check who's asking, then hand off to music/player.py."""
 
+import asyncio
 import logging
 
 import aiohttp
@@ -13,6 +14,8 @@ from music.queue import LoopMode
 from music.sources import SpotifyNotConfigured, TrackNotFound, fetch_tracks
 from music.ui import now_playing_embed, queue_embed
 
+SHUTDOWN_TIMEOUT = 5  # seconds; Client.close() disconnects from voice after this anyway
+
 
 class NotInVoice(app_commands.CheckFailure):
     """Raised with the VJ line to show when a voice precondition fails; the cog's error handler sends it."""
@@ -25,6 +28,19 @@ class Music(Cog, name="Music"):
         logging.info("Music cog initialized.")
         self.bot = bot
         self.players: dict[int, GuildPlayer] = {}  # one player per guild (server)
+
+    async def cog_unload(self):
+        """discord.py runs this when the bot shuts down (a deploy, or Ctrl+C). The music is about to stop and
+        the old buttons die with this process, so retire the cards and tell anyone who was listening.
+
+        Capped at a few seconds: the host expects a clean exit quickly (CLAUDE.md, "Production hosting").
+        """
+        players, self.players = list(self.players.values()), {}
+        goodbyes = [player.disconnect(lines.RESTARTING if player.current else None) for player in players]
+        try:
+            await asyncio.wait_for(asyncio.gather(*goodbyes), timeout=SHUTDOWN_TIMEOUT)
+        except asyncio.TimeoutError:
+            logging.warning("Music took over %s s to shut down; the bot is closing anyway.", SHUTDOWN_TIMEOUT)
 
     # ---- helpers -------------------------------------------------------------------------------------------
 

@@ -61,6 +61,9 @@ SPOTIFY_CLIENT_SECRET=...
 
 # Cookies from a logged-in YouTube account (Premium is ideal) avoid YouTube's "confirm you're not a bot" wall.
 # Export with a "Get cookies.txt" browser extension and keep the file in data/ (gitignored, mounted in Docker).
+# It has to stay in data/: yt-dlp writes fresh cookies back into it, and data/ is the only writable folder
+# in production. If the file is missing or read-only, the bot logs a warning and plays without it.
+# These cookies are a logged-in session: treat the file like a password.
 YTDLP_COOKIES_FILE=data/cookies.txt
 
 # SoundCloud Go+ token for higher-quality streams (found in the "oauth_token" cookie on soundcloud.com).
