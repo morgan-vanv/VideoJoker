@@ -74,12 +74,12 @@ _See `DESIGNDOCUMENT.md` for information on what might come in the future_
 
 ### OSRS Cog Commands
 _Link your Old School RuneScape accounts (alts welcome) and flex your drops with the Dink plugin. Design: `docs/osrs-design.md`._
-- **/osrs register [rsn]** (*Links an account to your Discord, then asks about the clan and flexing.*)
+- **/osrs register [rsn]** (*Links an account to your Discord, then asks about flexing, death notifications and the clan.*)
 - **/osrs accounts** (*Shows your linked accounts. ⭐ default · 🏰 in the clan.*)
 - **/osrs whois [member]** (*Shows which accounts someone plays.*)
 - **/osrs default [rsn]** (*Picks your main account.*)
 - **/osrs remove [rsn]** (*Unlinks an account.*)
-- **/osrs flexing** (*Privately shows what to paste into Dink to post your drops.*)
+- **/osrs flexing** (*Privately shows what to paste into Dink to post your drops (and, if you want, your deaths).*)
 - **/osrs rotate-webhook** (*VIP: replaces a leaked flexing webhook and pings everyone to grab the new one.*)
 
 ### Reaction Roles Cog Commands
