@@ -65,6 +65,20 @@ def _log_ytdlp_errors(stream) -> None:
     stream.close()
 
 
+class _CountingReader:  # pylint: disable=too-few-public-methods  # a file-like needs only read()
+    """Wraps yt-dlp's output pipe and counts the bytes passing through, for the voice check in the log
+    ("did the download deliver anything at all?"). discord.py only ever calls read() on it."""
+
+    def __init__(self, pipe):
+        self._pipe = pipe
+        self.bytes_read = 0
+
+    def read(self, size: int = -1) -> bytes:
+        data = self._pipe.read(size)
+        self.bytes_read += len(data)
+        return data
+
+
 class YtdlpAudio(discord.FFmpegPCMAudio):
     """An audio source for discord.py: a yt-dlp download piped into ffmpeg.
 
@@ -94,8 +108,9 @@ class YtdlpAudio(discord.FFmpegPCMAudio):
             command, cwd=WORK_DIR, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE
         )
         threading.Thread(target=_log_ytdlp_errors, args=(self._ytdlp.stderr,), daemon=True).start()
+        self.downloaded = _CountingReader(self._ytdlp.stdout)
         try:
-            super().__init__(self._ytdlp.stdout, pipe=True, before_options=FFMPEG_BEFORE, options=FFMPEG_OPTIONS)
+            super().__init__(self.downloaded, pipe=True, before_options=FFMPEG_BEFORE, options=FFMPEG_OPTIONS)
         except Exception:
             self._stop_ytdlp()
             raise
@@ -111,6 +126,17 @@ class YtdlpAudio(discord.FFmpegPCMAudio):
             os.remove(self._info_path)
         except FileNotFoundError:
             pass
+
+    def status(self) -> str:
+        """For the voice check: bytes yt-dlp has delivered so far, and whether yt-dlp and ffmpeg are still running
+        (an exit code means it has stopped)."""
+        ffmpeg = getattr(self, "_process", None)  # discord.py's ffmpeg process (a placeholder once cleaned up)
+        ffmpeg_state = ffmpeg.poll() if isinstance(ffmpeg, subprocess.Popen) else "?"
+        return (
+            f"{self.downloaded.bytes_read} bytes from yt-dlp, "
+            f"yt-dlp {'running' if self._ytdlp.poll() is None else f'exited {self._ytdlp.returncode}'}, "
+            f"ffmpeg {'running' if ffmpeg_state is None else f'exited {ffmpeg_state}'}"
+        )
 
     def cleanup(self) -> None:
         """discord.py calls this when the song ends or is stopped: stop ffmpeg (super), then yt-dlp."""
