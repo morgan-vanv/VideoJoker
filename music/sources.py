@@ -54,6 +54,21 @@ class SpotifyNotConfigured(Exception):
     """A Spotify link was given but there are no API credentials in .env."""
 
 
+class _BlankOutLinks(logging.Filter):  # pylint: disable=too-few-public-methods  # a logging filter needs only filter()
+    """yt-dlp's warnings can mention links, and stream links carry the server's IP and signatures: blank them."""
+
+    _LINK = re.compile(r"https?://\S+")
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        record.msg = self._LINK.sub("<link>", record.getMessage())
+        record.args = ()
+        return True
+
+
+_YTDLP_LOGGER = logging.getLogger("yt_dlp")
+_YTDLP_LOGGER.addFilter(_BlankOutLinks())
+
+
 def _ytdl_options() -> dict:
     """Builds yt-dlp options. Optional env vars let Morgan's YouTube Premium / SoundCloud Go+ accounts help."""
     options = {
@@ -62,8 +77,7 @@ def _ytdl_options() -> dict:
         "extract_flat": "in_playlist",  # playlists: just titles+urls, no per-video work (that's resolve_stream's job)
         "default_search": "ytsearch1",  # plain text = YouTube search, first hit
         "quiet": True,
-        "no_warnings": True,
-        "logger": logging.getLogger("yt_dlp"),  # yt-dlp's own messages go to bot.log instead of raw stderr
+        "logger": _YTDLP_LOGGER,  # yt-dlp's own messages (warnings included) go to bot.log, links blanked out
         "skip_download": True,
         "source_address": "0.0.0.0",  # IPv4; some hosts stall over IPv6
         "cachedir": str(YTDLP_CACHE_DIR),

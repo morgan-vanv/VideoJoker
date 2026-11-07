@@ -41,7 +41,9 @@ How a `/play` flows:
 3. Right before a track plays, `resolve_stream()` asks yt-dlp which audio format to use (the links expire after a few
    hours, so this happens just in time).
 4. `music/stream.py`: a yt-dlp process **downloads** that exact format (`--load-info-json`) and pipes the bytes into
-   ffmpeg, which decodes them; `PCMVolumeTransformer` sets the volume, discord.py encodes Opus and sends it.
+   ffmpeg, which decodes them and evens out the loudness (`loudnorm`, -20 LUFS); `PCMVolumeTransformer` sets the
+   volume, discord.py encodes Opus and sends it. A read-ahead buffer keeps yt-dlp downloading ahead of playback
+   (YouTube drops idle connections), and the player waits for a few seconds of audio before the first frame.
    (Changed 2026-11-07: when ffmpeg fetched the link itself, YouTube answered 403 in production, because the signed
    link is tied to the IP and headers yt-dlp used. One INFO log line per song says how the stream was obtained:
    yt-dlp version, YouTube client, PO token, cookies. Never the link.)
