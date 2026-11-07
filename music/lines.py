@@ -2,6 +2,7 @@
 
 Lists get a random pick (see `say`); single strings are used as-is.
 """
+
 import random
 
 NOW_SHOWING = "🎬 NOW SHOWING"
@@ -52,8 +53,7 @@ SEARCHING = "🔎 The VJ rummages through the tapes for **{query}**..."
 NOT_FOUND = "The VJ searched every shelf and found nothing for **{query}**."
 LOAD_FAILED = "The tape for **{title}** is damaged. The VJ skips it and moves on."
 SPOTIFY_NOT_CONFIGURED = (
-    "Spotify links need `SPOTIFY_CLIENT_ID` and `SPOTIFY_CLIENT_SECRET` in `.env`. "
-    "See SETUP_GUIDE.md — it's free."
+    "Spotify links need `SPOTIFY_CLIENT_ID` and `SPOTIFY_CLIENT_SECRET` in `.env`. See SETUP_GUIDE.md — it's free."
 )
 SPOTIFY_FAILED = "Spotify wouldn't hand over that one. Check the link, comrade."
 

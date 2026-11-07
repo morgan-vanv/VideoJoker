@@ -1,4 +1,5 @@
 """One GuildPlayer per server. It owns the voice connection, the queue, and the loop that plays through it."""
+
 import asyncio
 import logging
 import time
@@ -28,17 +29,17 @@ class GuildPlayer:  # pylint: disable=too-many-instance-attributes
     def __init__(self, bot, voice: discord.VoiceClient, text_channel: discord.abc.Messageable):
         self.bot = bot
         self.voice = voice
-        self.text_channel = text_channel      # where now-playing cards go: the channel of the latest /play
+        self.text_channel = text_channel  # where now-playing cards go: the channel of the latest /play
         self.queue = Queue()
-        self.volume = 100                     # percent; 100 = the source's own level
+        self.volume = 100  # percent; 100 = the source's own level
         self.now_playing_message: discord.Message | None = None
         self._announced_track: Track | None = None  # the track the current card is about
         self.started_at: float | None = None  # monotonic time the current track started
         self.paused_at: float | None = None
-        self.paused_total = 0.0               # seconds spent paused during the current track
+        self.paused_total = 0.0  # seconds spent paused during the current track
 
         self._track_done = asyncio.Event()
-        self._wake = asyncio.Event()          # set when something is added to an empty queue
+        self._wake = asyncio.Event()  # set when something is added to an empty queue
         self._skip_requested = False
         self._task = bot.loop.create_task(self._play_loop())
 

@@ -1,4 +1,5 @@
 """Pure-Python queue logic for the music player. No Discord here, so it can be tested in isolation."""
+
 import random
 from collections import deque
 from dataclasses import dataclass, field
@@ -7,7 +8,8 @@ from enum import Enum
 
 class LoopMode(Enum):
     """What happens when a track finishes."""
-    OFF = "off"      # play the next track, drop the finished one into history
+
+    OFF = "off"  # play the next track, drop the finished one into history
     TRACK = "track"  # play the same track again
     QUEUE = "queue"  # put the finished track at the back of the line
 
@@ -20,15 +22,16 @@ class Track:  # pylint: disable=too-many-instance-attributes
     Why: stream URLs from yt-dlp expire after a few hours, and resolving a 100-song playlist up front
     would take ages. Spotify tracks don't even have a `url` to begin with, only a `search_query` we send to YouTube.
     """
+
     title: str
-    url: str | None = None               # the page we can link people to (YouTube watch page, SoundCloud page)
-    search_query: str | None = None      # used instead of `url` for Spotify tracks ("Artist - Title")
-    stream_url: str | None = None        # the actual audio URL ffmpeg reads; filled in by sources.resolve_stream
-    resolved_at: float | None = None     # time.monotonic() when stream_url was fetched; they go stale
-    duration: int | None = None          # seconds, if known
-    artist: str | None = None            # uploader / channel / Spotify artist
+    url: str | None = None  # the page we can link people to (YouTube watch page, SoundCloud page)
+    search_query: str | None = None  # used instead of `url` for Spotify tracks ("Artist - Title")
+    stream_url: str | None = None  # the actual audio URL ffmpeg reads; filled in by sources.resolve_stream
+    resolved_at: float | None = None  # time.monotonic() when stream_url was fetched; they go stale
+    duration: int | None = None  # seconds, if known
+    artist: str | None = None  # uploader / channel / Spotify artist
     thumbnail: str | None = None
-    source: str = "youtube"              # "youtube", "soundcloud", "spotify" — decides the embed's badge
+    source: str = "youtube"  # "youtube", "soundcloud", "spotify" — decides the embed's badge
     requester_id: int = 0
     requester_name: str = ""
 
@@ -47,6 +50,7 @@ class Track:  # pylint: disable=too-many-instance-attributes
 @dataclass
 class Queue:
     """Upcoming tracks, the one playing now, and the ones already played."""
+
     upcoming: deque = field(default_factory=deque)
     current: Track | None = None
     history: deque = field(default_factory=lambda: deque(maxlen=50))

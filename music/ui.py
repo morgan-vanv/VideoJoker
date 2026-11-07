@@ -1,4 +1,5 @@
 """Embeds and buttons for the music player. Nothing here decides *what* plays; it only shows and forwards."""
+
 from __future__ import annotations
 
 import logging
@@ -52,7 +53,7 @@ def now_playing_embed(player: GuildPlayer) -> discord.Embed:
     )
     if track.thumbnail:
         embed.set_thumbnail(url=track.thumbnail)
-    embed.add_field(name="\u200B", value=progress_bar(player.elapsed, track.duration), inline=False)
+    embed.add_field(name="\u200b", value=progress_bar(player.elapsed, track.duration), inline=False)
     embed.add_field(name="Requested by", value=track.requester_name or "someone", inline=True)
     embed.add_field(name="Source", value=badge, inline=True)
     embed.add_field(name="Loop", value=LOOP_ICON[player.queue.loop], inline=True)
@@ -82,13 +83,15 @@ def queue_embed(player: GuildPlayer, page: int = 1) -> discord.Embed:
     pages = max(1, (len(tracks) + QUEUE_PAGE_SIZE - 1) // QUEUE_PAGE_SIZE)
     page = max(1, min(page, pages))
     start = (page - 1) * QUEUE_PAGE_SIZE
-    chunk = tracks[start:start + QUEUE_PAGE_SIZE]
+    chunk = tracks[start : start + QUEUE_PAGE_SIZE]
 
     embed = discord.Embed(title="📜 Tonight's programme", colour=discord.Colour.dark_grey())
     if player.current:
-        embed.add_field(name=lines.NOW_SHOWING, inline=False,
-                        value=f"{_title_link(player.current)} `{player.current.pretty_duration}` "
-                              f"— {player.current.requester_name}")
+        embed.add_field(
+            name=lines.NOW_SHOWING,
+            inline=False,
+            value=f"{_title_link(player.current)} `{player.current.pretty_duration}` — {player.current.requester_name}",
+        )
     if chunk:
         body = "\n".join(
             f"`{start + i}.` {_title_link(t)} `{t.pretty_duration}` — {t.requester_name}"
@@ -99,8 +102,9 @@ def queue_embed(player: GuildPlayer, page: int = 1) -> discord.Embed:
         embed.add_field(name=lines.UP_NEXT, value=lines.QUEUE_EMPTY, inline=False)
 
     total = _format_time(player.queue.total_duration)
-    embed.set_footer(text=f"Page {page}/{pages}  ·  {len(tracks)} tapes, {total} of film  ·  "
-                          f"loop {LOOP_ICON[player.queue.loop]}")
+    embed.set_footer(
+        text=f"Page {page}/{pages}  ·  {len(tracks)} tapes, {total} of film  ·  loop {LOOP_ICON[player.queue.loop]}"
+    )
     return embed
 
 
@@ -121,8 +125,9 @@ class NowPlayingView(discord.ui.View):
         voice_channel = self.player.voice.channel
         member_voice = getattr(interaction.user, "voice", None)
         if member_voice is None or member_voice.channel != voice_channel:
-            await interaction.response.send_message(lines.say(lines.WRONG_CHANNEL, channel=voice_channel.name),
-                                                    ephemeral=True)
+            await interaction.response.send_message(
+                lines.say(lines.WRONG_CHANNEL, channel=voice_channel.name), ephemeral=True
+            )
             return False
         return True
 

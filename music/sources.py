@@ -7,6 +7,7 @@ Two jobs, kept separate on purpose:
 YouTube and SoundCloud (and ~1,000 other sites) go through yt-dlp. Spotify's API doesn't stream audio, so a
 Spotify link becomes "Artist - Title" search queries that YouTube answers. That's how every music bot does it.
 """
+
 import asyncio
 import base64
 import functools
@@ -39,14 +40,14 @@ def _ytdl_options() -> dict:
     """Builds yt-dlp options. Optional env vars let Morgan's YouTube Premium / SoundCloud Go+ accounts help."""
     options = {
         "format": "bestaudio/best",
-        "noplaylist": True,                 # a watch?v=...&list=... link plays the video, not the whole list
-        "extract_flat": "in_playlist",      # playlists: just titles+urls, no per-video work (that's resolve_stream's job)
-        "default_search": "ytsearch1",      # plain text = YouTube search, first hit
+        "noplaylist": True,  # a watch?v=...&list=... link plays the video, not the whole list
+        "extract_flat": "in_playlist",  # playlists: just titles+urls, no per-video work (that's resolve_stream's job)
+        "default_search": "ytsearch1",  # plain text = YouTube search, first hit
         "quiet": True,
         "no_warnings": True,
         "logger": logging.getLogger("yt_dlp"),  # yt-dlp's own messages go to bot.log instead of raw stderr
         "skip_download": True,
-        "source_address": "0.0.0.0",        # IPv4; some hosts stall over IPv6
+        "source_address": "0.0.0.0",  # IPv4; some hosts stall over IPv6
     }
     cookies = os.getenv("YTDLP_COOKIES_FILE")
     if cookies:
@@ -165,6 +166,7 @@ class SpotifyClient:
     Note: since late 2024, new Spotify dev apps can't read Spotify's own editorial playlists (they 404);
     user-made playlists, albums and tracks are fine.
     """
+
     _instance: "SpotifyClient | None" = None
     API = "https://api.spotify.com/v1"
 
@@ -199,13 +201,15 @@ class SpotifyClient:
 
     async def _get(self, session: aiohttp.ClientSession, path: str, **params) -> dict:
         token = await self._get_token(session)
-        async with session.get(f"{self.API}{path}", headers={"Authorization": f"Bearer {token}"},
-                               params=params) as response:
+        async with session.get(
+            f"{self.API}{path}", headers={"Authorization": f"Bearer {token}"}, params=params
+        ) as response:
             response.raise_for_status()
             return await response.json()
 
-    async def fetch(self, kind: str, spotify_id: str, requester_id: int,
-                    requester_name: str) -> tuple[list[Track], str | None]:
+    async def fetch(
+        self, kind: str, spotify_id: str, requester_id: int, requester_name: str
+    ) -> tuple[list[Track], str | None]:
         """Returns (tracks, collection_title). kind is 'track', 'album' or 'playlist'."""
         async with aiohttp.ClientSession() as session:
             if kind == "track":

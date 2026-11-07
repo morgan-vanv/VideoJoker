@@ -1,4 +1,5 @@
 """The VJ's music commands. Thin on purpose: commands check who's asking, then hand off to music/player.py."""
+
 import logging
 
 import aiohttp
@@ -19,6 +20,7 @@ class NotInVoice(app_commands.CheckFailure):
 
 class Music(Cog, name="Music"):
     """A cog that provides music commands"""
+
     def __init__(self, bot):
         logging.info("Music cog initialized.")
         self.bot = bot
@@ -67,8 +69,9 @@ class Music(Cog, name="Music"):
         await self.bot.on_app_command_error(interaction, error)
 
     @Cog.listener()
-    async def on_voice_state_update(self, member: discord.Member, _before: discord.VoiceState,
-                                    after: discord.VoiceState):
+    async def on_voice_state_update(
+        self, member: discord.Member, _before: discord.VoiceState, after: discord.VoiceState
+    ):
         """If someone kicks the VJ out of voice (or it leaves), forget the player so the next /play starts clean."""
         if member.id != self.bot.user.id or after.channel is not None:
             return
@@ -97,10 +100,13 @@ class Music(Cog, name="Music"):
         await interaction.response.send_message(lines.LEFT)
 
     @app_commands.command(name='play', description='Plays a song from a link or search query.')
-    @app_commands.describe(query='A YouTube, SoundCloud or Spotify link (track, playlist, album), or words to search.',
-                           play_next='Put it at the front of the queue.')
-    async def play(self, interaction: discord.Interaction, query: app_commands.Range[str, 1, 500],
-                   play_next: bool = False) -> None:
+    @app_commands.describe(
+        query='A YouTube, SoundCloud or Spotify link (track, playlist, album), or words to search.',
+        play_next='Put it at the front of the queue.',
+    )
+    async def play(
+        self, interaction: discord.Interaction, query: app_commands.Range[str, 1, 500], play_next: bool = False
+    ) -> None:
         # Joining voice and looking a track up can take a few seconds; deferring tells Discord "thinking..."
         # so the command doesn't time out (it has to be answered within 3 seconds otherwise).
         await interaction.response.defer()
@@ -196,11 +202,13 @@ class Music(Cog, name="Music"):
         await player.refresh_now_playing()
 
     @app_commands.command(name='loop', description='Loop the current song, the whole queue, or nothing.')
-    @app_commands.choices(mode=[
-        app_commands.Choice(name='Off', value='off'),
-        app_commands.Choice(name='This song', value='track'),
-        app_commands.Choice(name='Whole queue', value='queue'),
-    ])
+    @app_commands.choices(
+        mode=[
+            app_commands.Choice(name='Off', value='off'),
+            app_commands.Choice(name='This song', value='track'),
+            app_commands.Choice(name='Whole queue', value='queue'),
+        ]
+    )
     async def loop(self, interaction: discord.Interaction, mode: app_commands.Choice[str]) -> None:
         player = await self._player_for(interaction, connect=False)
         player.queue.loop = LoopMode(mode.value)
@@ -226,15 +234,18 @@ class Music(Cog, name="Music"):
         await player.refresh_now_playing()
 
     @app_commands.command(name='effects', description='Applies an audio effect to the music.')
-    @app_commands.choices(effect=[
-        app_commands.Choice(name='Nightcore', value='nightcore'),
-        app_commands.Choice(name='Bass Boosted', value='bass_boosted'),
-        app_commands.Choice(name='8D Audio', value='8d_audio')
-    ])
+    @app_commands.choices(
+        effect=[
+            app_commands.Choice(name='Nightcore', value='nightcore'),
+            app_commands.Choice(name='Bass Boosted', value='bass_boosted'),
+            app_commands.Choice(name='8D Audio', value='8d_audio'),
+        ]
+    )
     async def effects(self, interaction: discord.Interaction, effect: app_commands.Choice[str]) -> None:
 
         # TODO: Implement audio effects
         await interaction.response.send_message(f"Stub: Applies effect '{effect.name}'", ephemeral=True)
+
 
 async def setup(bot):
     await bot.add_cog(Music(bot))
