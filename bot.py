@@ -4,6 +4,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
+from cogs.permissions import is_vip, is_vip_command
 from core.database import Database
 from core.custom_exceptions import ExecutingUserNotVIPError
 from core.version import get_version
@@ -49,6 +50,7 @@ class VideoJoker(commands.Bot):
             'cogs.heartbeat',
             'cogs.osrs',
             'cogs.personal_vc',
+            'cogs.guide',
         ]
         for extension in initial_extensions:
             await self.load_extension(extension)
@@ -147,20 +149,34 @@ class VideoJoker(commands.Bot):
         await super().close()
 
 
+def runnable_commands(tree: app_commands.CommandTree) -> list[app_commands.Command]:
+    """Every command someone can actually run: the root ones (/ping), and the subcommands inside each group.
+    A group like /ladder can't be run on its own, so walk_commands() opens it up: /ladder show, /ladder setup, ..."""
+    found = []
+    for cmd in tree.get_commands():
+        if isinstance(cmd, app_commands.Group):
+            found.extend(sub for sub in cmd.walk_commands() if isinstance(sub, app_commands.Command))
+        else:
+            found.append(cmd)
+    return found
+
+
 def setup_root_commands(bot: VideoJoker):
     @bot.tree.command(name='ping', description='Checks the bot is awake and shows which version is running.')
     async def ping(interaction: discord.Interaction) -> None:
         await interaction.response.send_message(f'pong · {get_version()}')
 
-    @bot.tree.command(name='listcommands', description='Shows list of all commands')
-    async def listcommands(interaction: discord.Interaction) -> None:
-
-        # Get all global commands registered in the tree
-        all_commands = interaction.client.tree.get_commands()
+    def command_list_embeds(
+        tree: app_commands.CommandTree, wanted, title: str, description: str
+    ) -> list[discord.Embed]:
+        """The list of commands for /listcommands and /listadmincommands, grouped by cog. wanted(cmd) says which
+        commands go on it, so both lists come from the same code and can't drift apart."""
 
         # Group commands by Cog name or 'General'
         grouped_commands = {}
-        for cmd in all_commands:
+        for cmd in runnable_commands(tree):
+            if not wanted(cmd):
+                continue
             if hasattr(cmd, 'binding') and cmd.binding is not None:
                 category = getattr(cmd.binding, 'qualified_name', 'General')
             else:
@@ -171,26 +187,35 @@ def setup_root_commands(bot: VideoJoker):
             grouped_commands[category].append(cmd)
 
         # Create embed
-        embed = discord.Embed(
-            title="List of Commands",
-            description="Here are all the available commands:",
-            color=discord.Colour.dark_grey(),
-        )
+        embeds = [
+            discord.Embed(
+                title=title,
+                description=description,
+                color=discord.Colour.dark_grey(),
+            )
+        ]
+
+        def add_field(name: str, value: str, inline: bool) -> None:
+            # One embed holds at most 25 fields and 6000 characters in all. When the next field won't fit, carry on
+            # in a fresh embed: one message can carry up to 10 of them.
+            if len(embeds[-1].fields) == 25 or len(embeds[-1]) + len(name) + len(value) > 6000:
+                embeds.append(discord.Embed(color=discord.Colour.dark_grey()))
+            embeds[-1].add_field(name=name, value=value, inline=inline)
 
         # Sort categories so General comes first, then alphabetically
         sorted_categories = sorted(grouped_commands.keys(), key=lambda x: (x != 'General', x))
 
         for category in sorted_categories:
-            category_commands = sorted(grouped_commands[category], key=lambda c: c.name)
+            category_commands = sorted(grouped_commands[category], key=lambda c: c.qualified_name)
             current_value = ""
             field_index = 1
             for cmd in category_commands:
                 desc = cmd.description or "No description provided."
-                line = f"**/{cmd.name}** - {desc}\n"
+                line = f"**/{cmd.qualified_name}** - {desc}\n"
 
                 # Check if adding this line would exceed the 1024 character limit for embed fields
                 if len(current_value) + len(line) > 1000:
-                    embed.add_field(
+                    add_field(
                         name=f"{category} (Part {field_index})" if field_index > 1 else category,
                         value=current_value,
                         inline=False,
@@ -201,10 +226,33 @@ def setup_root_commands(bot: VideoJoker):
                     current_value += line
 
             if current_value:
-                embed.add_field(
+                add_field(
                     name=f"{category} (Part {field_index})" if field_index > 1 else category,
                     value=current_value,
                     inline=False,
                 )
 
-        await interaction.response.send_message(embed=embed, ephemeral=False)
+        return embeds
+
+    @bot.tree.command(name='listcommands', description='Shows list of all commands')
+    async def listcommands(interaction: discord.Interaction) -> None:
+        # VIP-only commands are left out: only VIPs can run them, and they have /listadmincommands
+        embeds = command_list_embeds(
+            interaction.client.tree,
+            lambda cmd: not is_vip_command(cmd),
+            "List of Commands",
+            "Here are all the available commands:",
+        )
+        await interaction.response.send_message(embeds=embeds, ephemeral=False)
+
+    @bot.tree.command(name='listadmincommands', description='VIP: lists the commands only VIPs can use')
+    @is_vip()
+    async def listadmincommands(interaction: discord.Interaction) -> None:
+        # Exactly the commands /listcommands leaves out. Only you see it: it's a VIP's cheat sheet.
+        embeds = command_list_embeds(
+            interaction.client.tree,
+            is_vip_command,
+            "List of VIP Commands",
+            "These only work for VIPs:",
+        )
+        await interaction.response.send_message(embeds=embeds, ephemeral=True)

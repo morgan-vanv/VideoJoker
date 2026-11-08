@@ -38,7 +38,9 @@ I don't even know why I spent so long on this README lol
 _See `DESIGNDOCUMENT.md` for information on what might come in the future_
 
 ### Main Bot Commands
-- **/listcommands** (*Lists all available commands in the bot along with their descriptions.*)
+- **/help** (*New here? A quick tour of what the bot does on this server: XP and ranks, USh, the leaderboard, music, your own voice channel, games and OSRS. Only you see it, and features this server hasn't set up are left out.*)
+- **/listcommands** (*Lists the commands in the bot along with their descriptions, subcommands included (`/ladder show`, `/osrs register`, ...). VIP-only commands are left out.*)
+- **/listadmincommands** (*VIP: lists the VIP-only commands that `/listcommands` leaves out. Only you see it.*)
 - **/ping** (*Checks that the bot is awake: it answers "pong" and the version that's running.*)
 
 ### Permissions Cog Commands

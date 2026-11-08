@@ -18,6 +18,7 @@ on:
       - "cogs/**"
       - "core/**"
       - "games/**"
+      - "guide/**"
       - "music/**"
       - "osrs/**"
       - "personal_vc/**"
