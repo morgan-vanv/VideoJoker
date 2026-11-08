@@ -84,7 +84,7 @@ _Link your Old School RuneScape accounts (alts welcome) and flex your drops with
 - **/osrs rotate-webhook** (*VIP: replaces a leaked flexing webhook and pings everyone to grab the new one.*)
 
 ### Rank Ladder Cog Commands
-_Every message is 1 XP and every command 5 (once a minute: more commands within the minute earn nothing), and XP never resets. Your first message makes you **LOWLY SERFS**, then **SWORN SWORDS** (250 XP) and **LORDS** (1,000 XP). Ranks only go up, and you wear one at a time. The bot needs Manage Roles and its role above the three ranks (SETUP_GUIDE step 5)._
+_Every message is 1 XP and every command 5 (once a minute: more commands within the minute earn nothing), and XP never resets. Your first message makes you **LOWLY SERFS**, then **SWORN SWORDS** (250 XP) and **LORDS** (1,000 XP). Ranks only go up, and you wear one at a time. When you climb, your next slash command in that server comes with a private note (only you see it) about your new rank and what it unlocks. The bot needs Manage Roles and its role above the three ranks (SETUP_GUIDE step 5)._
 - **/ladder show** (*Shows the ranks, how much XP each one needs, and where you are on it.*)
 - **/ladder setup [serfs] [swords] [lords] [swords_xp] [lords_xp]** (*VIP: picks the three rank roles and the XP for the upper two.*)
 - **/ladder off** (*VIP: stops handing out ranks. Nobody loses a role.*)

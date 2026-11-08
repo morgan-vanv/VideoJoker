@@ -5,7 +5,7 @@ The ladder on our server: LOWLY SERFS at 1 XP, SWORN SWORDS at 250, LORDS at 100
 
 import aiosqlite
 
-from core.database import Database
+from core.database import Database, RankUpNote
 from ranks.ladder import (
     DEFAULT_MIN_XP,
     Tier,
@@ -17,6 +17,7 @@ from ranks.ladder import (
     rank_progress,
     xp_shortfall,
 )
+from ranks.notes import and_list, permission_words, rank_up_note, unlocked_permissions
 
 SERFS, SWORDS, LORDS = 101, 102, 103  # fake role ids
 STAFF = 999  # some role that isn't on the ladder (e.g. los manos)
@@ -246,3 +247,147 @@ async def test_ladder_is_saved_replaced_and_cleared_per_server(db):
 
     await db.clear_rank_tiers(GUILD)
     assert [row.guild_id for row in await db.get_all_rank_tiers()] == [GUILD + 1]  # the other server is untouched
+
+
+# ---- The rank-up note (ranks/notes.py)
+
+# What the roles allow on our server today. @everyone has the basics; each ladder role carries its whole tier's perks.
+EVERYONE_PERMS = {"view_channel", "send_messages", "read_message_history", "connect", "speak"}
+SERFS_PERMS = {"attach_files", "add_reactions", "external_emojis", "change_nickname"}
+SWORDS_PERMS = SERFS_PERMS | {"create_expressions", "create_instant_invite", "send_tts_messages"}
+LORDS_PERMS = SWORDS_PERMS | {"move_members"}
+
+
+def test_serfs_unlock_their_perks():
+    assert unlocked_permissions(SERFS_PERMS | {"send_messages"}, EVERYONE_PERMS, []) == SERFS_PERMS
+
+
+def test_swords_unlock_only_what_serfs_did_not_have():
+    unlocked = unlocked_permissions(SWORDS_PERMS, EVERYONE_PERMS, [SERFS_PERMS])
+    assert unlocked == {"create_expressions", "create_instant_invite", "send_tts_messages"}
+
+
+def test_lords_unlock_moving_people():
+    assert unlocked_permissions(LORDS_PERMS, EVERYONE_PERMS, [SERFS_PERMS, SWORDS_PERMS]) == {"move_members"}
+
+
+def test_a_rank_with_nothing_new_unlocks_nothing():
+    assert unlocked_permissions(SERFS_PERMS, EVERYONE_PERMS | SERFS_PERMS, []) == set()
+
+
+def test_permission_words_are_friendly_ordered_and_have_a_fallback():
+    words = permission_words({"send_tts_messages", "create_instant_invite", "create_expressions", "send_polls"})
+    assert words == ["add emojis and stickers", "create invites", "send text-to-speech messages", "send polls"]
+
+
+def test_both_names_for_external_emoji_show_once():
+    assert permission_words({"external_emojis", "use_external_emojis"}) == ["use emoji from other servers"]
+
+
+def test_and_list():
+    assert and_list([]) == ""
+    assert and_list(["a"]) == "a"
+    assert and_list(["a", "b"]) == "a and b"
+    assert and_list(["a", "b", "c"]) == "a, b and c"
+
+
+def test_note_with_unlocks_and_xp_to_go():
+    progress = rank_progress(LADDER, 250, {SWORDS})
+    unlocked = {"create_expressions", "create_instant_invite", "send_tts_messages"}
+    assert rank_up_note(progress, unlocked) == (
+        "🎖️ You've climbed to **SWORN SWORDS**! 750 XP to **LORDS**.\n"
+        "New with this rank: add emojis and stickers, create invites and send text-to-speech messages."
+    )
+
+
+def test_note_at_the_top_of_the_ladder():
+    note = rank_up_note(rank_progress(LADDER, 1000, {LORDS}), {"move_members"})
+    assert note == (
+        "🎖️ You've climbed to **LORDS**! That's the top of the ladder, comrade.\n"
+        "New with this rank: move people between voice channels."
+    )
+
+
+def test_note_without_unlocks_has_no_unlocks_line():
+    note = rank_up_note(rank_progress(LADDER, 1, {SERFS}), set())
+    assert note == "🎖️ You've climbed to **LOWLY SERFS**! 249 XP to **SWORN SWORDS**."
+
+
+def test_note_counts_xp_to_go_from_now():
+    # A note that waited: they've kept chatting since they climbed, so it's 612 XP now, not 250
+    assert "388 XP to **LORDS**" in rank_up_note(rank_progress(LADDER, 612, {SWORDS}), set())
+
+
+# ---- Rank-up notes in the database
+
+
+async def test_no_note_waiting_by_default(db):
+    assert await db.take_rank_up_note(GUILD, 1) is None
+
+
+async def test_a_note_is_taken_only_once(db):
+    await db.save_rank_up_note(GUILD, 1, 2)
+    note = await db.take_rank_up_note(GUILD, 1)
+    assert note.tier == 2 and note.created_at > 0
+    assert await db.take_rank_up_note(GUILD, 1) is None
+
+
+async def test_notes_are_per_person_per_server(db):
+    await db.save_rank_up_note(GUILD, 1, 1)
+    await db.save_rank_up_note(GUILD + 1, 1, 3)
+    await db.save_rank_up_note(GUILD, 2, 2)
+    assert (await db.take_rank_up_note(GUILD + 1, 1)).tier == 3
+    assert (await db.take_rank_up_note(GUILD, 1)).tier == 1
+    assert (await db.take_rank_up_note(GUILD, 2)).tier == 2
+
+
+async def test_climbing_twice_keeps_only_the_latest_note(db):
+    await db.save_rank_up_note(GUILD, 1, 1)
+    await db.save_rank_up_note(GUILD, 1, 2)
+    assert (await db.take_rank_up_note(GUILD, 1)).tier == 2
+    assert await db.take_rank_up_note(GUILD, 1) is None
+
+
+async def test_a_note_that_failed_to_send_can_be_put_back(db):
+    await db.save_rank_up_note(GUILD, 1, 2)
+    note = await db.take_rank_up_note(GUILD, 1)
+    await db.put_back_rank_up_note(GUILD, 1, note)
+    assert await db.take_rank_up_note(GUILD, 1) == note
+
+
+async def test_putting_back_never_overwrites_a_newer_note(db):
+    old = RankUpNote(tier=1, created_at=100)
+    await db.save_rank_up_note(GUILD, 1, 2)  # they climbed again while the old note was out for delivery
+    await db.put_back_rank_up_note(GUILD, 1, old)
+    assert (await db.take_rank_up_note(GUILD, 1)).tier == 2
+
+
+async def test_notes_survive_a_restart(db, tmp_path):
+    # Deploys restart the bot often: a fresh start on the same file (the db fixture's) still has the note
+    await db.save_rank_up_note(GUILD, 1, 3)
+    database = Database(db_path=tmp_path / "test.db")
+    await database.setup()
+    try:
+        assert (await database.take_rank_up_note(GUILD, 1)).tier == 3
+    finally:
+        await database.close()
+
+
+async def test_an_existing_database_gets_the_notes_table(tmp_path):
+    # A database made before rank-up notes existed: setup() adds the table, and the ladder is untouched
+    path = tmp_path / "old.db"
+    async with aiosqlite.connect(path) as conn:
+        await conn.execute(
+            "CREATE TABLE rank_tiers (guild_id INTEGER NOT NULL, tier INTEGER NOT NULL, role_id INTEGER NOT NULL,"
+            " min_xp INTEGER NOT NULL CHECK(min_xp >= 1), PRIMARY KEY (guild_id, tier))"
+        )
+        await conn.execute("INSERT INTO rank_tiers VALUES (?, 1, ?, 1)", (GUILD, SERFS))
+        await conn.commit()
+    database = Database(db_path=path)
+    await database.setup()
+    try:
+        assert len(await database.get_all_rank_tiers()) == 1
+        await database.save_rank_up_note(GUILD, 1, 1)
+        assert (await database.take_rank_up_note(GUILD, 1)).tier == 1
+    finally:
+        await database.close()

@@ -61,6 +61,13 @@ class RankTierRow(NamedTuple):
     min_xp: int  # server XP needed to earn it
 
 
+class RankUpNote(NamedTuple):
+    """A "you climbed a rank" note waiting for someone's next slash command (a row of rank_up_notes)."""
+
+    tier: int  # the rank they climbed to (1 = the lowest)
+    created_at: int  # unix seconds, when they climbed
+
+
 class PersonalVcConfig(NamedTuple):
     """Where personal voice channels live in one server (a row of personal_vc_settings)."""
 
@@ -209,6 +216,18 @@ class Database:  # pylint: disable=too-many-public-methods  # all SQL lives here
         ''')
         await self.conn.execute("CREATE INDEX IF NOT EXISTS ush_ledger_from ON ush_ledger (from_user_id)")
         await self.conn.execute("CREATE INDEX IF NOT EXISTS ush_ledger_to ON ush_ledger (to_user_id)")
+        # Rank-up notes (cogs/ranks.py): one waiting note per person per server, shown privately on their next
+        # slash command there. Only the latest climb matters, so the key is (guild, user) and a new note replaces
+        # the old one. In the database rather than in memory because deploys restart the bot all the time.
+        await self.conn.execute('''
+            CREATE TABLE IF NOT EXISTS rank_up_notes (
+                guild_id INTEGER NOT NULL,
+                user_id INTEGER NOT NULL,
+                tier INTEGER NOT NULL,
+                created_at INTEGER NOT NULL,
+                PRIMARY KEY (guild_id, user_id)
+            )
+        ''')
         # Added 2026-11 for the rank ladder: XP given rather than earned (see TOTAL_XP_SQL). A new column with a
         # default is forward-compatible: older code simply never looks at it.
         await self._add_column_if_missing("xp", "bonus_xp", "INTEGER NOT NULL DEFAULT 0")
@@ -640,6 +659,40 @@ class Database:  # pylint: disable=too-many-public-methods  # all SQL lives here
     async def clear_rank_tiers(self, guild_id: int) -> None:
         """Switches the ladder off for a server (roles members already have are left alone)."""
         await self._execute("DELETE FROM rank_tiers WHERE guild_id = ?", (guild_id,))
+
+    async def save_rank_up_note(self, guild_id: int, user_id: int, tier: int) -> None:
+        """Leaves someone a note about the rank they just climbed to. If one is already waiting, the new one
+        replaces it: climb twice before your next command and you hear about the latest rank only."""
+        await self._execute(
+            """
+            INSERT INTO rank_up_notes (guild_id, user_id, tier, created_at)
+            VALUES (?, ?, ?, ?)
+            ON CONFLICT(guild_id, user_id) DO UPDATE SET tier = excluded.tier, created_at = excluded.created_at
+        """,
+            (guild_id, user_id, tier, int(time.time())),
+        )
+
+    async def take_rank_up_note(self, guild_id: int, user_id: int) -> Optional[RankUpNote]:
+        """Picks up someone's waiting note, or None. Reading and deleting is one query (DELETE ... RETURNING), so
+        two commands finishing at the same moment can't both deliver it."""
+        rows = await self._fetch_all(
+            "DELETE FROM rank_up_notes WHERE guild_id = ? AND user_id = ? RETURNING tier, created_at",
+            (guild_id, user_id),
+            commit=True,
+        )
+        return RankUpNote(*rows[0]) if rows else None
+
+    async def put_back_rank_up_note(self, guild_id: int, user_id: int, note: RankUpNote) -> None:
+        """Puts a note we couldn't deliver back, so the next command tries again. DO NOTHING if a note is already
+        there: that one is newer (they climbed again in the meantime), and the latest rank wins."""
+        await self._execute(
+            """
+            INSERT INTO rank_up_notes (guild_id, user_id, tier, created_at)
+            VALUES (?, ?, ?, ?)
+            ON CONFLICT(guild_id, user_id) DO NOTHING
+        """,
+            (guild_id, user_id, note.tier, note.created_at),
+        )
 
     # Personal voice channel methods (personal_vc/rules.py has the rules; this is just storage)
     async def _execute_many(self, query: str, rows: list[tuple]) -> None:
