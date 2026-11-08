@@ -66,8 +66,9 @@ these rules hold for every PR. If a change has to break one, say so in the PR:
 5. `Intents.default()` plus `members` (for the rank ladder, Server Members switched on in the Developer Portal).
    The production bot is invited server-wide with View Channels, Send Messages, Embed Links, Read Message History,
    Add Reactions, Connect, Speak, Manage Webhooks and Manage Roles (never Administrator), with its role above the
-   ladder roles. A feature that needs more permissions or another privileged intent must say so in
-   its PR, so Morgan can add it.
+   ladder roles. For personal voice channels it also needs Manage Channels and Move Members, on the personal
+   channels category only (a category permission, not server-wide). A feature that needs more permissions or
+   another privileged intent must say so in its PR, so Morgan can add it.
 6. Production has no `DEV_GUILD_ID` (commands sync globally). The dev bot stays in the test server.
 7. **The bot must start with any optional setting missing or wrong**: that feature switches off and the log
    says so (a warning) at startup. A failed start makes the host roll back and hold the release. The host
@@ -85,7 +86,7 @@ merges: `docker compose -f compose.prodlike.yml up --build` (the dev bot, with `
 pip install -r requirements-dev.txt                 # bot deps + dev tools (pylint)
 ruff format .                                        # format first: CI fails if anything isn't formatted
 pylint --rcfile=.pylintrc $(git ls-files '*.py')     # CI runs exactly this on the whole repo: fails below 9.5 or on any error
-python -c "import bot, cogs.games, cogs.fun, cogs.utility, cogs.permissions, cogs.music, cogs.economy, cogs.ranks, cogs.heartbeat, cogs.osrs"
+python -c "import bot, cogs.games, cogs.fun, cogs.utility, cogs.permissions, cogs.music, cogs.economy, cogs.ranks, cogs.heartbeat, cogs.osrs, cogs.personal_vc"
 python -m pytest                                     # tests in tests/: database + game logic, no Discord needed
 ```
 

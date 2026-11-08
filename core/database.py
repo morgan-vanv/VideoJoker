@@ -43,6 +43,22 @@ class RankTierRow(NamedTuple):
     min_xp: int  # server XP needed to earn it
 
 
+class PersonalVcConfig(NamedTuple):
+    """Where personal voice channels live in one server (a row of personal_vc_settings)."""
+
+    guild_id: int
+    hub_channel_id: int  # the lobby voice channel: join it and you get your own
+    staff_role_id: Optional[int]  # moderators: they see and join every personal channel, even hidden ones
+
+
+class PersonalChannelRow(NamedTuple):
+    """One personal voice channel that exists right now, and whose it is (a row of personal_vc_channels)."""
+
+    channel_id: int
+    guild_id: int
+    owner_id: int
+
+
 class Database:  # pylint: disable=too-many-public-methods  # all SQL lives here on purpose, one method per query
     """
     Manages the SQLite database and provides an in-memory cache for user roles (VIP & BANNED).
@@ -121,6 +137,41 @@ class Database:  # pylint: disable=too-many-public-methods  # all SQL lives here
                 role_id INTEGER NOT NULL,
                 min_xp INTEGER NOT NULL CHECK(min_xp >= 1),
                 PRIMARY KEY (guild_id, tier)
+            )
+        ''')
+        # Personal voice channels (personal_vc/, cogs/personal_vc.py), four small tables:
+        # where the lobby is per server (and who the staff are); which channels exist right now and who owns them (UNIQUE:
+        # one channel per person per server); and what each owner wants remembered for next time (mode + guests).
+        # No CHECK on mode, so a future mode doesn't need a schema change; the code treats unknown modes as open.
+        await self.conn.execute('''
+            CREATE TABLE IF NOT EXISTS personal_vc_settings (
+                guild_id INTEGER PRIMARY KEY,
+                hub_channel_id INTEGER NOT NULL,
+                staff_role_id INTEGER
+            )
+        ''')
+        await self.conn.execute('''
+            CREATE TABLE IF NOT EXISTS personal_vc_channels (
+                channel_id INTEGER PRIMARY KEY,
+                guild_id INTEGER NOT NULL,
+                owner_id INTEGER NOT NULL,
+                UNIQUE (guild_id, owner_id)
+            )
+        ''')
+        await self.conn.execute('''
+            CREATE TABLE IF NOT EXISTS personal_vc_prefs (
+                guild_id INTEGER NOT NULL,
+                user_id INTEGER NOT NULL,
+                mode TEXT NOT NULL DEFAULT 'open',
+                PRIMARY KEY (guild_id, user_id)
+            )
+        ''')
+        await self.conn.execute('''
+            CREATE TABLE IF NOT EXISTS personal_vc_guests (
+                guild_id INTEGER NOT NULL,
+                owner_id INTEGER NOT NULL,
+                guest_id INTEGER NOT NULL,
+                PRIMARY KEY (guild_id, owner_id, guest_id)
             )
         ''')
         # Added 2026-11 for the rank ladder: XP given rather than earned (see TOTAL_XP_SQL). A new column with a
@@ -523,3 +574,106 @@ class Database:  # pylint: disable=too-many-public-methods  # all SQL lives here
     async def clear_rank_tiers(self, guild_id: int) -> None:
         """Switches the ladder off for a server (roles members already have are left alone)."""
         await self._execute("DELETE FROM rank_tiers WHERE guild_id = ?", (guild_id,))
+
+    # Personal voice channel methods (personal_vc/rules.py has the rules; this is just storage)
+    async def _execute_many(self, query: str, rows: list[tuple]) -> None:
+        """Like _execute, but runs one query for each row, all saved together in one commit."""
+        if self.conn is None:
+            raise RuntimeError("Database connection is not initialized. Did you call setup()?")
+        async with self.lock:
+            try:
+                await self.conn.executemany(query, rows)
+                await self.conn.commit()
+            except Exception as e:
+                await self.conn.rollback()
+                logging.error("Database execution error: %s | Query: %s | Rows: %s", e, query, rows)
+                raise
+
+    async def get_personal_vc_configs(self) -> list[PersonalVcConfig]:
+        """Every server that has personal voice channels switched on. Small enough to keep in memory."""
+        rows = await self._fetch_all("SELECT guild_id, hub_channel_id, staff_role_id FROM personal_vc_settings")
+        return [PersonalVcConfig(*row) for row in rows]
+
+    async def set_personal_vc_config(self, config: PersonalVcConfig) -> None:
+        """Saves (or replaces) one server's lobby and staff role."""
+        await self._execute(
+            """
+            INSERT INTO personal_vc_settings (guild_id, hub_channel_id, staff_role_id)
+            VALUES (?, ?, ?)
+            ON CONFLICT(guild_id) DO UPDATE SET
+                hub_channel_id = excluded.hub_channel_id,
+                staff_role_id = excluded.staff_role_id
+        """,
+            tuple(config),
+        )
+
+    async def clear_personal_vc_config(self, guild_id: int) -> None:
+        """Switches personal channels off for a server. Everyone's saved mode and guests are kept for next time."""
+        await self._execute("DELETE FROM personal_vc_settings WHERE guild_id = ?", (guild_id,))
+
+    async def add_personal_channel(self, channel_id: int, guild_id: int, owner_id: int) -> None:
+        """Remembers a new personal channel. OR REPLACE: if an old row for the same owner is still lying around
+        (its channel is long gone), the new one takes its place instead of failing on the UNIQUE rule."""
+        await self._execute(
+            "INSERT OR REPLACE INTO personal_vc_channels (channel_id, guild_id, owner_id) VALUES (?, ?, ?)",
+            (channel_id, guild_id, owner_id),
+        )
+
+    async def get_personal_channel_owner(self, channel_id: int) -> Optional[int]:
+        """Whose personal channel this is, or None if it isn't one."""
+        rows = await self._fetch_all("SELECT owner_id FROM personal_vc_channels WHERE channel_id = ?", (channel_id,))
+        return rows[0][0] if rows else None
+
+    async def get_owned_personal_channel(self, guild_id: int, owner_id: int) -> Optional[int]:
+        """The channel id of someone's personal channel in this server, or None if they don't have one."""
+        rows = await self._fetch_all(
+            "SELECT channel_id FROM personal_vc_channels WHERE guild_id = ? AND owner_id = ?", (guild_id, owner_id)
+        )
+        return rows[0][0] if rows else None
+
+    async def get_all_personal_channels(self) -> list[PersonalChannelRow]:
+        """Every personal channel the bot thinks exists, in every server (for the tidy-up at startup)."""
+        rows = await self._fetch_all("SELECT channel_id, guild_id, owner_id FROM personal_vc_channels")
+        return [PersonalChannelRow(*row) for row in rows]
+
+    async def remove_personal_channel(self, channel_id: int) -> None:
+        await self._execute("DELETE FROM personal_vc_channels WHERE channel_id = ?", (channel_id,))
+
+    async def get_personal_vc_mode(self, guild_id: int, user_id: int) -> Optional[str]:
+        """Someone's saved mode ('open', 'locked' or 'hidden'), or None if they never picked one."""
+        rows = await self._fetch_all(
+            "SELECT mode FROM personal_vc_prefs WHERE guild_id = ? AND user_id = ?", (guild_id, user_id)
+        )
+        return rows[0][0] if rows else None
+
+    async def set_personal_vc_mode(self, guild_id: int, user_id: int, mode: str) -> None:
+        if mode not in ('open', 'locked', 'hidden'):
+            raise ValueError("mode must be 'open', 'locked' or 'hidden'")
+        await self._execute(
+            """
+            INSERT INTO personal_vc_prefs (guild_id, user_id, mode) VALUES (?, ?, ?)
+            ON CONFLICT(guild_id, user_id) DO UPDATE SET mode = excluded.mode
+        """,
+            (guild_id, user_id, mode),
+        )
+
+    async def get_personal_vc_guests(self, guild_id: int, owner_id: int) -> list[int]:
+        """Someone's guest list, in the order they were let in. (rowid is SQLite's hidden insertion counter.)"""
+        rows = await self._fetch_all(
+            "SELECT guest_id FROM personal_vc_guests WHERE guild_id = ? AND owner_id = ? ORDER BY rowid",
+            (guild_id, owner_id),
+        )
+        return [guest_id for (guest_id,) in rows]
+
+    async def add_personal_vc_guests(self, guild_id: int, owner_id: int, guest_ids: list[int]) -> None:
+        """Puts people on someone's guest list. Anyone already on it is skipped (OR IGNORE), not doubled."""
+        await self._execute_many(
+            "INSERT OR IGNORE INTO personal_vc_guests (guild_id, owner_id, guest_id) VALUES (?, ?, ?)",
+            [(guild_id, owner_id, guest_id) for guest_id in guest_ids],
+        )
+
+    async def remove_personal_vc_guests(self, guild_id: int, owner_id: int, guest_ids: list[int]) -> None:
+        await self._execute_many(
+            "DELETE FROM personal_vc_guests WHERE guild_id = ? AND owner_id = ? AND guest_id = ?",
+            [(guild_id, owner_id, guest_id) for guest_id in guest_ids],
+        )
