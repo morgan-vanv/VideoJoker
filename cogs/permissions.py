@@ -12,7 +12,18 @@ def is_vip():
             return True
         raise ExecutingUserNotVIPError(interaction.user)
 
+    # A name tag on the check, so the bot can tell VIP-only commands apart (see is_vip_command below)
+    predicate.vip_only = True
     return app_commands.check(predicate)
+
+
+def is_vip_command(command) -> bool:
+    """True if the command has @is_vip() on it. /listcommands leaves these out and /listadmincommands shows them.
+
+    app_commands.check keeps every check of a command in command.checks, so we look for the one with our name tag.
+    (A group, like /ladder, has no checks of its own: its subcommands do. getattr's [] covers that.)
+    """
+    return any(getattr(check, "vip_only", False) for check in getattr(command, "checks", []))
 
 
 def format_user_list(user_ids, empty_text: str) -> str:
