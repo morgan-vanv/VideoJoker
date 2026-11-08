@@ -15,10 +15,12 @@ class VideoJoker(commands.Bot):
     def __init__(self, token: str):
         """Initializes the VideoJoker bot with necessary intents."""
         # Intents = which events Discord sends us. default() is everything except the three "privileged"
-        # ones (members, presences, message content), which this bot doesn't use: XP and USh only need to
-        # know that a message was sent, not what it says. Enable one here (and in the Developer Portal)
-        # when a feature needs it, e.g. intents.members = True for welcome messages.
+        # ones (members, presences, message content). XP and USh only need to know that a message was sent,
+        # not what it says, so message content stays off.
         intents = discord.Intents.default()
+        # members: the full member list, for /ladder tidy (and later welcome messages). Privileged, so it must
+        # ALSO be switched on in the Developer Portal (Bot → Server Members Intent), or the bot can't log in.
+        intents.members = True
         # Bot-wide default for who a message is allowed to ping. Commands that echo user text
         # (like /8ball) can't be used to ping @everyone or a role; @user mentions still work.
         # A single send can still override this by passing its own allowed_mentions (see /say).
@@ -43,7 +45,7 @@ class VideoJoker(commands.Bot):
             'cogs.permissions',
             'cogs.music',
             'cogs.economy',
-            'cogs.reaction_roles',
+            'cogs.ranks',
             'cogs.heartbeat',
             'cogs.osrs',
         ]

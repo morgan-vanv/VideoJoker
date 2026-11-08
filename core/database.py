@@ -18,7 +18,16 @@ class OsrsAccount(NamedTuple):
     clan_answer: Optional[str]  # None (never asked), 'joining', 'member' or 'no'
 
 
-class Database:
+class RankTierRow(NamedTuple):
+    """One rung of a server's rank ladder (a row of rank_tiers)."""
+
+    guild_id: int
+    tier: int  # 1 = the lowest rank
+    role_id: int
+    min_xp: int  # server XP needed to earn it
+
+
+class Database:  # pylint: disable=too-many-public-methods  # all SQL lives here on purpose, one method per query
     """
     Manages the SQLite database and provides an in-memory cache for user roles (VIP & BANNED).
     Roles are mutually exclusive.
@@ -57,6 +66,8 @@ class Database:
                 bot_xp INTEGER DEFAULT 0
             )
         ''')
+        # Unused since the reaction-roles stub went (Discord onboarding does it now). Kept: a rollback runs
+        # older code against this database, and dropping tables isn't forward-compatible.
         await self.conn.execute('''
             CREATE TABLE IF NOT EXISTS reaction_roles (
                 message_id INTEGER,
@@ -83,6 +94,17 @@ class Database:
             CREATE TABLE IF NOT EXISTS osrs_flexers (
                 discord_id INTEGER PRIMARY KEY,
                 enrolled_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+        # The XP rank ladder, per server: tier 1 is the lowest rank (LOWLY SERFS on ours). One row per tier,
+        # so a server could grow a longer ladder later without a schema change. See ranks/ladder.py.
+        await self.conn.execute('''
+            CREATE TABLE IF NOT EXISTS rank_tiers (
+                guild_id INTEGER NOT NULL,
+                tier INTEGER NOT NULL,
+                role_id INTEGER NOT NULL,
+                min_xp INTEGER NOT NULL CHECK(min_xp >= 1),
+                PRIMARY KEY (guild_id, tier)
             )
         ''')
         # Drop the old permissions table if it exists to keep the schema clean
@@ -237,15 +259,20 @@ class Database:
                 logging.error("Database read error in get_xp for user %s: %s", user_id, e)
                 raise
 
-    async def add_server_xp(self, user_id: int, amount: int = 1) -> None:
-        await self._execute(
+    async def add_server_xp(self, user_id: int, amount: int = 1) -> int:
+        """Adds server XP and returns the user's new total (the rank ladder needs it right away).
+        RETURNING hands back the row as it is after the insert/update, so this stays one query."""
+        rows = await self._fetch_all(
             """
-            INSERT INTO xp (user_id, server_xp, bot_xp) 
+            INSERT INTO xp (user_id, server_xp, bot_xp)
             VALUES (?, ?, 0)
             ON CONFLICT(user_id) DO UPDATE SET server_xp = server_xp + excluded.server_xp
+            RETURNING server_xp
         """,
             (user_id, amount),
+            commit=True,
         )
+        return rows[0][0]
 
     async def add_bot_xp(self, user_id: int, amount: int = 1) -> None:
         await self._execute(
@@ -283,14 +310,18 @@ class Database:
                 raise
 
     # OSRS Methods (docs/osrs-design.md)
-    async def _fetch_all(self, query: str, parameters: tuple = ()) -> list:
-        """Helper for read queries: runs one SELECT and returns all its rows."""
+    async def _fetch_all(self, query: str, parameters: tuple = (), commit: bool = False) -> list:
+        """Helper for read queries: runs one SELECT and returns all its rows.
+        commit=True is for writes that also return rows (INSERT/UPDATE ... RETURNING)."""
         if self.conn is None:
             raise RuntimeError("Database connection is not initialized. Did you call setup()?")
         async with self.lock:
             try:
                 async with self.conn.execute(query, parameters) as cursor:
-                    return list(await cursor.fetchall())
+                    rows = list(await cursor.fetchall())
+                if commit:
+                    await self.conn.commit()
+                return rows
             except Exception as e:
                 logging.error("Database read error: %s | Query: %s | Params: %s", e, query, parameters)
                 raise
@@ -405,3 +436,32 @@ class Database:
     async def get_flexers(self) -> list[int]:
         rows = await self._fetch_all("SELECT discord_id FROM osrs_flexers ORDER BY enrolled_at")
         return [discord_id for (discord_id,) in rows]
+
+    # Rank ladder methods (ranks/ladder.py has the rules; this is just storage)
+    async def get_all_rank_tiers(self) -> list[RankTierRow]:
+        """Every server's ladder, lowest tier first. Small enough to load once and keep in memory."""
+        rows = await self._fetch_all("SELECT guild_id, tier, role_id, min_xp FROM rank_tiers ORDER BY guild_id, tier")
+        return [RankTierRow(*row) for row in rows]
+
+    async def set_rank_tiers(self, guild_id: int, tiers: list[tuple[int, int, int]]) -> None:
+        """Replaces a server's whole ladder with (tier, role_id, min_xp) rows, all at once: in one transaction,
+        so the ladder is never half-saved if something goes wrong in the middle."""
+        if self.conn is None:
+            raise RuntimeError("Database connection is not initialized. Did you call setup()?")
+        async with self.lock:
+            try:
+                await self.conn.execute("BEGIN IMMEDIATE TRANSACTION")
+                await self.conn.execute("DELETE FROM rank_tiers WHERE guild_id = ?", (guild_id,))
+                await self.conn.executemany(
+                    "INSERT INTO rank_tiers (guild_id, tier, role_id, min_xp) VALUES (?, ?, ?, ?)",
+                    [(guild_id, tier, role_id, min_xp) for tier, role_id, min_xp in tiers],
+                )
+                await self.conn.commit()
+            except Exception as e:
+                await self.conn.rollback()
+                logging.error("Database error saving the rank ladder for guild %s: %s", guild_id, e)
+                raise
+
+    async def clear_rank_tiers(self, guild_id: int) -> None:
+        """Switches the ladder off for a server (roles members already have are left alone)."""
+        await self._execute("DELETE FROM rank_tiers WHERE guild_id = ?", (guild_id,))

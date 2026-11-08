@@ -82,9 +82,12 @@ _Link your Old School RuneScape accounts (alts welcome) and flex your drops with
 - **/osrs flexing** (*Privately shows what to paste into Dink to post your drops (and, if you want, your deaths).*)
 - **/osrs rotate-webhook** (*VIP: replaces a leaked flexing webhook and pings everyone to grab the new one.*)
 
-### Reaction Roles Cog Commands
-- **/create_rr_message [title] [description] [role] [emoji]** *(Coming Soon)* (*Creates a new message that users can react to for a role.*)
-- **/link_rr [message_id] [role] [emoji]** *(Coming Soon)* (*Links a reaction role to an existing message.*)
+### Rank Ladder Cog Commands
+_Every message is 1 server XP. Your first message makes you **LOWLY SERFS**, then **SWORN SWORDS** (250 XP) and **LORDS** (1,000 XP). Ranks only go up, and you wear one at a time. The bot needs Manage Roles and its role above the three ranks (SETUP_GUIDE step 5)._
+- **/ladder show** (*Shows the ranks and how much XP each one needs.*)
+- **/ladder setup [serfs] [swords] [lords] [swords_xp] [lords_xp]** (*VIP: picks the three rank roles and the XP for the upper two.*)
+- **/ladder off** (*VIP: stops handing out ranks. Nobody loses a role.*)
+- **/ladder tidy** (*VIP: members wearing several ranks keep only their highest. Shows a preview first.*)
 
 ### Music Cog Commands
 _Plays from YouTube, SoundCloud, Spotify and Tidal links (tracks, playlists, albums) or a search. The now-playing card has buttons._

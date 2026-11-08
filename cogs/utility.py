@@ -59,7 +59,10 @@ class Utility(Cog, name="Utility"):
         if message.author.bot or message.guild is None:
             return
         # Add 1 Server XP for every message
-        await self.bot.db.add_server_xp(message.author.id, 1)
+        total = await self.bot.db.add_server_xp(message.author.id, 1)
+        # Tell anyone who cares (the rank ladder, cogs/ranks.py) about the new total. dispatch("x") calls
+        # every listener named on_x, the same way Discord's own events reach on_message.
+        self.bot.dispatch("server_xp_gained", message, total)
 
     @Cog.listener()
     async def on_app_command_completion(

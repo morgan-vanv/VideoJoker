@@ -16,7 +16,7 @@ handcrafted, and sentimental. **Treat it like a friend's workshop, not a codebas
    cleanups in files you weren't asked to touch. Small, focused diffs only.
 4. **Don't sand off the voice.** Roasts, "comrade", the dealer packing up his cards, the USh economy,
    the VJ flavor — that's the point of the bot. Inside jokes stay. Don't "professionalize" copy.
-5. **Don't eat the stubs.** Stubbed commands (music, reaction roles, leaderboard, gamble) may be
+5. **Don't eat the stubs.** Stubbed commands (leaderboard, gamble, music effects) may be
    things a friend wants to build. Ask before implementing one.
 6. **Label AI work.** This repo has a tradition of flagging AI-generated changes ("AI GENERATED!!
    BEWARE!"). Keep the co-author trailer on commits and say plainly in the PR what was AI-written.
@@ -63,9 +63,10 @@ these rules hold for every PR. If a change has to break one, say so in the PR:
    (database, logs, heartbeat) and `/tmp` (256 MB). Downloads and caches (yt-dlp included) must go there.
 4. Schema changes must be **forward-compatible**, because a rollback runs the *old* code against the *new*
    database: add tables, or add columns with a default. Never rename, drop, or change what a column means.
-5. `Intents.default()` only. The production bot is invited server-wide with View Channels, Send Messages,
-   Embed Links, Read Message History, Add Reactions, Connect, Speak and Manage Webhooks (never Administrator).
-   A feature that needs more (e.g. `Manage Roles` for reaction roles) or a privileged intent must say so in
+5. `Intents.default()` plus `members` (for the rank ladder, Server Members switched on in the Developer Portal).
+   The production bot is invited server-wide with View Channels, Send Messages, Embed Links, Read Message History,
+   Add Reactions, Connect, Speak, Manage Webhooks and Manage Roles (never Administrator), with its role above the
+   ladder roles. A feature that needs more permissions or another privileged intent must say so in
    its PR, so Morgan can add it.
 6. Production has no `DEV_GUILD_ID` (commands sync globally). The dev bot stays in the test server.
 7. **The bot must start with any optional setting missing or wrong**: that feature switches off and the log
@@ -84,7 +85,7 @@ merges: `docker compose -f compose.prodlike.yml up --build` (the dev bot, with `
 pip install -r requirements-dev.txt                 # bot deps + dev tools (pylint)
 ruff format .                                        # format first: CI fails if anything isn't formatted
 pylint --rcfile=.pylintrc $(git ls-files '*.py')     # CI runs exactly this on the whole repo: fails below 9.5 or on any error
-python -c "import bot, cogs.games, cogs.fun, cogs.utility, cogs.permissions, cogs.music, cogs.economy, cogs.reaction_roles, cogs.heartbeat, cogs.osrs"
+python -c "import bot, cogs.games, cogs.fun, cogs.utility, cogs.permissions, cogs.music, cogs.economy, cogs.ranks, cogs.heartbeat, cogs.osrs"
 python -m pytest                                     # tests in tests/: database + game logic, no Discord needed
 ```
 

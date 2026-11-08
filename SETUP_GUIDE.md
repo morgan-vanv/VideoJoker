@@ -15,11 +15,13 @@ Before you can run the bot, you need to register it with Discord and obtain cred
    - Navigate to the **Bot** tab on the left sidebar.
    - Click **Add Bot** (if not already created).
    - Under the **Token** section, click **Reset Token** and copy the new token. Save this; you will use it as your `DISCORD_TOKEN`.
-4. **Privileged Gateway Intents: leave them all OFF.**
+4. **Privileged Gateway Intents: turn on Server Members only.**
    - The **Bot** tab lists three privileged intents (Presence, Server Members, Message Content).
-     VideoJoker doesn't use any of them: XP and USh only need to know *that* a message was sent, not what it says.
-   - If a future feature needs one (e.g. welcome messages need **Server Members**), it gets turned on
-     here *and* in `bot.py`, in the same PR.
+   - **Server Members: ON.** The rank ladder's `/ladder tidy` needs the full member list. `bot.py` asks for it,
+     so if this switch is off the bot **can't log in** (it stops with a `PrivilegedIntentsRequired` error).
+     Do it for the dev bot too.
+   - Presence and Message Content: leave OFF. XP and USh only need to know *that* a message was sent, not what it says.
+   - If a future feature needs another one, it gets turned on here *and* in `bot.py`, in the same PR.
 
 ---
 
@@ -103,11 +105,15 @@ Because we are preparing for future music bot capabilities, this project uses Do
    - `applications.commands` (enables slash command registration)
 4. Under **Bot Permissions**, select only what the bot uses:
    - `View Channels`, `Send Messages`, `Embed Links`, `Read Message History`, `Add Reactions`
-   - Later, when those features are built: `Manage Roles` (reaction roles), `Connect` + `Speak` (music).
+   - `Manage Roles` for the rank ladder, and `Connect` + `Speak` for music.
    - `Manage Webhooks` for OSRS drop flexing (the bot creates the flexing webhook itself; see `.env.example`).
    - Avoid **Administrator**: it turns any bug into a server-wide one.
 5. Copy the generated URL at the bottom of the page.
 6. Paste the URL into your web browser, select your Discord server, and authorize the bot.
+7. **For the rank ladder:** in your server, open **Server Settings → Roles** and drag the bot's role **above**
+   LOWLY SERFS, SWORN SWORDS and LORDS (Discord only lets a bot give out roles below its own highest role).
+   Then run `/ladder setup` and pick the three roles; `/ladder show` warns you if anything is still in the way.
+   Until someone runs `/ladder setup`, the ladder is off and the log says `Rank ladder: off`.
 
 ---
 
