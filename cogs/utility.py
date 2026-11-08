@@ -172,16 +172,19 @@ class Utility(Cog, name="Utility"):
     @app_commands.guild_only()
     async def leaderboard(self, interaction: discord.Interaction) -> None:
         guild = interaction.guild
-        # Both boards are worked out now, so the buttons only swap embeds
-        scores = {"xp": await self.bot.db.get_all_total_xp(), "ush": await self.bot.db.get_all_balances()}
-        embeds = {
-            board: self.board_embed(board, server_board(guild, scores[board]), interaction.user)
-            for board in lines.BOARDS
+        # Both boards are worked out now, so a button click never needs the database
+        boards = {
+            "xp": server_board(guild, await self.bot.db.get_all_total_xp()),
+            "ush": server_board(guild, await self.bot.db.get_all_balances()),
         }
-        view = LeaderboardView(interaction.user, embeds)
+
+        def make_embed(board: str, viewer: discord.abc.User) -> discord.Embed:
+            return self.board_embed(board, boards[board], viewer)
+
+        view = LeaderboardView(interaction.user, make_embed)
         # Mentions inside an embed never ping, and allowed_mentions=none() makes sure the message can't either
         await interaction.response.send_message(
-            embed=embeds["xp"], view=view, allowed_mentions=discord.AllowedMentions.none()
+            embed=make_embed("xp", interaction.user), view=view, allowed_mentions=discord.AllowedMentions.none()
         )
         view.message = await interaction.original_response()
 

@@ -152,7 +152,6 @@ NOT_ON_BOARD = {
     "ush": f"You have no USh yet: every message earns {USH_PER_MESSAGE}.",
 }
 BOARD_EMPTY = "🎞️ Nobody's on this board yet. The reel is blank, comrade: start chatting."
-NOT_YOUR_BOARD = "🎞️ That's {owner}'s leaderboard, comrade. Run `/leaderboard` for your own."
 MEDALS = {1: "🥇", 2: "🥈", 3: "🥉"}
 
 

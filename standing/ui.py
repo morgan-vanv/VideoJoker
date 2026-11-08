@@ -1,23 +1,26 @@
 """The [XP] [USh] buttons under /leaderboard."""
 
-from typing import Optional
+from typing import Callable, Optional
 
 import discord
 
-from standing import lines
+# Builds one board ("xp" or "ush") as seen by one person, with their "← you" row (cogs/utility.py)
+MakeEmbed = Callable[[str, discord.abc.User], discord.Embed]
 
 
 class LeaderboardView(discord.ui.View):
-    """Two buttons that swap the board between XP and USh. Both boards are worked out once, when the command runs,
-    so a click just swaps one embed for the other (no database trip).
+    """Two buttons that swap the board between XP and USh. The scores are read once, when the command runs, so a
+    click never needs the database.
 
-    Only the person who ran /leaderboard can switch it: the "← you" row is theirs, so someone else's click would
-    show a board highlighting the wrong person. Not persistent: after a few minutes the buttons grey out."""
+    The board on the message belongs to whoever ran /leaderboard (the "← you" row is theirs), so only their clicks
+    switch it. Anyone else who clicks gets that board privately (only they see it), with their own row: looking at
+    someone's leaderboard is an invitation to check where you stand. Not persistent: after a few minutes the
+    buttons grey out."""
 
-    def __init__(self, owner: discord.abc.User, embeds: dict[str, discord.Embed]):
+    def __init__(self, owner: discord.abc.User, make_embed: MakeEmbed):
         super().__init__(timeout=300)  # 5 minutes, then on_timeout greys the buttons out
         self.owner = owner
-        self.embeds = embeds  # {"xp": ..., "ush": ...}
+        self.make_embed = make_embed
         # Set by the command right after sending, so on_timeout knows which message to edit
         self.message: Optional[discord.Message] = None
         self.highlight("xp")
@@ -27,18 +30,17 @@ class LeaderboardView(discord.ui.View):
         self.xp_button.style = discord.ButtonStyle.primary if board == "xp" else discord.ButtonStyle.secondary
         self.ush_button.style = discord.ButtonStyle.primary if board == "ush" else discord.ButtonStyle.secondary
 
-    async def interaction_check(self, interaction: discord.Interaction) -> bool:
-        # discord.py runs this before any button's callback; False means the click is ignored
-        if interaction.user.id == self.owner.id:
-            return True
-        await interaction.response.send_message(
-            lines.NOT_YOUR_BOARD.format(owner=self.owner.display_name), ephemeral=True
-        )
-        return False
-
     async def show(self, interaction: discord.Interaction, board: str) -> None:
+        if interaction.user.id != self.owner.id:
+            # Someone else's click: their own copy of this board, only for them. The shared message stays as it is.
+            await interaction.response.send_message(
+                embed=self.make_embed(board, interaction.user),
+                ephemeral=True,
+                allowed_mentions=discord.AllowedMentions.none(),
+            )
+            return
         self.highlight(board)
-        await interaction.response.edit_message(embed=self.embeds[board], view=self)
+        await interaction.response.edit_message(embed=self.make_embed(board, self.owner), view=self)
 
     @discord.ui.button(label="XP", emoji="🎞️")
     async def xp_button(self, interaction: discord.Interaction, _button: discord.ui.Button) -> None:
