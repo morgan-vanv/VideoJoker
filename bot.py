@@ -50,6 +50,7 @@ class VideoJoker(commands.Bot):
             'cogs.heartbeat',
             'cogs.osrs',
             'cogs.personal_vc',
+            'cogs.guide',
         ]
         for extension in initial_extensions:
             await self.load_extension(extension)
