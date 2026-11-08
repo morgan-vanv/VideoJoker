@@ -1,4 +1,5 @@
 import os
+import time
 import asyncio
 import aiosqlite
 import logging
@@ -13,6 +14,11 @@ DB_PATH = Path(__file__).resolve().parent.parent / "data" / "videojoker.db"
 XP_PER_MESSAGE = 1
 XP_PER_COMMAND = 5
 TOTAL_XP_SQL = f"server_xp * {XP_PER_MESSAGE} + bot_xp * {XP_PER_COMMAND} + bonus_xp"
+# A slash command earns XP at most once per this many seconds per person (any command counts), so spamming /ping
+# isn't the fastest way up the ladder. Messages have no cooldown. The clock lives in memory (cogs/utility.py).
+COMMAND_XP_COOLDOWN_SECONDS = 60
+# USh (Ugandan shillings), the bot's play money: every message earns this much (cogs/economy.py)
+USH_PER_MESSAGE = 1
 
 
 class OsrsAccount(NamedTuple):
@@ -32,6 +38,18 @@ class XpTotals(NamedTuple):
     commands: int  # bot_xp: slash commands run (5 XP each)
     bonus: int  # bonus_xp: given, not earned (e.g. /ladder tidy topping up an old rank)
     total: int
+
+
+class UshMove(NamedTuple):
+    """One real movement of USh (a row of ush_ledger), e.g. a /pay. None as a user id means "the bank" (for
+    future payouts and purchases). Message income isn't in here: it would bury the interesting rows."""
+
+    from_user_id: Optional[int]
+    to_user_id: Optional[int]
+    amount: int
+    kind: str  # 'pay' for now; later maybe 'gamble', 'shop', ...
+    note: Optional[str]
+    created_at: int  # unix seconds (Discord turns it into "3 hours ago" with <t:...:R>)
 
 
 class RankTierRow(NamedTuple):
@@ -174,6 +192,23 @@ class Database:  # pylint: disable=too-many-public-methods  # all SQL lives here
                 PRIMARY KEY (guild_id, owner_id, guest_id)
             )
         ''')
+        # Every real USh movement (a /pay today; gambling or a shop later), newest last. Message income isn't
+        # logged: one row per message would bury the payments. from/to NULL = the bank. Indexed both ways,
+        # because /balance asks "what did this person send OR receive?".
+        await self.conn.execute('''
+            CREATE TABLE IF NOT EXISTS ush_ledger (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                from_user_id INTEGER,
+                to_user_id INTEGER,
+                amount INTEGER NOT NULL CHECK(amount > 0),
+                kind TEXT NOT NULL,
+                note TEXT,
+                guild_id INTEGER,
+                created_at INTEGER NOT NULL
+            )
+        ''')
+        await self.conn.execute("CREATE INDEX IF NOT EXISTS ush_ledger_from ON ush_ledger (from_user_id)")
+        await self.conn.execute("CREATE INDEX IF NOT EXISTS ush_ledger_to ON ush_ledger (to_user_id)")
         # Added 2026-11 for the rank ladder: XP given rather than earned (see TOTAL_XP_SQL). A new column with a
         # default is forward-compatible: older code simply never looks at it.
         await self._add_column_if_missing("xp", "bonus_xp", "INTEGER NOT NULL DEFAULT 0")
@@ -277,10 +312,15 @@ class Database:  # pylint: disable=too-many-public-methods  # all SQL lives here
             (user_id, amount),
         )
 
-    async def transfer_balance(self, sender_id: int, receiver_id: int, amount: int) -> bool:
-        """Atomically transfers balance from sender to receiver. Returns True if successful."""
+    async def transfer_balance(
+        self, sender_id: int, receiver_id: int, amount: int, note: Optional[str] = None, guild_id: Optional[int] = None
+    ) -> bool:
+        """Atomically transfers balance from sender to receiver, and writes it in the ledger (ush_ledger) in the
+        same transaction, so the history can never disagree with the balances. Returns True if successful."""
         if amount <= 0:
             return False  # a negative amount would move money backwards; /pay checks too, but the DB is the last line
+        if sender_id == receiver_id:
+            return False  # paying yourself changes nothing and would only clutter the ledger
         if self.conn is None:
             raise RuntimeError("Database connection is not initialized. Did you call setup()?")
         async with self.lock:
@@ -312,6 +352,15 @@ class Database:  # pylint: disable=too-many-public-methods  # all SQL lives here
                     (receiver_id, amount),
                 )
 
+                # The receipt. Still inside the transaction: if anything fails, the money doesn't move either.
+                await self.conn.execute(
+                    """
+                    INSERT INTO ush_ledger (from_user_id, to_user_id, amount, kind, note, guild_id, created_at)
+                    VALUES (?, ?, ?, 'pay', ?, ?, ?)
+                """,
+                    (sender_id, receiver_id, amount, note, guild_id, int(time.time())),
+                )
+
                 await self.conn.commit()
                 return True
             except Exception as e:
@@ -321,6 +370,23 @@ class Database:  # pylint: disable=too-many-public-methods  # all SQL lives here
                     logging.error("Failed to rollback transaction: %s", rollback_err)
                 logging.error("Database transfer error from %s to %s for %d: %s", sender_id, receiver_id, amount, e)
                 return False
+
+    async def get_recent_ush_moves(self, user_id: int, limit: int = 5) -> list[UshMove]:
+        """Someone's latest USh movements, sent or received, newest first (for /balance)."""
+        rows = await self._fetch_all(
+            """
+            SELECT from_user_id, to_user_id, amount, kind, note, created_at FROM ush_ledger
+            WHERE from_user_id = ? OR to_user_id = ?
+            ORDER BY id DESC LIMIT ?
+        """,
+            (user_id, user_id, limit),
+        )
+        return [UshMove(*row) for row in rows]
+
+    async def get_all_balances(self) -> dict[int, int]:
+        """Everyone's USh by user id (for the /leaderboard USh board)."""
+        rows = await self._fetch_all("SELECT user_id, balance FROM economy")
+        return dict(rows)
 
     # XP Methods
     async def get_xp(self, user_id: int) -> tuple[int, int]:

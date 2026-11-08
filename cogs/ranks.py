@@ -23,9 +23,12 @@ from ranks.ladder import (
     plan_promotion,
     plan_tidy,
     problems_with,
+    rank_progress,
+    tier_name,
     xp_shortfall,
 )
 from ranks.ui import ConfirmTidy
+from standing.lines import EARNING, YOU_ARE_HERE, you_are_here
 
 EMBED_COLOUR = discord.Colour.dark_gold()
 # The highest threshold /ladder setup accepts (a typo guard: nobody is posting a million messages)
@@ -51,6 +54,21 @@ def role_problems(guild: discord.Guild, tiers: list[Tier], for_log: bool = False
         elif role >= me.top_role:
             problems.append(f"My role must sit **above** {label} in Server Settings → Roles.")
     return problems
+
+
+def ladder_of(bot: commands.Bot, guild: Optional[discord.Guild]) -> Optional[list[Tier]]:
+    """This server's ladder, for other cogs (/rank, /balance), or None: no server (a DM), no ladder set up, or the
+    Ranks cog isn't loaded. The ladder lives in the Ranks cog's memory, so this costs no database trip."""
+    ranks = bot.get_cog("Ranks")
+    if guild is None or ranks is None:
+        return None
+    return ranks.ladders.get(guild.id)
+
+
+def rank_label(guild: discord.Guild, tier: Tier) -> str:
+    """A rank as its role mention, which embeds show as the role's coloured pill (and never ping). If the role was
+    deleted, the plain name instead, because a mention of a missing role shows as "@deleted-role"."""
+    return f"<@&{tier.role_id}>" if guild.get_role(tier.role_id) else f"**{tier_name(tier)}**"
 
 
 @app_commands.guild_only()
@@ -146,7 +164,8 @@ class Ranks(commands.GroupCog, group_name="ladder", group_description="The XP ra
         problems = role_problems(guild, tiers)
         if problems:
             embed.add_field(name="⚠️ The projector is jammed", value="\n".join(problems), inline=False)
-        embed.set_footer(text="1 XP per message, 5 per command, for life. Ranks only go up. One rank at a time.")
+        # The earning line comes from standing/lines.py, so /rank, /balance and this footer always agree
+        embed.set_footer(text=f"{EARNING} XP is for life. Ranks only go up, one rank at a time.")
         return embed
 
     @app_commands.command(name="setup", description="VIP: pick the three rank roles and their XP thresholds.")
@@ -204,7 +223,16 @@ class Ranks(commands.GroupCog, group_name="ladder", group_description="The XP ra
                 "🎞️ No ladder on this reel yet. A VIP can start one with `/ladder setup`.", ephemeral=True
             )
             return
-        await interaction.response.send_message(embed=self.describe(interaction.guild, tiers), ephemeral=True)
+        embed = self.describe(interaction.guild, tiers)
+        # Where the person asking stands: their rank (the role they wear), their XP and how far the next rank is
+        xp = await self.bot.db.get_xp_totals(interaction.user.id)
+        progress = rank_progress(tiers, xp.total, {role.id for role in interaction.user.roles})
+        embed.add_field(
+            name=YOU_ARE_HERE,
+            value=you_are_here(progress, lambda tier: rank_label(interaction.guild, tier)),
+            inline=False,
+        )
+        await interaction.response.send_message(embed=embed, ephemeral=True)
 
     @app_commands.command(name="off", description="VIP: stops handing out ranks here. Nobody loses a role.")
     @is_vip()

@@ -106,3 +106,38 @@ def xp_shortfall(tiers: list[Tier], role_ids: set[int], xp: int) -> int:
     if held is None:
         return 0
     return max(0, held.min_xp - xp)
+
+
+def tier_name(tier: Tier) -> str:
+    """LOWLY SERFS, SWORN SWORDS, LORDS (or "Tier 4" on a longer ladder)."""
+    return TIER_NAMES.get(tier.number, f"Tier {tier.number}")
+
+
+@dataclass(frozen=True)
+class RankProgress:
+    """Where someone stands on the ladder, for /rank and /ladder show."""
+
+    tier: Optional[Tier]  # the rank they wear (or have earned, if they wear none); None = no rank yet
+    next_tier: Optional[Tier]  # the rank above it; None = they're at the top
+    xp: int  # their lifetime XP total
+
+    @property
+    def to_go(self) -> int:
+        """XP still missing for the next rank (0 at the top, or if they've already earned it)."""
+        return max(0, self.next_tier.min_xp - self.xp) if self.next_tier else 0
+
+
+def rank_progress(tiers: list[Tier], xp: int, role_ids: set[int]) -> RankProgress:
+    """Their rank is the ladder role they actually wear: a Pancake-era LORD stays a LORD on /rank even with little
+    VideoJoker XP. Only if they wear none do we go by the XP. The next rank is simply the one above that, and since
+    XP never resets, progress is counted from 0 towards its threshold."""
+    tier = held_tier(tiers, role_ids) or earned_tier(tiers, xp)
+    above = [higher for higher in tiers if tier is None or higher.number > tier.number]
+    next_tier = min(above, key=lambda higher: higher.number, default=None)
+    return RankProgress(tier=tier, next_tier=next_tier, xp=xp)
+
+
+def progress_bar(xp: int, goal: int, width: int = 10) -> str:
+    """▰▰▰▰▰▰▱▱▱▱ for 612 of 1,000: one block per tenth, rounded down, so it's only full once you're there."""
+    filled = width if goal <= 0 else max(0, min(width, xp * width // goal))
+    return "▰" * filled + "▱" * (width - filled)

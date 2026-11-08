@@ -16,7 +16,7 @@ handcrafted, and sentimental. **Treat it like a friend's workshop, not a codebas
    cleanups in files you weren't asked to touch. Small, focused diffs only.
 4. **Don't sand off the voice.** Roasts, "comrade", the dealer packing up his cards, the USh economy,
    the VJ flavor — that's the point of the bot. Inside jokes stay. Don't "professionalize" copy.
-5. **Don't eat the stubs.** Stubbed commands (leaderboard, gamble, music effects) may be
+5. **Don't eat the stubs.** Stubbed commands (gamble, music effects) may be
    things a friend wants to build. Ask before implementing one.
 6. **Label AI work.** This repo has a tradition of flagging AI-generated changes ("AI GENERATED!!
    BEWARE!"). Keep the co-author trailer on commits and say plainly in the PR what was AI-written.
