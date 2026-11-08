@@ -5,7 +5,7 @@ from typing import Optional
 
 from personal_vc.rules import Mode
 
-# Morgan's wording, word for word: the panel in #voice-channel-controls and in every new channel
+# Morgan's wording, word for word: above the buttons in every new channel's chat
 PANEL = "It's your space, so you set the rules -- have fun being mysterious."
 
 MODE_LABELS = {Mode.OPEN: "🔓 open", Mode.LOCKED: "🔒 locked", Mode.HIDDEN: "👻 hidden"}
@@ -17,11 +17,12 @@ MODE_SET = {
     Mode.LOCKED: "🔒 Locked. Everyone can see the screen, only your guests get a seat. Whoever's inside stays.",
     Mode.HIDDEN: "👻 Hidden. Only your guests even know this cinema exists. Very mysterious.",
 }
-MODE_FAILED = "🎞️ The projector jammed: Discord wouldn't let me change the doors. A mod can check the bot log."
+MODE_FAILED = "🎞️ Discord wouldn't let me change your voice channel's settings. A mod can check the bot log."
 
 # {hub} is the lobby as a channel mention (<#id>), never its name: Discord shows it as a link, and it stays right
 # if a mod renames the channel
-NO_CHANNEL = "You have no channel, comrade. Join {hub} first."
+NOT_HERE = "These buttons work in your own channel's chat, comrade. Join {hub} to get one."
+NOT_YOURS = "🎞️ Not your voice channel, comrade: it belongs to {owner}. Want your own? Join {hub}."
 SWITCHED_OFF = "🎞️ Personal channels are switched off here. A VIP can bring them back with `/personalvc setup`."
 
 LET_IN_PROMPT = "🎟️ Who's on the guest list? Pick them below. They stay on it for next time too."

@@ -5,9 +5,10 @@ and are tested there. The panel's buttons are in personal_vc/ui.py and every lin
 personal_vc/lines.py. This file is the Discord side: it listens to people moving between voice channels, makes and
 deletes channels, and changes their permissions.
 
-Needs, on the server: a category (e.g. "personal channels") holding the lobby voice channel and, anywhere, a text
-channel for the panel. In that category only, the bot needs Manage Channels and Move Members (and Manage Roles,
-View Channel and Connect, which it normally has server-wide). /personalvc setup says what's missing.
+Needs, on the server: a category (e.g. "personal channels") holding the lobby voice channel. The controls are
+posted in each new channel's own chat, so there's no separate panel channel. In that category only, the bot needs
+Manage Channels and Move Members (and Manage Roles, View Channel, Connect and Send Messages, which it normally has
+server-wide). /personalvc setup says what's missing.
 """
 
 import asyncio
@@ -34,11 +35,7 @@ CATEGORY_PERMISSIONS = {
     "manage_channels": "Manage Channels",  # make and delete the personal channels
     "move_members": "Move Members",  # move people from the lobby into their channel
     "manage_roles": "Manage Roles",  # change a channel's permissions (Discord calls it Manage Permissions there)
-}
-PANEL_PERMISSIONS = {
-    "view_channel": "View Channel",
-    "send_messages": "Send Messages",
-    "read_message_history": "Read Message History",
+    "send_messages": "Send Messages",  # post the welcome and the buttons in each new channel's chat
 }
 
 
@@ -58,11 +55,6 @@ def setup_problems(guild: discord.Guild, config: PersonalVcConfig) -> list[str]:
         problems.append(f"The lobby '{hub.name}' isn't in a category any more. Move it back, or run setup again.")
     elif needs := missing(hub.category, CATEGORY_PERMISSIONS):
         problems.append(f"I need **{', '.join(needs)}** in the '{hub.category.name}' category.")
-    panel = guild.get_channel(config.panel_channel_id)
-    if not isinstance(panel, discord.TextChannel):
-        problems.append("The panel channel is gone (deleted?). Run `/personalvc setup` again.")
-    elif needs := missing(panel, PANEL_PERMISSIONS):
-        problems.append(f"I need **{', '.join(needs)}** in '#{panel.name}' to keep the panel there.")
     return problems
 
 
@@ -370,17 +362,28 @@ class PersonalVC(  # pylint: disable=too-many-public-methods
     # ---- the panel's buttons (personal_vc/ui.py calls these)
 
     async def find_own_channel(self, interaction: discord.Interaction) -> Optional[discord.VoiceChannel]:
-        """The presser's own channel, or None (after telling them why) if they don't have one."""
+        """The channel whose chat the button was pressed in, if the presser owns it. Otherwise None, after
+        telling them why (privately). The buttons only live in personal channels' own chats, so "this channel"
+        is always the one the panel belongs to."""
         guild = interaction.guild
         config = self.configs.get(guild.id) if guild else None
         if config is None:
             await interaction.response.send_message(lines.SWITCHED_OFF, ephemeral=True)
             return None
-        channel = await self.owned_channel(guild, interaction.user.id)
-        if channel is None:
+        hub = f"<#{config.hub_channel_id}>"
+        channel = interaction.channel
+        owner_id = None
+        if isinstance(channel, discord.VoiceChannel):
+            owner_id = await self.bot.db.get_personal_channel_owner(channel.id)
+        if owner_id is None:
+            # An old panel somewhere else, or a channel that's already been tidied away
+            await interaction.response.send_message(lines.NOT_HERE.format(hub=hub), ephemeral=True)
+            return None
+        if owner_id != interaction.user.id:
             await interaction.response.send_message(
-                lines.NO_CHANNEL.format(hub=f"<#{config.hub_channel_id}>"), ephemeral=True
+                lines.NOT_YOURS.format(owner=f"<@{owner_id}>", hub=hub), ephemeral=True
             )
+            return None
         return channel
 
     async def on_mode(self, interaction: discord.Interaction, mode: Mode) -> None:
@@ -460,7 +463,6 @@ class PersonalVC(  # pylint: disable=too-many-public-methods
         description = "\n".join(
             [
                 f"**Lobby** · <#{config.hub_channel_id}>",
-                f"**Panel** · <#{config.panel_channel_id}>",
                 f"**Staff** · {staff}",
                 f"**Channels rolling right now** · {open_now}",
             ]
@@ -468,35 +470,13 @@ class PersonalVC(  # pylint: disable=too-many-public-methods
         embed = discord.Embed(title="🎞️ Personal voice channels", description=description, colour=EMBED_COLOUR)
         problems = setup_problems(guild, config)
         if problems:
-            embed.add_field(name="⚠️ The projector is jammed", value="\n".join(problems), inline=False)
+            embed.add_field(name="⚠️ Something's stopping it", value="\n".join(problems), inline=False)
         embed.set_footer(text="🔓 Open · 🔒 Locked · 👻 Hidden. Everyone's mode and guest list are remembered.")
         return embed
 
-    async def post_panel(self, panel: discord.TextChannel, old: Optional[PersonalVcConfig]) -> Optional[int]:
-        """Posts the fixed panel, or refreshes the one already there, so setup never leaves two. Returns its id."""
-        if old is not None and old.panel_message_id is not None:
-            old_channel = panel.guild.get_channel(old.panel_channel_id)
-            if isinstance(old_channel, discord.TextChannel):
-                # A PartialMessage: a message we know only by its id, enough to edit or delete it
-                message = old_channel.get_partial_message(old.panel_message_id)
-                try:
-                    if old_channel.id == panel.id:
-                        await message.edit(content=lines.PANEL, view=self.new_panel())
-                        return message.id
-                    await message.delete()  # the panel is moving to another channel
-                except discord.HTTPException:
-                    pass  # deleted by hand, or no access any more: just post a fresh one
-        try:
-            message = await panel.send(lines.PANEL, view=self.new_panel())
-        except discord.HTTPException as error:
-            logging.warning("Personal voice channels: couldn't post the panel in '#%s': %s", panel.name, error)
-            return None
-        return message.id
-
-    @app_commands.command(name="setup", description="VIP: pick the lobby, the panel channel and the staff role.")
+    @app_commands.command(name="setup", description="VIP: pick the lobby and the staff role.")
     @app_commands.describe(
         hub="The lobby: the voice channel people join to get their own. Must be in a category.",
-        panel="The text channel where the control panel lives",
         staff="Moderators: they can see and join every personal channel, even hidden ones (leave out for none)",
     )
     @is_vip()
@@ -504,7 +484,6 @@ class PersonalVC(  # pylint: disable=too-many-public-methods
         self,
         interaction: discord.Interaction,
         hub: discord.VoiceChannel,
-        panel: discord.TextChannel,
         staff: Optional[discord.Role] = None,
     ) -> None:
         guild = interaction.guild
@@ -514,11 +493,9 @@ class PersonalVC(  # pylint: disable=too-many-public-methods
         if staff is not None and staff.is_default():
             await interaction.response.send_message(lines.SETUP_BAD_STAFF, ephemeral=True)
             return
-        await interaction.response.defer(ephemeral=True, thinking=True)  # posting the panel can take a moment
+        await interaction.response.defer(ephemeral=True, thinking=True)  # serving the lobby can take a moment
 
-        old = self.configs.get(guild.id)
-        message_id = await self.post_panel(panel, old)
-        config = PersonalVcConfig(guild.id, hub.id, panel.id, message_id, staff.id if staff else None)
+        config = PersonalVcConfig(guild.id, hub.id, staff.id if staff else None)
         await self.bot.db.set_personal_vc_config(config)
         self.configs[guild.id] = config
         self.warned = {warning for warning in self.warned if warning[0] != guild.id}  # new setup, warn again
@@ -541,15 +518,8 @@ class PersonalVC(  # pylint: disable=too-many-public-methods
     @is_vip()
     async def off(self, interaction: discord.Interaction) -> None:
         guild = interaction.guild
-        config = self.configs.pop(guild.id, None)
+        self.configs.pop(guild.id, None)
         await self.bot.db.clear_personal_vc_config(guild.id)
-        if config is not None and config.panel_message_id is not None:
-            panel = guild.get_channel(config.panel_channel_id)
-            if isinstance(panel, discord.TextChannel):
-                try:
-                    await panel.get_partial_message(config.panel_message_id).delete()
-                except discord.HTTPException:
-                    pass  # already gone
         logging.info("Personal voice channels switched off in '%s' by %s", guild.name, interaction.user.id)
         await interaction.response.send_message(lines.SWITCHED_OFF_DONE, ephemeral=True)
 

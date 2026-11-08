@@ -90,9 +90,9 @@ _Every message is 1 XP and every command 5, and XP never resets. Your first mess
 - **/ladder tidy** (*VIP: members wearing several ranks keep only their highest, and anyone with less XP than their rank needs is topped up to its minimum. Shows a preview first.*)
 
 ### Personal Voice Channels Cog Commands
-_Join the lobby voice channel and the VJ makes you your own voice channel and moves you in. It's yours until the last person leaves. The control panel (in its own text channel, and in your channel's chat) sets it 🔓 Open, 🔒 Locked (everyone sees it, only guests join) or 👻 Hidden (only guests see it), and ➕ lets in / ➖ removes guests. Your mode and guest list are remembered for next time. The bot needs Manage Channels and Move Members in the personal channels category._
-- **/personalvc show** (*Shows the lobby, the panel channel, the staff role, and anything that's stopping it.*)
-- **/personalvc setup [hub] [panel] [staff]** (*VIP: picks the lobby voice channel, the panel channel and (optionally) the staff role that sees everything. Posts or refreshes the panel.*)
+_Join the lobby voice channel and the VJ makes you your own voice channel and moves you in. It's yours until the last person leaves. Buttons in your channel's chat (only you can use them) set it 🔓 Open, 🔒 Locked (everyone sees it, only guests join) or 👻 Hidden (only guests see it), and ➕ lets in / ➖ removes guests. Your mode and guest list are remembered for next time. The bot needs Manage Channels and Move Members in the personal channels category._
+- **/personalvc show** (*Shows the lobby, the staff role, and anything that's stopping it.*)
+- **/personalvc setup [hub] [staff]** (*VIP: picks the lobby voice channel and (optionally) the staff role that sees everything.*)
 - **/personalvc off** (*VIP: no new personal channels. Open ones stay until they empty; everyone's saved settings are kept.*)
 
 ### Music Cog Commands

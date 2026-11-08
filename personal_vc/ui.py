@@ -20,8 +20,8 @@ OnPick = Callable[[discord.Interaction, list[int]], Awaitable[None]]
 class ControlPanel(discord.ui.View):
     """[🔓 Open] [🔒 Locked] [👻 Hidden] [➕ Let in] [➖ Remove], one row.
 
-    The same panel sits in #voice-channel-controls and in the chat of every personal channel. Anyone can press
-    it, and it only ever changes the presser's OWN channel, so one panel serves everybody.
+    The panel is posted in the chat of every new personal channel. Only that channel's owner can use it; anyone
+    else who presses gets a private "not your voice channel" reply. One class serves every channel.
 
     This is a *persistent* view, which takes three things (a teaching moment, so here they are):
     1. timeout=None, so the buttons never stop working on their own.

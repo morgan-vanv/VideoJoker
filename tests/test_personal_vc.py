@@ -138,7 +138,7 @@ def test_every_mode_has_its_lines():
 
 
 def config(**changes) -> PersonalVcConfig:
-    return PersonalVcConfig(GUILD, 10, 11, None, None)._replace(**changes)
+    return PersonalVcConfig(GUILD, 10, None)._replace(**changes)
 
 
 async def test_off_by_default(db):
@@ -147,10 +147,10 @@ async def test_off_by_default(db):
 
 async def test_config_is_saved_replaced_and_cleared(db):
     await db.set_personal_vc_config(config())
-    await db.set_personal_vc_config(config(panel_message_id=77, staff_role_id=STAFF))  # replaces, not adds
+    await db.set_personal_vc_config(config(hub_channel_id=12, staff_role_id=STAFF))  # replaces, not adds
     await db.set_personal_vc_config(config(guild_id=GUILD + 1))
     saved = {row.guild_id: row for row in await db.get_personal_vc_configs()}
-    assert saved[GUILD] == PersonalVcConfig(GUILD, 10, 11, 77, STAFF)
+    assert saved[GUILD] == PersonalVcConfig(GUILD, 12, STAFF)
     assert len(saved) == 2
 
     await db.clear_personal_vc_config(GUILD)
@@ -197,3 +197,8 @@ async def test_guest_list_adds_without_doubles_and_removes(db):
 
     await db.remove_personal_vc_guests(GUILD, OWNER, [GUEST, 12345])  # someone not on it: no error
     assert await db.get_personal_vc_guests(GUILD, OWNER) == [VISITOR]
+
+
+def test_other_peoples_buttons_say_whose_channel_it_is():
+    line = lines.NOT_YOURS.format(owner="<@1>", hub="<#2>")
+    assert line.startswith("🎞️ Not your voice channel") and "<@1>" in line and "<#2>" in line

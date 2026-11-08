@@ -44,12 +44,10 @@ class RankTierRow(NamedTuple):
 
 
 class PersonalVcConfig(NamedTuple):
-    """Where personal voice channels live in one server (a row of personal_vc_config)."""
+    """Where personal voice channels live in one server (a row of personal_vc_settings)."""
 
     guild_id: int
     hub_channel_id: int  # the lobby voice channel: join it and you get your own
-    panel_channel_id: int  # the text channel with the fixed control panel (#voice-channel-controls)
-    panel_message_id: Optional[int]  # the panel message itself, so /personalvc setup can replace it
     staff_role_id: Optional[int]  # moderators: they see and join every personal channel, even hidden ones
 
 
@@ -142,15 +140,13 @@ class Database:  # pylint: disable=too-many-public-methods  # all SQL lives here
             )
         ''')
         # Personal voice channels (personal_vc/, cogs/personal_vc.py), four small tables:
-        # where the lobby and panel are per server; which channels exist right now and who owns them (UNIQUE:
+        # where the lobby is per server (and who the staff are); which channels exist right now and who owns them (UNIQUE:
         # one channel per person per server); and what each owner wants remembered for next time (mode + guests).
         # No CHECK on mode, so a future mode doesn't need a schema change; the code treats unknown modes as open.
         await self.conn.execute('''
-            CREATE TABLE IF NOT EXISTS personal_vc_config (
+            CREATE TABLE IF NOT EXISTS personal_vc_settings (
                 guild_id INTEGER PRIMARY KEY,
                 hub_channel_id INTEGER NOT NULL,
-                panel_channel_id INTEGER NOT NULL,
-                panel_message_id INTEGER,
                 staff_role_id INTEGER
             )
         ''')
@@ -595,21 +591,17 @@ class Database:  # pylint: disable=too-many-public-methods  # all SQL lives here
 
     async def get_personal_vc_configs(self) -> list[PersonalVcConfig]:
         """Every server that has personal voice channels switched on. Small enough to keep in memory."""
-        rows = await self._fetch_all(
-            "SELECT guild_id, hub_channel_id, panel_channel_id, panel_message_id, staff_role_id FROM personal_vc_config"
-        )
+        rows = await self._fetch_all("SELECT guild_id, hub_channel_id, staff_role_id FROM personal_vc_settings")
         return [PersonalVcConfig(*row) for row in rows]
 
     async def set_personal_vc_config(self, config: PersonalVcConfig) -> None:
-        """Saves (or replaces) one server's lobby, panel and staff role."""
+        """Saves (or replaces) one server's lobby and staff role."""
         await self._execute(
             """
-            INSERT INTO personal_vc_config (guild_id, hub_channel_id, panel_channel_id, panel_message_id, staff_role_id)
-            VALUES (?, ?, ?, ?, ?)
+            INSERT INTO personal_vc_settings (guild_id, hub_channel_id, staff_role_id)
+            VALUES (?, ?, ?)
             ON CONFLICT(guild_id) DO UPDATE SET
                 hub_channel_id = excluded.hub_channel_id,
-                panel_channel_id = excluded.panel_channel_id,
-                panel_message_id = excluded.panel_message_id,
                 staff_role_id = excluded.staff_role_id
         """,
             tuple(config),
@@ -617,7 +609,7 @@ class Database:  # pylint: disable=too-many-public-methods  # all SQL lives here
 
     async def clear_personal_vc_config(self, guild_id: int) -> None:
         """Switches personal channels off for a server. Everyone's saved mode and guests are kept for next time."""
-        await self._execute("DELETE FROM personal_vc_config WHERE guild_id = ?", (guild_id,))
+        await self._execute("DELETE FROM personal_vc_settings WHERE guild_id = ?", (guild_id,))
 
     async def add_personal_channel(self, channel_id: int, guild_id: int, owner_id: int) -> None:
         """Remembers a new personal channel. OR REPLACE: if an old row for the same owner is still lying around
