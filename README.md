@@ -64,7 +64,7 @@ _See `DESIGNDOCUMENT.md` for information on what might come in the future_
 ### Utility Cog Commands
 - **/userinfo [user]** (*Displays information about a user, including their nickname, ID, and the date they joined Discord.*)
 - **/serverinfo** (*Displays information about the server, including its name, ID, member count, and creation date.*)
-- **/rank [user]** (*Check your or another user's Server and Bot engagement XP.*)
+- **/rank [user]** (*Check your or another user's XP: 1 per message, 5 per command, for life.*)
 - **/leaderboard [category]** *(Coming Soon)* (*Shows the top users in server or bot engagement.*)
 
 ### Economy Cog Commands
@@ -83,11 +83,11 @@ _Link your Old School RuneScape accounts (alts welcome) and flex your drops with
 - **/osrs rotate-webhook** (*VIP: replaces a leaked flexing webhook and pings everyone to grab the new one.*)
 
 ### Rank Ladder Cog Commands
-_Every message is 1 server XP. Your first message makes you **LOWLY SERFS**, then **SWORN SWORDS** (250 XP) and **LORDS** (1,000 XP). Ranks only go up, and you wear one at a time. The bot needs Manage Roles and its role above the three ranks (SETUP_GUIDE step 5)._
+_Every message is 1 XP and every command 5, and XP never resets. Your first message makes you **LOWLY SERFS**, then **SWORN SWORDS** (250 XP) and **LORDS** (1,000 XP). Ranks only go up, and you wear one at a time. The bot needs Manage Roles and its role above the three ranks (SETUP_GUIDE step 5)._
 - **/ladder show** (*Shows the ranks and how much XP each one needs.*)
 - **/ladder setup [serfs] [swords] [lords] [swords_xp] [lords_xp]** (*VIP: picks the three rank roles and the XP for the upper two.*)
 - **/ladder off** (*VIP: stops handing out ranks. Nobody loses a role.*)
-- **/ladder tidy** (*VIP: members wearing several ranks keep only their highest. Shows a preview first.*)
+- **/ladder tidy** (*VIP: members wearing several ranks keep only their highest, and anyone with less XP than their rank needs is topped up to its minimum. Shows a preview first.*)
 
 ### Music Cog Commands
 _Plays from YouTube, SoundCloud, Spotify and Tidal links (tracks, playlists, albums) or a search. The now-playing card has buttons._

@@ -3,7 +3,10 @@
 The ladder on our server: LOWLY SERFS at 1 XP, SWORN SWORDS at 250, LORDS at 1000. Role IDs here are fake.
 """
 
-from ranks.ladder import DEFAULT_MIN_XP, Tier, earned_tier, plan_promotion, plan_tidy, problems_with
+import aiosqlite
+
+from core.database import Database
+from ranks.ladder import DEFAULT_MIN_XP, Tier, earned_tier, plan_promotion, plan_tidy, problems_with, xp_shortfall
 
 SERFS, SWORDS, LORDS = 101, 102, 103  # fake role ids
 STAFF = 999  # some role that isn't on the ladder (e.g. los manos)
@@ -103,6 +106,13 @@ def test_tidy_leaves_single_rank_and_unranked_members_alone():
     assert plan_tidy(LADDER, set()) is None
 
 
+def test_tidy_tops_up_xp_to_the_rank_they_wear():
+    assert xp_shortfall(LADDER, {LORDS}, 3) == 997  # a Pancake lord with 3 VJ XP gets topped up to 1000
+    assert xp_shortfall(LADDER, {SERFS, SWORDS}, 0) == 250  # the highest rank they wear counts
+    assert xp_shortfall(LADDER, {SWORDS}, 400) == 0  # already enough
+    assert xp_shortfall(LADDER, {STAFF}, 0) == 0  # no rank, nothing to back up
+
+
 # ---- Checking a ladder before it's saved
 
 
@@ -122,11 +132,51 @@ def test_each_rank_needs_its_own_role():
 # ---- Storage
 
 
-async def test_add_server_xp_returns_the_new_total(db):
-    assert await db.add_server_xp(1) == 1
+async def test_messages_and_commands_add_up_to_one_xp_total(db):
+    assert await db.add_server_xp(1) == 1  # a message: 1 XP
     assert await db.add_server_xp(1) == 2
-    assert await db.add_server_xp(1, 5) == 7
-    assert await db.get_xp(1) == (7, 0)
+    assert await db.add_bot_xp(1) == 7  # a command: 5 XP
+    totals = await db.get_xp_totals(1)
+    assert (totals.messages, totals.commands, totals.bonus, totals.total) == (2, 1, 0, 7)
+    assert await db.get_xp(1) == (2, 1)  # the raw counts still mean what they always meant
+
+
+async def test_xp_is_lifetime_and_never_resets(db):
+    for _ in range(1000):
+        await db.add_server_xp(1)
+    assert await db.add_server_xp(1) == 1001  # past LORDS and still counting up
+
+
+async def test_top_up_raises_xp_to_a_minimum_and_never_lowers_it(db):
+    await db.add_server_xp(1)
+    assert await db.top_up_xp(1, 250) == 250
+    assert (await db.get_xp_totals(1)).bonus == 249
+    assert await db.top_up_xp(1, 100) == 250  # already above: nothing taken away
+    assert await db.add_server_xp(1) == 251  # and it keeps growing from there
+    assert await db.top_up_xp(2, 1000) == 1000  # someone the bot has never seen gets a row
+
+
+async def test_all_total_xp(db):
+    await db.add_server_xp(1)
+    await db.add_bot_xp(2)
+    assert await db.get_all_total_xp() == {1: 1, 2: 5}
+
+
+async def test_an_existing_database_gets_the_bonus_column(tmp_path):
+    # A database made by the code on main (no bonus_xp column), with someone's XP already in it
+    path = tmp_path / "old.db"
+    async with aiosqlite.connect(path) as conn:
+        await conn.execute(
+            "CREATE TABLE xp (user_id INTEGER PRIMARY KEY, server_xp INTEGER DEFAULT 0, bot_xp INTEGER DEFAULT 0)"
+        )
+        await conn.execute("INSERT INTO xp VALUES (1, 10, 2)")
+        await conn.commit()
+    database = Database(db_path=path)
+    await database.setup()
+    try:
+        assert (await database.get_xp_totals(1)).total == 20  # 10 messages + 2 commands x 5
+    finally:
+        await database.close()
 
 
 async def test_no_ladder_by_default(db):

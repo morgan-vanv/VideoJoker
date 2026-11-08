@@ -58,11 +58,11 @@ class Utility(Cog, name="Utility"):
     async def on_message(self, message: discord.Message):
         if message.author.bot or message.guild is None:
             return
-        # Add 1 Server XP for every message
+        # Every message counts (1 XP, see core/database.py)
         total = await self.bot.db.add_server_xp(message.author.id, 1)
         # Tell anyone who cares (the rank ladder, cogs/ranks.py) about the new total. dispatch("x") calls
         # every listener named on_x, the same way Discord's own events reach on_message.
-        self.bot.dispatch("server_xp_gained", message, total)
+        self.bot.dispatch("xp_gained", message.author, total)
 
     @Cog.listener()
     async def on_app_command_completion(
@@ -70,19 +70,23 @@ class Utility(Cog, name="Utility"):
         interaction: discord.Interaction,
         _command: discord.app_commands.Command | discord.app_commands.ContextMenu,
     ):
-        # Add 1 Bot XP for every completed command
+        # Every completed command counts (5 XP, see core/database.py)
         if interaction.user.bot:
             return
-        await self.bot.db.add_bot_xp(interaction.user.id, 1)
+        total = await self.bot.db.add_bot_xp(interaction.user.id, 1)
+        self.bot.dispatch("xp_gained", interaction.user, total)
 
     @app_commands.command(name='rank', description="Check your or another user's XP rank.")
     async def rank(self, interaction: discord.Interaction, user: discord.User | None = None) -> None:
         target_user = user or interaction.user
-        server_xp, bot_xp = await self.bot.db.get_xp(target_user.id)
+        xp = await self.bot.db.get_xp_totals(target_user.id)
+        breakdown = f"{xp.messages:,} messages · {xp.commands:,} commands"
+        if xp.bonus:
+            breakdown += f" · {xp.bonus:,} carried over from the old ranks"
 
         embed = discord.Embed(
             title=f"Engagement Rank: {target_user.name}",
-            description=f"**Server Engagement (Messages):** {server_xp} XP\n**Bot Engagement (Commands):** {bot_xp} XP",
+            description=f"**{xp.total:,} XP**\n{breakdown}",
             color=discord.Colour.purple(),
         )
         await interaction.response.send_message(embed=embed, ephemeral=False)

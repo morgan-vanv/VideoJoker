@@ -9,12 +9,15 @@ The three promises the ladder keeps:
    the ladder leaves you alone completely.
 3. One rank at a time (ranks are mutually exclusive): when you're promoted, the lower ladder roles come off
    in the same step. Lower ones only, never the one you hold at the top.
+
+XP is a lifetime total (1 per message, 5 per command; see core/database.py): it never resets on a promotion,
+so the thresholds below are totals to reach, not amounts to earn per rank.
 """
 
 from dataclasses import dataclass
 from typing import Iterable, Optional
 
-# Our server's ladder. Tier 1 is the bottom rung. Thresholds are server XP (1 per message).
+# Our server's ladder. Tier 1 is the bottom rung. Thresholds are lifetime XP totals.
 TIER_NAMES = {1: "LOWLY SERFS", 2: "SWORN SWORDS", 3: "LORDS"}
 DEFAULT_MIN_XP = {1: 1, 2: 250, 3: 1000}
 
@@ -93,3 +96,13 @@ def plan_tidy(tiers: list[Tier], role_ids: set[int]) -> Optional[RoleChange]:
     if not lower:
         return None
     return RoleChange(tier=held, add=None, remove=lower)
+
+
+def xp_shortfall(tiers: list[Tier], role_ids: set[int], xp: int) -> int:
+    """For /ladder tidy: how much XP someone is missing for the rank they already wear (0 if none).
+    Pancake's ranks came from Pancake's XP, so a LORD can have almost no VideoJoker XP. Topping them up to their
+    rank's minimum makes the numbers match the roles, and their next promotion comes at the right time."""
+    held = held_tier(tiers, role_ids)
+    if held is None:
+        return 0
+    return max(0, held.min_xp - xp)

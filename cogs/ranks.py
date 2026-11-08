@@ -15,7 +15,16 @@ from discord import app_commands
 from discord.ext import commands
 
 from cogs.permissions import is_vip
-from ranks.ladder import DEFAULT_MIN_XP, TIER_NAMES, RoleChange, Tier, plan_promotion, plan_tidy, problems_with
+from ranks.ladder import (
+    DEFAULT_MIN_XP,
+    TIER_NAMES,
+    RoleChange,
+    Tier,
+    plan_promotion,
+    plan_tidy,
+    problems_with,
+    xp_shortfall,
+)
 from ranks.ui import ConfirmTidy
 
 EMBED_COLOUR = discord.Colour.dark_gold()
@@ -83,14 +92,15 @@ class Ranks(commands.GroupCog, group_name="ladder", group_description="The XP ra
     # ---- the promoting part
 
     @commands.Cog.listener()
-    async def on_server_xp_gained(self, message: discord.Message, xp: int):
-        """Custom event, sent by cogs/utility.py right after it adds the XP for a message (so we see the new
-        total, whichever listener Discord happens to run first)."""
-        tiers = self.ladders.get(message.guild.id)
-        # message.author is a Member in a server; a User only if they left before we got here
-        if not tiers or not isinstance(message.author, discord.Member):
+    async def on_xp_gained(self, member: discord.Member | discord.User, xp: int):
+        """Custom event, sent by cogs/utility.py right after it adds XP for a message or a command (so we see the
+        new total, whichever listener Discord happens to run first)."""
+        # A Member (with roles and a server) for anything said in a server; a plain User in DMs, or if they left
+        if not isinstance(member, discord.Member):
             return
-        member = message.author
+        tiers = self.ladders.get(member.guild.id)
+        if not tiers:
+            return
         change = plan_promotion(tiers, xp, {role.id for role in member.roles})
         if change is not None:
             await self.apply(member, tiers, change, reason=f"Rank ladder: reached {xp} server XP")
@@ -136,7 +146,7 @@ class Ranks(commands.GroupCog, group_name="ladder", group_description="The XP ra
         problems = role_problems(guild, tiers)
         if problems:
             embed.add_field(name="⚠️ The projector is jammed", value="\n".join(problems), inline=False)
-        embed.set_footer(text="1 XP per message. Ranks only go up. One rank at a time.")
+        embed.set_footer(text="1 XP per message, 5 per command, for life. Ranks only go up. One rank at a time.")
         return embed
 
     @app_commands.command(name="setup", description="VIP: pick the three rank roles and their XP thresholds.")
@@ -207,7 +217,28 @@ class Ranks(commands.GroupCog, group_name="ladder", group_description="The XP ra
             ephemeral=True,
         )
 
-    @app_commands.command(name="tidy", description="VIP: members wearing several ranks keep only their highest.")
+    async def plan_tidy_for(
+        self, guild: discord.Guild, tiers: list[Tier]
+    ) -> tuple[list[tuple[discord.Member, RoleChange]], list[tuple[discord.Member, int]]]:
+        """What /ladder tidy would do: (role changes, XP top-ups as (member, minimum XP)).
+        guild.members is the whole list thanks to the members intent (bot.py). Two jobs per ranked member:
+        take off extra lower ranks, and top their XP up to the minimum for the rank they wear."""
+        all_xp = await self.bot.db.get_all_total_xp()
+        changes, top_ups = [], []
+        for member in guild.members:
+            if member.bot:
+                continue
+            role_ids = {role.id for role in member.roles}
+            change = plan_tidy(tiers, role_ids)
+            if change is not None:
+                changes.append((member, change))
+            xp = all_xp.get(member.id, 0)
+            shortfall = xp_shortfall(tiers, role_ids, xp)
+            if shortfall:
+                top_ups.append((member, xp + shortfall))
+        return changes, top_ups
+
+    @app_commands.command(name="tidy", description="VIP: one rank each, and enough XP for the rank they wear.")
     @is_vip()
     async def tidy(self, interaction: discord.Interaction) -> None:
         guild = interaction.guild
@@ -222,42 +253,42 @@ class Ranks(commands.GroupCog, group_name="ladder", group_description="The XP ra
             )
             return
 
-        # guild.members is the whole list thanks to the members intent (bot.py)
-        changes = []
-        for member in guild.members:
-            change = plan_tidy(tiers, {role.id for role in member.roles}) if not member.bot else None
-            if change is not None:
-                changes.append((member, change))
-        if not changes:
+        changes, top_ups = await self.plan_tidy_for(guild, tiers)
+        if not changes and not top_ups:
             await interaction.response.send_message(
-                "📼 Nobody's double-dipping. One rank each, all tidy.", ephemeral=True
+                "📼 Nothing to fix. One rank each, and everyone has the XP to back it up.", ephemeral=True
             )
             return
 
-        # The preview: how many of each role would come off, before anything happens
+        # The preview: what would change, before anything happens
         removals: dict[int, int] = {}
         for _member, change in changes:
             for role_id in change.remove:
                 removals[role_id] = removals.get(role_id, 0) + 1
-        summary = "\n".join(f"- <@&{role_id}> off **{count}** member(s)" for role_id, count in removals.items())
+        preview = ["📼 Rewinding the tape. Nobody goes down a rank."]
+        if changes:
+            preview.append(f"**{len(changes)}** member(s) wear more than one rank and would keep only their highest:")
+            preview += [f"- <@&{role_id}> off **{count}** member(s)" for role_id, count in removals.items()]
+        if top_ups:
+            preview.append(
+                f"**{len(top_ups)}** member(s) have less XP than their rank needs and would be topped up to its "
+                "minimum (it shows as carried-over XP in `/rank`)."
+            )
 
         async def run(button_click: discord.Interaction) -> None:
+            for member, minimum in top_ups:
+                await self.bot.db.top_up_xp(member.id, minimum)
+            logging.info("Rank ladder: /ladder tidy topped up XP for %d member(s) in '%s'", len(top_ups), guild.name)
             done = 0
             for member, change in changes:
                 if await self.apply(member, tiers, change, reason=f"/ladder tidy by {interaction.user}"):
                     done += 1
-            failed = len(changes) - done
-            result = f"🎬 That's a wrap: **{done}** member(s) now wear one rank each."
-            if failed:
-                result += f" {failed} didn't take (see the bot log)."
+            result = f"🎬 That's a wrap: **{done}** member(s) down to one rank, **{len(top_ups)}** XP top-up(s)."
+            if done < len(changes):
+                result += f" {len(changes) - done} role change(s) didn't take (see the bot log)."
             await button_click.edit_original_response(content=result)
 
-        await interaction.response.send_message(
-            f"📼 Rewinding the tape: **{len(changes)}** member(s) wear more than one rank. "
-            f"They'd keep their highest one; nobody goes down.\n{summary}",
-            view=ConfirmTidy(run),
-            ephemeral=True,
-        )
+        await interaction.response.send_message("\n".join(preview), view=ConfirmTidy(run), ephemeral=True)
 
 
 async def setup(bot):
