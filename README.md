@@ -64,12 +64,13 @@ _See `DESIGNDOCUMENT.md` for information on what might come in the future_
 ### Utility Cog Commands
 - **/userinfo [user]** (*Displays information about a user, including their nickname, ID, and the date they joined Discord.*)
 - **/serverinfo** (*Displays information about the server, including its name, ID, member count, and creation date.*)
-- **/rank [user]** (*Check your or another user's XP: 1 per message, 5 per command, for life.*)
-- **/leaderboard [category]** *(Coming Soon)* (*Shows the top users in server or bot engagement.*)
+- **/rank [user]** (*Your or another member's rank, XP, how far the next rank is, place on the server, and USh. Never pings.*)
+- **/leaderboard** (*The server's top 10 for XP, with a button to switch to USh. Your own place shows too, even outside the top 10.*)
 
 ### Economy Cog Commands
-- **/balance [user]** (*Check your or another user's USh balance.*)
-- **/pay [user] [amount]** (*Send USh to another user.*)
+_USh (Ugandan shillings) is the VJ's play money: every message earns 1. Payments are kept in a ledger, so `/balance` can show the latest ones._
+- **/balance [user]** (*Your or another member's USh and their last 5 payments. Never pings.*)
+- **/pay [user] [amount] [note]** (*Sends USh to another member, with an optional note (up to 100 characters). Pings only the person you paid.*)
 - **/gamble [amount]** *(Coming Soon)* (*Gamble your USh.*)
 
 ### OSRS Cog Commands
@@ -83,8 +84,8 @@ _Link your Old School RuneScape accounts (alts welcome) and flex your drops with
 - **/osrs rotate-webhook** (*VIP: replaces a leaked flexing webhook and pings everyone to grab the new one.*)
 
 ### Rank Ladder Cog Commands
-_Every message is 1 XP and every command 5, and XP never resets. Your first message makes you **LOWLY SERFS**, then **SWORN SWORDS** (250 XP) and **LORDS** (1,000 XP). Ranks only go up, and you wear one at a time. The bot needs Manage Roles and its role above the three ranks (SETUP_GUIDE step 5)._
-- **/ladder show** (*Shows the ranks and how much XP each one needs.*)
+_Every message is 1 XP and every command 5 (once a minute: more commands within the minute earn nothing), and XP never resets. Your first message makes you **LOWLY SERFS**, then **SWORN SWORDS** (250 XP) and **LORDS** (1,000 XP). Ranks only go up, and you wear one at a time. The bot needs Manage Roles and its role above the three ranks (SETUP_GUIDE step 5)._
+- **/ladder show** (*Shows the ranks, how much XP each one needs, and where you are on it.*)
 - **/ladder setup [serfs] [swords] [lords] [swords_xp] [lords_xp]** (*VIP: picks the three rank roles and the XP for the upper two.*)
 - **/ladder off** (*VIP: stops handing out ranks. Nobody loses a role.*)
 - **/ladder tidy** (*VIP: members wearing several ranks keep only their highest, and anyone with less XP than their rank needs is topped up to its minimum. Shows a preview first.*)
