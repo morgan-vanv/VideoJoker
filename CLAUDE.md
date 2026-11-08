@@ -34,7 +34,7 @@ handcrafted, and sentimental. **Treat it like a friend's workshop, not a codebas
 | Path | What lives there |
 |---|---|
 | `main.py` | Creates `data/` dirs, logging, loads `.env`, starts the bot |
-| `bot.py` | Bot class, global error handler, banned-user check, `/ping`, `/listcommands` |
+| `bot.py` | Bot class, global error handler, banned-user check, `/ping`, `/listcommands`, `/listadmincommands` |
 | `cogs/` | One cog per feature area; each ends with `async def setup(bot)` |
 | `core/database.py` | Single aiosqlite connection + in-memory VIP/BANNED cache; all SQL lives here |
 | `core/constants.py` | Static content (8-ball answers, RPS rules, roasts) |
@@ -86,7 +86,7 @@ merges: `docker compose -f compose.prodlike.yml up --build` (the dev bot, with `
 pip install -r requirements-dev.txt                 # bot deps + dev tools (pylint)
 ruff format .                                        # format first: CI fails if anything isn't formatted
 pylint --rcfile=.pylintrc $(git ls-files '*.py')     # CI runs exactly this on the whole repo: fails below 9.5 or on any error
-python -c "import bot, cogs.games, cogs.fun, cogs.utility, cogs.permissions, cogs.music, cogs.economy, cogs.ranks, cogs.heartbeat, cogs.osrs, cogs.personal_vc"
+python -c "import bot, cogs.games, cogs.fun, cogs.utility, cogs.permissions, cogs.music, cogs.economy, cogs.ranks, cogs.heartbeat, cogs.osrs, cogs.personal_vc, cogs.guide"
 python -m pytest                                     # tests in tests/: database + game logic, no Discord needed
 ```
 
