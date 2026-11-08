@@ -6,7 +6,17 @@ The ladder on our server: LOWLY SERFS at 1 XP, SWORN SWORDS at 250, LORDS at 100
 import aiosqlite
 
 from core.database import Database
-from ranks.ladder import DEFAULT_MIN_XP, Tier, earned_tier, plan_promotion, plan_tidy, problems_with, xp_shortfall
+from ranks.ladder import (
+    DEFAULT_MIN_XP,
+    Tier,
+    earned_tier,
+    plan_promotion,
+    plan_tidy,
+    problems_with,
+    progress_bar,
+    rank_progress,
+    xp_shortfall,
+)
 
 SERFS, SWORDS, LORDS = 101, 102, 103  # fake role ids
 STAFF = 999  # some role that isn't on the ladder (e.g. los manos)
@@ -127,6 +137,49 @@ def test_thresholds_must_go_up():
 
 def test_each_rank_needs_its_own_role():
     assert problems_with([Tier(1, SERFS, 1), Tier(2, SERFS, 250), Tier(3, LORDS, 1000)])
+
+
+# ---- Where am I on the ladder? (/rank and /ladder show)
+
+
+def test_progress_counts_towards_the_next_rank():
+    progress = rank_progress(LADDER, 612, {SWORDS})
+    assert progress.tier.role_id == SWORDS
+    assert progress.next_tier.role_id == LORDS
+    assert progress.to_go == 388  # XP never resets, so it's 1,000 minus everything so far
+
+
+def test_newcomer_with_no_xp_is_heading_for_serfs():
+    progress = rank_progress(LADDER, 0, set())
+    assert progress.tier is None
+    assert progress.next_tier.role_id == SERFS
+    assert progress.to_go == 1
+
+
+def test_the_rank_you_wear_wins_over_your_xp():
+    # A Pancake-era LORD with hardly any VideoJoker XP is still a LORD, and at the top
+    progress = rank_progress(LADDER, 5, {LORDS, STAFF})
+    assert progress.tier.role_id == LORDS
+    assert progress.next_tier is None and progress.to_go == 0
+
+
+def test_without_a_ladder_role_your_xp_decides():
+    progress = rank_progress(LADDER, 300, {STAFF})
+    assert progress.tier.role_id == SWORDS
+    assert progress.to_go == 700
+
+
+def test_earned_but_not_yet_worn_means_nothing_to_go():
+    # Wears SWORDS but already has LORDS' XP (say the ladder was off): the next XP promotes them
+    assert rank_progress(LADDER, 1500, {SWORDS}).to_go == 0
+
+
+def test_progress_bar():
+    assert progress_bar(612, 1000) == "▰▰▰▰▰▰▱▱▱▱"
+    assert progress_bar(0, 1000) == "▱" * 10
+    assert progress_bar(999, 1000) == "▰" * 9 + "▱"  # rounded down: only full once you're there
+    assert progress_bar(1000, 1000) == "▰" * 10
+    assert progress_bar(5000, 1000) == "▰" * 10  # never more than full
 
 
 # ---- Storage

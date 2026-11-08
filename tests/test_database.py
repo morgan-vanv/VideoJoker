@@ -1,5 +1,6 @@
 """Tests for core/database.py, run against a throwaway SQLite file (see the `db` fixture)."""
 
+import aiosqlite
 import pytest
 
 from core.database import Database
@@ -127,3 +128,73 @@ async def test_transfer_rejects_zero_and_negative_amounts(db, amount):
     assert await db.transfer_balance(ALICE, BOB, amount) is False
     assert await db.get_balance(ALICE) == 10
     assert await db.get_balance(BOB) == 0
+
+
+# ---- USh ledger (real money movements, for /balance) ----
+
+
+async def test_a_payment_is_written_in_the_ledger(db):
+    await db.add_balance(ALICE, 10)
+    assert await db.transfer_balance(ALICE, BOB, 4, note="popcorn", guild_id=77) is True
+    (move,) = await db.get_recent_ush_moves(ALICE)
+    assert (move.from_user_id, move.to_user_id, move.amount, move.kind, move.note) == (ALICE, BOB, 4, "pay", "popcorn")
+    assert move.created_at > 0
+    # The receiver sees the same row
+    assert await db.get_recent_ush_moves(BOB) == [move]
+
+
+async def test_old_callers_without_a_note_still_work(db):
+    await db.add_balance(ALICE, 10)
+    assert await db.transfer_balance(ALICE, BOB, 4) is True
+    (move,) = await db.get_recent_ush_moves(BOB)
+    assert move.note is None
+
+
+async def test_a_failed_payment_leaves_no_receipt(db):
+    await db.add_balance(ALICE, 3)
+    assert await db.transfer_balance(ALICE, BOB, 4) is False
+    assert await db.get_recent_ush_moves(ALICE) == []
+
+
+async def test_message_income_is_not_in_the_ledger(db):
+    await db.add_balance(ALICE, 1)
+    assert await db.get_recent_ush_moves(ALICE) == []
+
+
+async def test_paying_yourself_is_refused(db):
+    await db.add_balance(ALICE, 10)
+    assert await db.transfer_balance(ALICE, ALICE, 4) is False
+    assert await db.get_balance(ALICE) == 10
+    assert await db.get_recent_ush_moves(ALICE) == []
+
+
+async def test_recent_moves_are_newest_first_and_limited(db):
+    await db.add_balance(ALICE, 100)
+    for amount in range(1, 8):
+        await db.transfer_balance(ALICE, BOB, amount)
+    await db.transfer_balance(BOB, ALICE, 2)  # one the other way round
+    moves = await db.get_recent_ush_moves(ALICE, limit=5)
+    assert [move.amount for move in moves] == [2, 7, 6, 5, 4]
+    assert moves[0].from_user_id == BOB
+
+
+async def test_all_balances(db):
+    await db.add_balance(ALICE, 10)
+    await db.add_balance(BOB, 3)
+    assert await db.get_all_balances() == {ALICE: 10, BOB: 3}
+
+
+async def test_an_existing_database_gets_the_ledger(tmp_path):
+    # A database made before the ledger existed: setup() adds the table, and the balances are untouched
+    path = tmp_path / "old.db"
+    async with aiosqlite.connect(path) as conn:
+        await conn.execute("CREATE TABLE economy (user_id INTEGER PRIMARY KEY, balance INTEGER DEFAULT 0)")
+        await conn.execute("INSERT INTO economy VALUES (?, 10)", (ALICE,))
+        await conn.commit()
+    database = Database(db_path=path)
+    await database.setup()
+    try:
+        assert await database.transfer_balance(ALICE, BOB, 4, note="hi") is True
+        assert len(await database.get_recent_ush_moves(ALICE)) == 1
+    finally:
+        await database.close()

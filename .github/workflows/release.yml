@@ -22,6 +22,7 @@ on:
       - "osrs/**"
       - "personal_vc/**"
       - "ranks/**"
+      - "standing/**"
       - "requirements.txt"
       - "Dockerfile"
   workflow_dispatch:
