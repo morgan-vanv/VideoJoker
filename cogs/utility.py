@@ -93,18 +93,21 @@ class Utility(Cog, name="Utility"):
         # A completed command earns XP (5, see core/database.py), but at most once a minute per person
         if interaction.user.bot:
             return
-        await self.reward_command(interaction.user)
+        total = await self.reward_command(interaction.user)
+        if interaction.guild is not None:
+            # Tell the rank ladder (cogs/ranks.py) about every finished command in a server, even one that earned no
+            # XP: it promotes them if the XP earned a rank, then shows any rank-up note waiting for them. One event
+            # with both jobs (instead of xp_gained here too) so they happen in that order, and only once.
+            self.bot.dispatch("slash_command_finished", interaction, total)
 
     async def reward_command(self, user: discord.Member | discord.User) -> Optional[int]:
         """Counts a command for XP if the cooldown allows it. Returns the new XP total, or None if this one was too
-        soon after the last reward (then nothing changes, and the ladder isn't told: there's nothing new)."""
+        soon after the last reward (then nothing changes)."""
         now = time.monotonic()
         if not command_xp_due(self.last_command_xp.get(user.id), now, COMMAND_XP_COOLDOWN_SECONDS):
             return None
         self.last_command_xp[user.id] = now
-        total = await self.bot.db.add_bot_xp(user.id, 1)
-        self.bot.dispatch("xp_gained", user, total)
-        return total
+        return await self.bot.db.add_bot_xp(user.id, 1)
 
     @app_commands.command(name='rank', description="Check your or another member's XP, rank and place on the server.")
     async def rank(self, interaction: discord.Interaction, user: discord.User | None = None) -> None:

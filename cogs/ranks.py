@@ -27,6 +27,7 @@ from ranks.ladder import (
     tier_name,
     xp_shortfall,
 )
+from ranks.notes import rank_up_note, unlocked_permissions
 from ranks.ui import ConfirmTidy
 from standing.lines import EARNING, YOU_ARE_HERE, you_are_here
 
@@ -63,6 +64,12 @@ def ladder_of(bot: commands.Bot, guild: Optional[discord.Guild]) -> Optional[lis
     if guild is None or ranks is None:
         return None
     return ranks.ladders.get(guild.id)
+
+
+def permissions_of(role: discord.Role) -> set[str]:
+    """The server-wide permissions a role switches on, as names ({"attach_files", "add_reactions", ...}).
+    Looping over a Permissions object gives (name, True/False) pairs, one per permission."""
+    return {name for name, value in role.permissions if value}
 
 
 def rank_label(guild: discord.Guild, tier: Tier) -> str:
@@ -111,8 +118,12 @@ class Ranks(commands.GroupCog, group_name="ladder", group_description="The XP ra
 
     @commands.Cog.listener()
     async def on_xp_gained(self, member: discord.Member | discord.User, xp: int):
-        """Custom event, sent by cogs/utility.py right after it adds XP for a message or a command (so we see the
-        new total, whichever listener Discord happens to run first)."""
+        """Custom event, sent by cogs/utility.py right after it adds XP for a message (so we see the new total,
+        whichever listener Discord happens to run first). Commands come in through on_slash_command_finished."""
+        await self.promote(member, xp)
+
+    async def promote(self, member: discord.Member | discord.User, xp: int) -> None:
+        """Gives them the rank their XP has earned, if it's new, and leaves them a note about it."""
         # A Member (with roles and a server) for anything said in a server; a plain User in DMs, or if they left
         if not isinstance(member, discord.Member):
             return
@@ -121,7 +132,67 @@ class Ranks(commands.GroupCog, group_name="ladder", group_description="The XP ra
             return
         change = plan_promotion(tiers, xp, {role.id for role in member.roles})
         if change is not None:
-            await self.apply(member, tiers, change, reason=f"Rank ladder: reached {xp} server XP")
+            promoted = await self.apply(member, tiers, change, reason=f"Rank ladder: reached {xp} server XP")
+            if promoted:
+                # Here, not in apply(): /ladder tidy uses apply() too, and tidying isn't climbing
+                await self.bot.db.save_rank_up_note(member.guild.id, member.id, change.tier.number)
+
+    # ---- the rank-up note (ranks/notes.py has the wording)
+
+    @commands.Cog.listener()
+    async def on_slash_command_finished(self, interaction: discord.Interaction, xp: Optional[int]):
+        """Custom event, sent by cogs/utility.py after every slash command a person finishes in a server. xp is
+        their new XP total, or None if the command earned none (the once-a-minute cooldown).
+
+        Two jobs, one after the other in this one handler: first the promotion (if this command's XP earned a rank,
+        its note gets saved), then delivering whatever note is waiting. If they were two listeners, Discord would run
+        them side by side and the delivery could look before the promotion had saved its note."""
+        if xp is not None:
+            await self.promote(interaction.user, xp)
+        await self.deliver_note(interaction)
+
+    async def deliver_note(self, interaction: discord.Interaction) -> None:
+        """Shows their waiting rank-up note, if any, privately (ephemeral) under the command's own reply. Never in a
+        channel or a DM: people who don't use commands are left alone (their new role is still there to see)."""
+        # The note is a followup, and a followup needs the command to have replied first. No reply? Keep the note.
+        if not interaction.response.is_done():
+            return
+        guild, user = interaction.guild, interaction.user
+        note = await self.bot.db.take_rank_up_note(guild.id, user.id)
+        if note is None:
+            return  # the usual case: nothing waiting
+        text = await self.note_text(guild, user, note.tier)
+        if text is None:
+            logging.info(
+                "Rank ladder: dropped %s's rank-up note in '%s' (ladder off or rank gone)", user.id, guild.name
+            )
+            return
+        try:
+            await interaction.followup.send(text, ephemeral=True, allowed_mentions=discord.AllowedMentions.none())
+        except discord.HTTPException as error:
+            # Discord said no (say the command's reply is gone): put the note back, the next command tries again
+            await self.bot.db.put_back_rank_up_note(guild.id, user.id, note)
+            logging.warning("Rank ladder: couldn't show %s their rank-up note, kept it: %s", user.id, error)
+
+    async def note_text(self, guild: discord.Guild, user: discord.abc.User, tier_number: int) -> Optional[str]:
+        """The note for climbing to this tier, or None if there's nothing to say any more: the ladder is off, or the
+        tier or its role is gone."""
+        tiers = self.ladders.get(guild.id, [])
+        tier = next((tier for tier in tiers if tier.number == tier_number), None)
+        role = guild.get_role(tier.role_id) if tier else None
+        if role is None:
+            return None
+        xp = await self.bot.db.get_xp_totals(user.id)
+        # Worked out as if they wear just this role: the note is about this rank, and right after a promotion
+        # Discord may not have told us about their new role yet
+        progress = rank_progress(tiers, xp.total, {role.id})
+        lower_roles = [guild.get_role(lower.role_id) for lower in tiers if lower.number < tier.number]
+        unlocked = unlocked_permissions(
+            permissions_of(role),
+            permissions_of(guild.default_role),  # default_role is @everyone
+            [permissions_of(lower) for lower in lower_roles if lower is not None],
+        )
+        return rank_up_note(progress, unlocked)
 
     async def apply(self, member: discord.Member, tiers: list[Tier], change: RoleChange, reason: str) -> bool:
         """Adds/removes the roles in `change`. Returns True if it worked."""
