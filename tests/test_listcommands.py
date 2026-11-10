@@ -1,8 +1,12 @@
 """Tests for /listcommands and /listadmincommands (bot.py), on the bot's real commands: VIP-only commands go on
 the VIP list and nowhere else, subcommands get their own lines, and the embeds fit inside Discord's limits."""
 
+import inspect
 import re
 from types import SimpleNamespace
+
+import discord
+from discord.ext import commands
 
 from cogs.permissions import is_vip_command
 from tests.real_commands import build_bot, commands_by_name
@@ -39,7 +43,7 @@ async def test_vip_only_commands_are_recognised():
 
 async def test_everyday_commands_are_not_vip_only():
     real = commands_by_name(build_bot())
-    for name in ["ladder show", "personalvc show", "osrs register", "help", "listcommands", "ping", "play"]:
+    for name in ["ladder show", "personalvc show", "osrs register", "help", "listcommands", "play"]:
         assert not is_vip_command(real[name]), name
     # Anyone (not banned) can look these up: they only read, so they're not VIP-only
     for name in ["checkpermissions", "listvipusers", "listbannedusers"]:
@@ -80,8 +84,44 @@ async def test_the_lists_fit_in_discords_limits():
             assert all(len(field.value) <= 1024 for field in embed.fields)
 
 
-async def test_ping_is_hidden_from_everyone_but_admins():
-    # Discord hides a command with default permissions from the / menu of anyone who lacks them
-    ping = commands_by_name(build_bot())["ping"]
-    assert ping.default_permissions is not None
-    assert ping.default_permissions.administrator
+# ---- "@VideoJoker ping" (a text command, so it's in nobody's / menu)
+
+
+def ping_context(*, admin: bool, in_server: bool = True) -> SimpleNamespace:
+    """Just enough of a commands.Context for ping's checks and its reply."""
+    sent = []
+
+    async def send(content):
+        sent.append(content)
+
+    permissions = discord.Permissions(administrator=admin)
+    return SimpleNamespace(guild=object() if in_server else None, permissions=permissions, send=send, sent=sent)
+
+
+async def passes_checks(command, ctx) -> bool:
+    try:
+        for check in command.checks:
+            result = check(ctx)
+            if inspect.isawaitable(result):
+                result = await result
+        return True
+    except commands.CheckFailure:
+        return False
+
+
+def test_ping_is_not_a_slash_command():
+    assert "ping" not in commands_by_name(build_bot())
+
+
+async def test_ping_answers_admins_with_the_version():
+    ping = build_bot().get_command("ping")
+    ctx = ping_context(admin=True)
+    assert await passes_checks(ping, ctx)
+    await ping.callback(ctx)
+    assert ctx.sent == ["pong · dev"]
+
+
+async def test_ping_ignores_everyone_else():
+    ping = build_bot().get_command("ping")
+    assert not await passes_checks(ping, ping_context(admin=False))
+    assert not await passes_checks(ping, ping_context(admin=True, in_server=False))  # DMs have no admins
