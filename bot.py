@@ -119,6 +119,13 @@ class VideoJoker(commands.Bot):
             # e.g. the interaction expired (3 s to respond, 15 min for followups): nothing left to reply to
             logging.warning("Could not send the error message for '%s': %s", command_name, send_error)
 
+    async def on_command_error(self, ctx: commands.Context, error: commands.CommandError):
+        """Errors from "@VideoJoker ..." text commands (only "@VideoJoker ping" so far)."""
+        if isinstance(error, (commands.CommandNotFound, commands.CheckFailure)):
+            # Someone said "@VideoJoker hi", or a non-admin tried ping: nothing's broken, so the VJ stays quiet
+            return
+        logging.error("Unhandled error in text command '%s': %s", ctx.command, repr(error), exc_info=error)
+
     async def global_interaction_check(self, interaction: discord.Interaction) -> bool:
         """Global app command check to prevent banned users from using commands."""
         # Log command usage
@@ -150,7 +157,7 @@ class VideoJoker(commands.Bot):
 
 
 def runnable_commands(tree: app_commands.CommandTree) -> list[app_commands.Command]:
-    """Every command someone can actually run: the root ones (/ping), and the subcommands inside each group.
+    """Every command someone can actually run: the root ones (/listcommands), and the subcommands inside each group.
     A group like /ladder can't be run on its own, so walk_commands() opens it up: /ladder show, /ladder setup, ..."""
     found = []
     for cmd in tree.get_commands():
@@ -162,12 +169,14 @@ def runnable_commands(tree: app_commands.CommandTree) -> list[app_commands.Comma
 
 
 def setup_root_commands(bot: VideoJoker):
-    @bot.tree.command(name='ping', description='Checks the bot is awake and shows which version is running.')
-    # Only admins see /ping in the / menu, so it doesn't sit in front of /play for everyone else. Discord does the
-    # hiding; the server owner can still hand it to other roles in Server Settings → Integrations → VideoJoker.
-    @app_commands.default_permissions(administrator=True)
-    async def ping(interaction: discord.Interaction) -> None:
-        await interaction.response.send_message(f'pong · {get_version()}')
+    # "@VideoJoker ping": the admins' "are you awake, and which version?" check. It's a text command (a mention plus
+    # a word) instead of a slash command, so it never shows up in anyone's / menu. Discord lets a bot read messages
+    # that mention it even with message content off, which is why it starts with the @mention.
+    @bot.command(name='ping')
+    @commands.guild_only()
+    @commands.has_permissions(administrator=True)
+    async def ping(ctx: commands.Context) -> None:
+        await ctx.send(f'pong · {get_version()}')
 
     def command_list_embeds(
         tree: app_commands.CommandTree, wanted, title: str, description: str

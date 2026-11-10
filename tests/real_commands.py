@@ -3,7 +3,7 @@ commands exist (the /help guard in test_guide.py, and the /listcommands split in
 
 How: make the bot object (making it doesn't log in), make each cog in cogs/, and put the cogs' commands on the bot's
 command tree, the way bot.add_cog does. What we skip is everything that needs Discord or a database: no login, no
-cog_load, no listeners. Then add the root commands from bot.py (/ping, /listcommands, /listadmincommands).
+cog_load, no listeners. Then add the root commands from bot.py (/listcommands, /listadmincommands, and the "@VideoJoker ping" text command).
 """
 
 import importlib
@@ -46,6 +46,6 @@ def build_bot() -> VideoJoker:
 
 
 def commands_by_name(bot: VideoJoker) -> dict[str, app_commands.Command]:
-    """Every command someone can run, by its full name: "ping", "ladder show", "osrs register", ... (the same
+    """Every command someone can run, by its full name: "help", "ladder show", "osrs register", ... (the same
     commands /listcommands goes through, from bot.py's runnable_commands, as a dictionary)."""
     return {command.qualified_name: command for command in runnable_commands(bot.tree)}

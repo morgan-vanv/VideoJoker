@@ -148,7 +148,7 @@ Upon startup, the console logs should look similar to:
 2026-10-28 16:05:01,501 - root - INFO - VideoJoker#1234 is now running and ready to serve!
 ```
 
-Try typing `/ping` in your server—the bot should respond with `pong`.
+Try sending `@YourBot ping` in your server (as an admin)—the bot should respond with `pong`.
 
 ---
 
@@ -199,7 +199,7 @@ CI runs the same checks on every pull request. Work on a branch, open a PR, and 
 `main` is always the version that should be running. There's no `dev` branch: changes are tested in CI and on the dev bot (section 7), then merged.
 
 - **Every merge to `main` that changes the bot is a release, automatically.** The Release workflow picks a date version (`v2026.10.28`, then `v2026.10.28.2` for a second one that day), builds the Docker image with that version inside, publishes it as `ghcr.io/morgan-vanv/videojoker:<version>` (and `:latest`), and creates a GitHub Release whose notes list the merged PRs and who wrote them. Docs-only merges don't release.
-- **Which version is running?** `/ping` answers `pong · v2026.10.28`. Bots you build yourself say `pong · dev`.
+- **Which version is running?** `@YourBot ping` (admins) answers `pong · v2026.10.28`. Bots you build yourself say `pong · dev`.
 - **Hotfix:** a normal `fix/...` branch and PR. Merging it releases immediately.
 - **Rollback:** run the previous version's image (every release keeps its own tag) while you fix forward.
 - **Release by hand** (e.g. to rebuild with a newer base image): Actions tab → Release → **Run workflow**, from `main` (runs from any other branch are skipped).
