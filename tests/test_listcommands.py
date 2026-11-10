@@ -78,3 +78,10 @@ async def test_the_lists_fit_in_discords_limits():
         for embed in embeds:
             assert len(embed) <= 6000 and len(embed.fields) <= 25
             assert all(len(field.value) <= 1024 for field in embed.fields)
+
+
+async def test_ping_is_hidden_from_everyone_but_admins():
+    # Discord hides a command with default permissions from the / menu of anyone who lacks them
+    ping = commands_by_name(build_bot())["ping"]
+    assert ping.default_permissions is not None
+    assert ping.default_permissions.administrator
