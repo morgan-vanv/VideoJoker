@@ -163,6 +163,9 @@ def runnable_commands(tree: app_commands.CommandTree) -> list[app_commands.Comma
 
 def setup_root_commands(bot: VideoJoker):
     @bot.tree.command(name='ping', description='Checks the bot is awake and shows which version is running.')
+    # Only admins see /ping in the / menu, so it doesn't sit in front of /play for everyone else. Discord does the
+    # hiding; the server owner can still hand it to other roles in Server Settings → Integrations → VideoJoker.
+    @app_commands.default_permissions(administrator=True)
     async def ping(interaction: discord.Interaction) -> None:
         await interaction.response.send_message(f'pong · {get_version()}')
 
