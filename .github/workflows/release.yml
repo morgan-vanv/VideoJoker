@@ -17,6 +17,7 @@ on:
       - "main.py"
       - "cogs/**"
       - "core/**"
+      - "event_alerts/**"
       - "games/**"
       - "guide/**"
       - "music/**"

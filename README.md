@@ -98,6 +98,10 @@ _Join the lobby voice channel and the VJ makes you your own voice channel and mo
 - **/personalvc setup [hub] [staff]** (*VIP: picks the lobby voice channel and (optionally) the staff role that sees everything.*)
 - **/personalvc off** (*VIP: no new personal channels. Open ones stay until they empty; everyone's saved settings are kept.*)
 
+### Event Alerts Cog Commands
+_Discord's own events (Events, top of the channel list) do the scheduling, weekly repeats and "Interested". The VJ adds a heads-up before each event (the day before and an hour before) pinging everyone marked Interested, and posts when an event's time or place changes or it's cancelled. No commands for any of that: it follows the events. The bot needs Send Messages and Embed Links in the alert channel. Reminder times: `EVENT_ALERT_TIMES` in `.env`._
+- **/seteventalerts [channel]** (*VIP: the channel for this server's event reminders. Leave it empty to switch them off.*)
+
 ### Music Cog Commands
 _Plays from YouTube, SoundCloud, Spotify and Tidal links (tracks, playlists, albums) or a search. The now-playing card has buttons._
 - **/play [query] [play_next]** (*Plays a song from a link or search query. Playlists queue every song.*)

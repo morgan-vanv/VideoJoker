@@ -47,7 +47,7 @@ jobs:
         run: pylint --rcfile=.pylintrc $(git ls-files '*.py')
 
       - name: Import check (every cog loads)
-        run: python -c "import bot, cogs.games, cogs.fun, cogs.utility, cogs.permissions, cogs.music, cogs.economy, cogs.ranks, cogs.heartbeat, cogs.osrs, cogs.personal_vc, cogs.guide"
+        run: python -c "import bot, cogs.games, cogs.fun, cogs.utility, cogs.permissions, cogs.music, cogs.economy, cogs.ranks, cogs.heartbeat, cogs.osrs, cogs.personal_vc, cogs.guide, cogs.event_alerts"
 
       - name: Tests (pytest)
         run: python -m pytest

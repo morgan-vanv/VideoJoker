@@ -228,6 +228,24 @@ class Database:  # pylint: disable=too-many-public-methods  # all SQL lives here
                 PRIMARY KEY (guild_id, user_id)
             )
         ''')
+        # Event alerts (cogs/event_alerts.py): the one channel per server where the VJ posts reminders and changes
+        # for that server's Discord events. No row = alerts are off there. The events themselves live in Discord.
+        await self.conn.execute('''
+            CREATE TABLE IF NOT EXISTS event_alert_channels (
+                guild_id INTEGER PRIMARY KEY,
+                channel_id INTEGER NOT NULL
+            )
+        ''')
+        # Which reminders went out, so a restart (every deploy) never sends one twice. starts_at (unix seconds,
+        # so UTC) is part of the key: a moved event, or a repeating one rolling on to next week, starts fresh.
+        await self.conn.execute('''
+            CREATE TABLE IF NOT EXISTS event_reminders_sent (
+                event_id INTEGER NOT NULL,
+                starts_at INTEGER NOT NULL,
+                minutes_before INTEGER NOT NULL,
+                PRIMARY KEY (event_id, starts_at, minutes_before)
+            )
+        ''')
         # Added 2026-11 for the rank ladder: XP given rather than earned (see TOTAL_XP_SQL). A new column with a
         # default is forward-compatible: older code simply never looks at it.
         await self._add_column_if_missing("xp", "bonus_xp", "INTEGER NOT NULL DEFAULT 0")
@@ -796,3 +814,40 @@ class Database:  # pylint: disable=too-many-public-methods  # all SQL lives here
             "DELETE FROM personal_vc_guests WHERE guild_id = ? AND owner_id = ? AND guest_id = ?",
             [(guild_id, owner_id, guest_id) for guest_id in guest_ids],
         )
+
+    # Event alert methods (event_alerts/rules.py decides what's due; this is just storage)
+    async def get_event_alert_channels(self) -> dict[int, int]:
+        """Every server with event alerts on: server id -> the channel the VJ posts in."""
+        rows = await self._fetch_all("SELECT guild_id, channel_id FROM event_alert_channels")
+        return dict(rows)
+
+    async def set_event_alert_channel(self, guild_id: int, channel_id: int) -> None:
+        await self._execute(
+            """
+            INSERT INTO event_alert_channels (guild_id, channel_id) VALUES (?, ?)
+            ON CONFLICT(guild_id) DO UPDATE SET channel_id = excluded.channel_id
+        """,
+            (guild_id, channel_id),
+        )
+
+    async def clear_event_alert_channel(self, guild_id: int) -> None:
+        """Switches event alerts off for a server."""
+        await self._execute("DELETE FROM event_alert_channels WHERE guild_id = ?", (guild_id,))
+
+    async def get_sent_event_reminders(self, event_id: int, starts_at: int) -> set[int]:
+        """Which reminders (in minutes before the start) were already handled for this event at this start time."""
+        rows = await self._fetch_all(
+            "SELECT minutes_before FROM event_reminders_sent WHERE event_id = ? AND starts_at = ?",
+            (event_id, starts_at),
+        )
+        return {minutes for (minutes,) in rows}
+
+    async def mark_event_reminders_sent(self, event_id: int, starts_at: int, minutes_before: list[int]) -> None:
+        await self._execute_many(
+            "INSERT OR IGNORE INTO event_reminders_sent (event_id, starts_at, minutes_before) VALUES (?, ?, ?)",
+            [(event_id, starts_at, minutes) for minutes in minutes_before],
+        )
+
+    async def forget_event_reminders_before(self, starts_at: int) -> None:
+        """Drops the records of reminders for events that started before this time (they can't come back)."""
+        await self._execute("DELETE FROM event_reminders_sent WHERE starts_at < ?", (starts_at,))

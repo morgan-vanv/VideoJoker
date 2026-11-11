@@ -86,7 +86,7 @@ merges: `docker compose -f compose.prodlike.yml up --build` (the dev bot, with `
 pip install -r requirements-dev.txt                 # bot deps + dev tools (pylint)
 ruff format .                                        # format first: CI fails if anything isn't formatted
 pylint --rcfile=.pylintrc $(git ls-files '*.py')     # CI runs exactly this on the whole repo: fails below 9.5 or on any error
-python -c "import bot, cogs.games, cogs.fun, cogs.utility, cogs.permissions, cogs.music, cogs.economy, cogs.ranks, cogs.heartbeat, cogs.osrs, cogs.personal_vc, cogs.guide"
+python -c "import bot, cogs.games, cogs.fun, cogs.utility, cogs.permissions, cogs.music, cogs.economy, cogs.ranks, cogs.heartbeat, cogs.osrs, cogs.personal_vc, cogs.guide, cogs.event_alerts"
 python -m pytest                                     # tests in tests/: database + game logic, no Discord needed
 ```
 
