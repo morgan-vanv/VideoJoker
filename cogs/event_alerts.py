@@ -16,8 +16,8 @@ The reminder times are one setting for the whole bot: EVENT_ALERT_TIMES in .env 
 Needs, in the alert channel: View Channel, Send Messages and Embed Links (for the event card). Nothing else: the
 bot never makes or edits events, and Discord sends event changes with the default intents.
 
-The rules (which reminder is due, which edits count) are in event_alerts/rules.py and tested there. Every line the
-VJ says is in event_alerts/lines.py.
+The rules (which reminder is due, which edits count) are in event_alerts/rules.py and tested there. Every line it
+posts is in event_alerts/lines.py (plain on purpose: schedule notices, not flavour).
 """
 
 import asyncio
@@ -235,13 +235,8 @@ class EventAlerts(commands.Cog):
 
     async def post_reminder(self, channel: discord.TextChannel, event: discord.ScheduledEvent) -> bool:
         pings, pinged = rules.ping_list(await self.fetch_interested(event))
-        text = "\n".join(
-            [
-                lines.reminder(event.name, event.start_time),
-                lines.COMING.format(pings=pings) if pings else lines.NOBODY_YET,
-                event.url,  # Discord shows this as the event card, Interested button included
-            ]
-        )
+        # The link shows as the event card (title, date, location, Interested button) under the headline
+        text = lines.message(lines.reminder(event.name, event.start_time), pings, event.url, lines.NOBODY_YET)
         return await self.post(channel, text, pinged)
 
     async def post(self, channel: discord.TextChannel, text: str, pinged: list[int]) -> bool:
@@ -306,16 +301,14 @@ class EventAlerts(commands.Cog):
             return
 
         if change is Change.CANCELLED:
-            start = f"<t:{int(pending.before.start.timestamp())}:F>"
-            text = lines.CANCELLED.format(name=lines.title(pending.before.name), start=start)
             # Whoever was Interested before the first edit: the event may be gone, so Discord can't be asked
             pings, pinged = rules.ping_list(pending.interested)
-            await self.post(channel, "\n".join(part for part in (text, pings) if part), pinged)
+            headline = lines.cancelled(pending.before.name, pending.before.start)
+            await self.post(channel, lines.message(headline, pings), pinged)
             return
 
-        name = lines.title(event.name)
         if change is Change.NEW_PLACE:
-            text = lines.NEW_PLACE.format(name=name, location=lines.location_text(event.location or ""))
+            headline = lines.new_place(event.name, event.location or "")
         else:
             # Moved: the notice covers any reminder whose time has already passed for the new start
             now = discord.utils.utcnow()
@@ -323,9 +316,9 @@ class EventAlerts(commands.Cog):
             due = rules.due_reminders(event.start_time, now, self.reminders, set(), armed_since=now)
             if due.done:
                 await self.bot.db.mark_event_reminders_sent(event.id, starts_at, list(due.done))
-            text = lines.MOVED.format(name=name, when=lines.when(event.start_time))
+            headline = lines.moved(event.name, event.start_time)
         pings, pinged = rules.ping_list(await self.fetch_interested(event))
-        await self.post(channel, "\n".join(part for part in (text, pings, event.url) if part), pinged)
+        await self.post(channel, lines.message(headline, pings, event.url), pinged)
 
 
 async def setup(bot):

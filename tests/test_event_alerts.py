@@ -183,10 +183,22 @@ def test_a_huge_crowd_is_counted_not_all_pinged():
     assert len(pinged) == MAX_PINGS and text.endswith("+5 more")
 
 
-def test_every_reminder_line_names_the_event_and_the_time():
-    for line in lines.REMINDERS:
-        text = line.format(name=lines.title("Night 12"), when=lines.when(START))
-        assert "**Night 12**" in text and f"<t:{int(START.timestamp())}:R>" in text
+def test_a_reminder_is_one_clear_line():
+    stamp = int(START.timestamp())
+    assert lines.reminder("Night 12", START) == f"⏰ **Night 12** starts <t:{stamp}:R> (<t:{stamp}:f>)"
+
+
+def test_a_post_is_headline_then_pings_then_card():
+    text = lines.message("⏰ headline", "<@1> <@2>", "https://discord.com/events/9/1", lines.NOBODY_YET)
+    assert text.split("\n") == ["⏰ headline", "-# Interested: <@1> <@2>", "https://discord.com/events/9/1"]
+
+
+def test_a_reminder_with_nobody_interested_says_so():
+    assert lines.message("⏰ headline", "", "link", lines.NOBODY_YET).split("\n")[1] == lines.NOBODY_YET
+
+
+def test_a_notice_with_nobody_interested_has_no_empty_line():
+    assert lines.message("❌ headline", "") == "❌ headline"
 
 
 def test_event_names_cant_break_the_formatting():
@@ -194,8 +206,8 @@ def test_event_names_cant_break_the_formatting():
 
 
 def test_web_locations_get_no_preview():
-    assert lines.location_text("https://vtt.morganvanv.com") == "<https://vtt.morganvanv.com>"
-    assert lines.location_text("Morgan's basement") == "Morgan's basement"
+    assert lines.new_place("Night", "https://vtt.morganvanv.com").endswith("<https://vtt.morganvanv.com>")
+    assert lines.new_place("Night", "Morgan's basement").endswith("Morgan's basement")
 
 
 # ---- Storage
