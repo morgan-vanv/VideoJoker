@@ -65,5 +65,11 @@ PERSONAL_VC_TEXT = (
 GAMES_NAME = "🎲 Games and fun"
 GAMES_TEXT = "`/threecardmonte`, `/coinflip`, `/8ball`, `/roast` and friends."
 
+MINECRAFT_NAME = "⛏️ Minecraft"
+MINECRAFT_TEXT = (
+    "The server's back: `mc.morganvanv.com`, Java and Bedrock. "
+    "Link your account with `/mc register`, and see who's on with `/mc status`."
+)
+
 OSRS_NAME = "⚔️ Old School RuneScape"
 OSRS_TEXT = "Link your accounts with `/osrs register` and flex your drops."
