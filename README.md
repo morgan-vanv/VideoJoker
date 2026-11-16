@@ -61,6 +61,7 @@ _See `DESIGNDOCUMENT.md` for information on what might come in the future_
 ### Fun Cog Commands
 - **/say [message]** (*The bot repeats the given message.*)
 - **/roast [user]** (*Roasts a user with a random humorous insult.*)
+- **/curseofra [user]** (*shut up, bozo. Curses a user with a fresh wall of hieroglyphs (the Curse of Ra meme). Pings them.*)
 - **/russianroulette** (*Russian Roulette simulator.*)
 
 ### Utility Cog Commands
