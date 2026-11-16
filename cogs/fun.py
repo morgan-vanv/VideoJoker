@@ -4,7 +4,17 @@ import discord
 from discord import app_commands
 from discord.ext.commands import Cog
 
-from core.constants import ROASTS
+from core.constants import CURSE_OF_RA_FIRST_GLYPH, CURSE_OF_RA_LAST_GLYPH, CURSE_OF_RA_LENGTH, ROASTS
+
+
+def curse_of_ra(target: str) -> str:
+    """Builds the Curse of Ra for `target` (a mention like <@123>): a random wall of hieroglyphs"""
+
+    # chr() turns a Unicode number into its character, so each pick is one random hieroglyph
+    glyphs = "".join(
+        chr(random.randint(CURSE_OF_RA_FIRST_GLYPH, CURSE_OF_RA_LAST_GLYPH)) for _ in range(CURSE_OF_RA_LENGTH)
+    )
+    return f"**shut up, {target}** {glyphs} **(CURSE OF RA)**"
 
 
 class Fun(Cog, name="Fun"):
@@ -27,6 +37,15 @@ class Fun(Cog, name="Fun"):
         roast = random.choice(ROASTS)
 
         await interaction.response.send_message(f"{interaction.user.name} roasted {user.name}: **{roast}**")
+
+    @app_commands.command(name='curseofra', description='shut up, bozo. Curse a user with the Curse of Ra')
+    async def curseofra(self, interaction: discord.Interaction, user: discord.User) -> None:
+        """Curses a user with the Curse of Ra (the meme) and pings them so they know"""
+
+        # Ping exactly the cursed user and nobody else
+        await interaction.response.send_message(
+            curse_of_ra(user.mention), allowed_mentions=discord.AllowedMentions(users=[user])
+        )
 
     @app_commands.command(name='russianroulette', description='Play russian roulette')
     async def russianroulette(self, interaction: discord.Interaction) -> None:
