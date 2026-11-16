@@ -40,6 +40,7 @@ handcrafted, and sentimental. **Treat it like a friend's workshop, not a codebas
 | `core/constants.py` | Static content (8-ball answers, RPS rules, roasts) |
 | `core/custom_exceptions.py` | `app_commands.CheckFailure` subclasses for permissions |
 | `games/<game>/` | Multi-file games: `engine.py` (pure logic) + `ui.py` (discord Views) |
+| `booth/` | Not part of the bot: the Minecraft side's small helper service, its own image (`booth/README.md`). It never imports the bot. |
 
 ## Conventions
 

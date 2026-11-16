@@ -41,3 +41,21 @@ updates:
       # on purpose, together with .python-version (which CI and local tools use), not by the Dockerfile alone.
       - dependency-name: "python"
         update-types: ["version-update:semver-minor", "version-update:semver-major"]
+
+  # The booth (booth/): its own small image, so its own requirements file and base image
+  - package-ecosystem: "pip"
+    directory: "/booth"
+    schedule:
+      interval: "monthly"
+    groups:
+      booth-packages:
+        patterns: ["*"]
+
+  - package-ecosystem: "docker"
+    directory: "/booth"
+    schedule:
+      interval: "monthly"
+    ignore:
+      # Same rule as the bot's image: a new minor Python moves on purpose, together with .python-version
+      - dependency-name: "python"
+        update-types: ["version-update:semver-minor", "version-update:semver-major"]

@@ -7,11 +7,16 @@ calls to them. Three things run without anyone typing a command:
 - the welcome: when someone gets the Minecraft role from onboarding, the VJ greets them once (set with /mc welcome);
 - the "Get me in the game" button on both, which keeps working across restarts.
 
-Everything here only reads public things (the server's address, Mojang, GeyserMC), so it needs no new permissions
-beyond View Channel, Send Messages and Embed Links in the marquee and welcome channels.
+Part 1 only reads public things (the server's address, Mojang, GeyserMC). Part 2 talks to the booth, a small
+service next to the Minecraft servers (booth/, minecraft/booth.py), when BOOTH_URL and BOOTH_TOKEN are set:
+/mc shout, postcards, players per mode, and telling the booth who's linked so its "join our Discord" nudge leaves
+them alone. No new permissions beyond View Channel, Send Messages and Embed Links in the channels it posts in.
 """
 
+import asyncio
 import logging
+import os
+import time
 from datetime import datetime, timezone
 from typing import Optional
 
@@ -22,15 +27,19 @@ from discord.ext import commands, tasks
 
 from cogs.permissions import is_vip
 from core.database import McAccount, McSettings
-from minecraft import lines, lookup
+from minecraft import lines, lookup, postcards
 from minecraft.accounts import clean_name
+from minecraft.booth import BoothClient, BoothUnavailable, ModeStatus
 from minecraft.ping import PingFailed, ServerStatus, ping
 from minecraft.rules import should_welcome, status_line
 from minecraft.server import ADDRESS, JAVA_PORT
+from minecraft.shout import MAX_LENGTH, SHOUT_COST, Cooldowns
 from minecraft.ui import AfterLinkView, StartView
 
 EMBED_COLOUR = discord.Colour.from_str("#5B8731")  # grass-block green
 MARQUEE_MINUTES = 2
+POSTCARD_SECONDS = 15  # how often the bot asks the booth for new postcards
+LINKED_SYNC_MINUTES = 10  # the booth forgets on restart, so the bot repeats who's linked this often
 # What the VJ needs in the marquee and welcome channels: discord.py's name for each permission, then Discord's
 NEEDED = {"view_channel": "View Channel", "send_messages": "Send Messages", "embed_links": "Embed Links"}
 EDITION_CHOICES = [
@@ -51,7 +60,7 @@ def shown(account: McAccount) -> str:
 
 
 @app_commands.guild_only()
-class Minecraft(  # pylint: disable=too-many-public-methods  # each command is a method
+class Minecraft(  # pylint: disable=too-many-public-methods,too-many-instance-attributes  # commands are methods
     commands.GroupCog, group_name="mc", group_description="Link your Minecraft accounts, see who's on."
 ):
     """Minecraft: account linking, the server's status, and a welcome for new players"""
@@ -62,15 +71,34 @@ class Minecraft(  # pylint: disable=too-many-public-methods  # each command is a
         self.session: Optional[aiohttp.ClientSession] = None
         self.settings: dict[int, McSettings] = {}
         self.warned: set[tuple[int, str]] = set()  # (server, problem) already logged, so the log isn't flooded
+        # Part 2, the booth: None when BOOTH_URL / BOOTH_TOKEN aren't set (those features are off then)
+        self.booth: Optional[BoothClient] = None
+        self.cooldowns = Cooldowns()
+        self.postcard_channels: dict[int, int] = {}  # server id → postcards channel id
+        self.postcard_boot: Optional[str] = None  # which run of the booth our event numbers belong to
+        self.postcard_after = 0  # the last event number we've posted
+        self.background: set[asyncio.Task] = set()
 
     async def cog_load(self):
         self.session = aiohttp.ClientSession()  # one web session for the cog's whole life, closed on shutdown
         self.settings = await self.bot.db.get_mc_settings()
+        self.postcard_channels = await self.bot.db.get_mc_postcards()
+        url, token = os.getenv("BOOTH_URL", "").strip(), os.getenv("BOOTH_TOKEN", "").strip()
+        if url and token:
+            self.booth = BoothClient(self.session, url, token)
+            logging.info("Minecraft booth: on.")
+        else:
+            # Contract rule 7: a missing optional setting switches its feature off, with a warning, never a crash
+            logging.warning("Minecraft booth off (BOOTH_URL / BOOTH_TOKEN not set): no /mc shout or postcards.")
         self.bot.add_view(StartView(self))  # so "Get me in the game" works on messages from before a restart
         self.marquee.start()
+        self.linked_sync.start()
+        self.postcard_check.start()
 
     async def cog_unload(self):
         self.marquee.cancel()
+        self.linked_sync.cancel()
+        self.postcard_check.cancel()
         if self.session:
             await self.session.close()
 
@@ -117,6 +145,7 @@ class Minecraft(  # pylint: disable=too-many-public-methods  # each command is a
             is_default = any(a.uuid == profile.uuid and a.is_default for a in accounts)
             first_line = lines.LINKED.format(name=account_name, edition=edition_name)
             first_line += lines.LINKED_DEFAULT if is_default else ""
+        self.linked_changed()
         view = AfterLinkView(intro=f"{first_line}\n{lines.JOIN[edition]}")
         view.message_owner = interaction
         await interaction.edit_original_response(content=view.text(), view=view)
@@ -131,9 +160,27 @@ class Minecraft(  # pylint: disable=too-many-public-methods  # each command is a
             logging.debug("Minecraft server-list ping failed: %s", error)
             return None
 
+    async def check_modes(self) -> Optional[dict[str, ModeStatus]]:
+        """Players per mode and which modes are asleep, from the booth; None if there's no booth or it didn't answer."""
+        if self.booth is None:
+            return None
+        try:
+            return await self.booth.status()
+        except BoothUnavailable as error:
+            logging.debug("The booth didn't answer /status: %s", error)
+            return None
+
     @staticmethod
-    def status_embed(status: Optional[ServerStatus]) -> discord.Embed:
+    def status_embed(status: Optional[ServerStatus], modes: Optional[dict[str, ModeStatus]] = None) -> discord.Embed:
         embed = discord.Embed(title=lines.STATUS_TITLE, description=status_line(status), colour=EMBED_COLOUR)
+        if status is not None and modes:
+            rows = [
+                (lines.STATUS_MODE_AWAKE if mode.awake else lines.STATUS_MODE_ASLEEP).format(
+                    mode=lines.MODE_NAMES.get(name, name.title()), online=mode.online
+                )
+                for name, mode in modes.items()
+            ]
+            embed.add_field(name=lines.STATUS_PER_MODE_NAME, value="\n".join(rows), inline=False)
         embed.add_field(name=lines.STATUS_HOW_NAME, value=lines.STATUS_HOW, inline=False)
         embed.add_field(name=lines.STATUS_MODES_NAME, value=lines.STATUS_MODES, inline=False)
         embed.set_footer(text=lines.STATUS_FOOTER)
@@ -147,7 +194,7 @@ class Minecraft(  # pylint: disable=too-many-public-methods  # each command is a
             wanted = [s for s in self.settings.values() if s.marquee_channel_id]
             if not wanted:
                 return
-            embed = self.status_embed(await self.check_server())
+            embed = self.status_embed(await self.check_server(), await self.check_modes())
             for settings in wanted:
                 await self.update_marquee(settings, embed)
         except Exception:  # pylint: disable=broad-exception-caught
@@ -300,6 +347,7 @@ class Minecraft(  # pylint: disable=too-many-public-methods  # each command is a
             text = lines.NOT_YOURS.format(name=discord.utils.escape_markdown(account))
         else:
             text = lines.REMOVED.format(name=shown(found))
+            self.linked_changed()
         await interaction.response.send_message(text, ephemeral=True)
 
     # Autocomplete shows your accounts by name, and hands the command the account's UUID: names can repeat (a Java
@@ -317,7 +365,7 @@ class Minecraft(  # pylint: disable=too-many-public-methods  # each command is a
     @app_commands.command(name="status", description="Is the Minecraft server up, and how many are on?")
     async def status(self, interaction: discord.Interaction) -> None:
         await interaction.response.defer()  # public: "who's on?" is a conversation starter
-        embed = self.status_embed(await self.check_server())
+        embed = self.status_embed(await self.check_server(), await self.check_modes())
         await interaction.edit_original_response(embed=embed, view=StartView(self))
 
     @app_commands.command(name="marquee", description="VIP: keep a Minecraft status card in a channel (empty = off)")
@@ -373,6 +421,161 @@ class Minecraft(  # pylint: disable=too-many-public-methods  # each command is a
         await self.bot.db.set_mc_welcome(guild_id, channel_id, role_id)
         old = self.settings.get(guild_id, McSettings(guild_id))
         self.settings[guild_id] = old._replace(welcome_channel_id=channel_id, welcome_role_id=role_id)
+
+    # ---- part 2: the booth
+
+    def linked_changed(self) -> None:
+        """Someone linked or unlinked an account: tell the booth soon, without making them wait for it."""
+        if self.booth is not None:
+            # Keep a reference until it's done: asyncio only holds tasks weakly, so an unreferenced one can vanish
+            task = asyncio.create_task(self.push_linked())
+            self.background.add(task)
+            task.add_done_callback(self.background.discard)
+
+    async def push_linked(self) -> None:
+        try:
+            await self.booth.put_linked(await self.bot.db.get_all_mc_uuids())
+        except BoothUnavailable as error:
+            logging.debug("Couldn't tell the booth who's linked: %s", error)
+
+    @tasks.loop(minutes=LINKED_SYNC_MINUTES)
+    async def linked_sync(self):
+        try:
+            if self.booth is not None:
+                await self.push_linked()
+        except Exception:  # pylint: disable=broad-exception-caught
+            logging.exception("Telling the booth who's linked failed; trying again next time.")
+
+    @linked_sync.before_loop
+    async def before_linked_sync(self):
+        await self.bot.wait_until_ready()
+
+    @tasks.loop(seconds=POSTCARD_SECONDS)
+    async def postcard_check(self):
+        try:
+            if self.booth is not None and self.postcard_channels:
+                await self.deliver_postcards()
+        except Exception:  # pylint: disable=broad-exception-caught
+            logging.exception("Postcards failed; trying again next time.")
+
+    @postcard_check.before_loop
+    async def before_postcard_check(self):
+        await self.bot.wait_until_ready()
+
+    async def deliver_postcards(self) -> None:
+        """Asks the booth what happened since the last postcard, and posts it."""
+        try:
+            batch = await self.booth.postcards(self.postcard_after)
+            if batch.boot != self.postcard_boot:
+                if self.postcard_boot is None:
+                    # The bot just started: skip what happened before (we may have posted it already)
+                    self.postcard_boot, self.postcard_after = batch.boot, batch.latest
+                    return
+                # The booth restarted: its numbers start over, so everything it has is new to us
+                self.postcard_boot = batch.boot
+                batch = await self.booth.postcards(0)
+        except BoothUnavailable as error:
+            logging.debug("The booth didn't answer /events: %s", error)
+            return
+        for event in batch.events:
+            self.postcard_after = max(self.postcard_after, int(event.get("id", 0)))
+            text = await self.postcard_text(event)
+            if text:
+                await self.post_postcard(text)
+
+    async def postcard_text(self, event: dict) -> Optional[str]:
+        name = str(event.get("name", ""))
+        if event.get("kind") == "join" and not await self.bot.db.mark_mc_player_seen(name.lower()):
+            return None  # only a player's first time on the network gets a postcard
+        edition, stored = postcards.account_name(name)
+        owners = sorted(
+            {a.discord_id for a in await self.bot.db.find_mc_accounts_by_name(stored) if a.edition == edition}
+        )
+        return postcards.text_for(event, owners)
+
+    async def post_postcard(self, text: str) -> None:
+        for guild_id, channel_id in self.postcard_channels.items():
+            guild = self.bot.get_guild(guild_id)
+            channel = guild.get_channel(channel_id) if guild else None
+            if not isinstance(channel, discord.TextChannel):
+                if guild:
+                    self.warn_once(guild, "the postcards channel is gone (deleted?). Run /mc postcards again.")
+                continue
+            try:
+                # Names a linked member without pinging them: postcards are for reading, not for buzzing phones
+                await channel.send(text, allowed_mentions=discord.AllowedMentions.none())
+            except discord.Forbidden:
+                self.warn_once(guild, f"can't post postcards in #{channel.name}.")
+
+    @app_commands.command(name="shout", description="Shout a message into the Minecraft server's chat (costs USh)")
+    @app_commands.describe(message="What everyone in game will see, after [Discord] and your name")
+    async def shout(self, interaction: discord.Interaction, message: app_commands.Range[str, 1, MAX_LENGTH]) -> None:
+        if self.booth is None:
+            await interaction.response.send_message(lines.SHOUT_OFF, ephemeral=True)
+            return
+        if not " ".join(message.split()):
+            await interaction.response.send_message(lines.SHOUT_EMPTY, ephemeral=True)
+            return
+        user = interaction.user
+        now = time.time()
+        if wait := self.cooldowns.check(user.id, now):
+            template = lines.SHOUT_WAIT_EVERYONE if wait.everyone else lines.SHOUT_WAIT
+            when = discord.utils.format_dt(datetime.fromtimestamp(wait.until, timezone.utc), "R")
+            await interaction.response.send_message(template.format(when=when), ephemeral=True)
+            return
+
+        free = user.id in self.bot.db.vips
+        if not free and not await self.bot.db.move_ush_with_bank(
+            user.id, SHOUT_COST, "shout", True, interaction.guild_id
+        ):
+            balance = await self.bot.db.get_balance(user.id)
+            await interaction.response.send_message(
+                lines.SHOUT_BROKE.format(cost=SHOUT_COST, balance=balance), ephemeral=True
+            )
+            return
+        # Paid (or free): from here, anything that stops the shout gives the USh back
+        self.cooldowns.shouted(user.id, now)
+        await interaction.response.defer()
+        try:
+            result = await self.booth.shout(user.display_name, message)
+        except BoothUnavailable:
+            result = None
+        if not result or not result.heard:
+            if not free:
+                await self.bot.db.move_ush_with_bank(
+                    user.id, SHOUT_COST, "shout refund", False, interaction.guild_id, lines.SHOUT_REFUND_NOTE
+                )
+            self.cooldowns.last_by_person.pop(user.id, None)  # it didn't happen, so it doesn't count
+            await interaction.edit_original_response(content=lines.SHOUT_NOBODY if result else lines.SHOUT_FAILED)
+            return
+
+        modes = ", ".join(lines.MODE_NAMES.get(name, name.title()) for name in result.heard)
+        text = lines.SHOUT_DONE.format(member=user.mention, modes=modes, text=discord.utils.escape_markdown(message))
+        if result.asleep:
+            text += lines.SHOUT_ASLEEP.format(
+                modes=", ".join(lines.MODE_NAMES.get(n, n.title()) for n in result.asleep)
+            )
+        text += lines.SHOUT_FREE if free else lines.SHOUT_PAID.format(cost=SHOUT_COST)
+        await interaction.edit_original_response(content=text, allowed_mentions=discord.AllowedMentions.none())
+
+    @app_commands.command(name="postcards", description="VIP: post Minecraft postcards in a channel (empty = off)")
+    @app_commands.describe(channel="Where postcards go; leave empty to switch them off")
+    @is_vip()
+    async def set_postcards(self, interaction: discord.Interaction, channel: Optional[discord.TextChannel] = None):
+        if channel is None:
+            await self.bot.db.set_mc_postcards(interaction.guild_id, None)
+            self.postcard_channels.pop(interaction.guild_id, None)
+            await interaction.response.send_message(lines.POSTCARDS_OFF, ephemeral=True)
+            return
+        if lacking := missing(channel):
+            text = lines.NO_PERMISSION.format(missing=", ".join(lacking), channel=channel.mention)
+            await interaction.response.send_message(text, ephemeral=True)
+            return
+        await self.bot.db.set_mc_postcards(interaction.guild_id, channel.id)
+        self.postcard_channels[interaction.guild_id] = channel.id
+        logging.info("Minecraft postcards set up in %s by %s", interaction.guild.name, interaction.user.name)
+        text = lines.POSTCARDS_ON.format(channel=channel.mention)
+        await interaction.response.send_message(text + ("" if self.booth else lines.POSTCARDS_NO_BOOTH), ephemeral=True)
 
 
 async def setup(bot):

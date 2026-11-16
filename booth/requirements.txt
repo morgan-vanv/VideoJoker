@@ -1,0 +1,3 @@
+# The booth needs only aiohttp (its web server). Pinned, so the image builds the same every time; Dependabot
+# proposes bumps (the /booth entries in .github/dependabot.yml). The bot gets aiohttp through discord.py.
+aiohttp==3.14.5
