@@ -7,7 +7,19 @@ from guide import lines
 from guide.tour import pick_sections
 from tests.real_commands import build_bot, commands_by_name
 
-EVERY_COG = {"Games", "Fun", "Utility", "Permissions", "Music", "Economy", "Ranks", "Heartbeat", "Osrs", "PersonalVC"}
+EVERY_COG = {
+    "Games",
+    "Fun",
+    "Utility",
+    "Permissions",
+    "Music",
+    "Economy",
+    "Ranks",
+    "Heartbeat",
+    "Osrs",
+    "PersonalVC",
+    "Minecraft",
+}
 RANKS = ["LOWLY SERFS", "SWORN SWORDS", "LORDS"]
 LOBBY = "<#777>"
 
@@ -28,6 +40,7 @@ def test_everything_on_shows_every_section_in_order():
         lines.PERSONAL_VC_NAME,
         lines.GAMES_NAME,
         lines.OSRS_NAME,
+        lines.MINECRAFT_NAME,
     ]
 
 
@@ -75,6 +88,7 @@ def test_dms_show_only_the_general_sections():
         lines.MUSIC_NAME,
         lines.GAMES_NAME,
         lines.OSRS_NAME,
+        lines.MINECRAFT_NAME,
     ]
 
 

@@ -84,6 +84,26 @@ class PersonalChannelRow(NamedTuple):
     owner_id: int
 
 
+class McAccount(NamedTuple):
+    """One Minecraft account linked to a Discord user (a row of mc_accounts)."""
+
+    discord_id: int
+    edition: str  # 'java' or 'bedrock'
+    uuid: str  # with dashes; for Bedrock it's the UUID Floodgate gives the player (made from their XUID)
+    name: str  # as the account itself spells it, when we last looked
+    is_default: bool
+
+
+class McSettings(NamedTuple):
+    """A server's Minecraft settings (a row of mc_settings). None = that part is off."""
+
+    guild_id: int
+    marquee_channel_id: Optional[int] = None
+    marquee_message_id: Optional[int] = None
+    welcome_channel_id: Optional[int] = None
+    welcome_role_id: Optional[int] = None
+
+
 class Database:  # pylint: disable=too-many-public-methods  # all SQL lives here on purpose, one method per query
     """
     Manages the SQLite database and provides an in-memory cache for user roles (VIP & BANNED).
@@ -244,6 +264,38 @@ class Database:  # pylint: disable=too-many-public-methods  # all SQL lives here
                 starts_at INTEGER NOT NULL,
                 minutes_before INTEGER NOT NULL,
                 PRIMARY KEY (event_id, starts_at, minutes_before)
+            )
+        ''')
+        # Minecraft (cogs/minecraft.py, docs/minecraft-design.md): Java and Bedrock accounts linked to Discord users.
+        # The UUID is the account's real identity (names can change), so it's the UNIQUE one: one owner per account.
+        await self.conn.execute('''
+            CREATE TABLE IF NOT EXISTS mc_accounts (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                discord_id INTEGER NOT NULL,
+                edition TEXT NOT NULL,
+                uuid TEXT NOT NULL UNIQUE,
+                name TEXT NOT NULL,
+                is_default INTEGER NOT NULL DEFAULT 0,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+        # Per server: where the marquee lives (and which message it is), and who gets welcomed where.
+        # NULLs mean "off": no marquee channel = no marquee, no welcome channel = no welcomes.
+        await self.conn.execute('''
+            CREATE TABLE IF NOT EXISTS mc_settings (
+                guild_id INTEGER PRIMARY KEY,
+                marquee_channel_id INTEGER,
+                marquee_message_id INTEGER,
+                welcome_channel_id INTEGER,
+                welcome_role_id INTEGER
+            )
+        ''')
+        # Who's been welcomed already, so getting the role twice (or a restart) never welcomes anyone twice
+        await self.conn.execute('''
+            CREATE TABLE IF NOT EXISTS mc_welcomed (
+                guild_id INTEGER NOT NULL,
+                discord_id INTEGER NOT NULL,
+                PRIMARY KEY (guild_id, discord_id)
             )
         ''')
         # Added 2026-11 for the rank ladder: XP given rather than earned (see TOTAL_XP_SQL). A new column with a
@@ -851,3 +903,136 @@ class Database:  # pylint: disable=too-many-public-methods  # all SQL lives here
     async def forget_event_reminders_before(self, starts_at: int) -> None:
         """Drops the records of reminders for events that started before this time (they can't come back)."""
         await self._execute("DELETE FROM event_reminders_sent WHERE starts_at < ?", (starts_at,))
+
+    # Minecraft methods (docs/minecraft-design.md). Player names and UUIDs are never written to the log here.
+    async def add_mc_account(self, discord_id: int, edition: str, uuid: str, name: str) -> Optional[int]:
+        """Links a Minecraft account to a Discord user. Their first account becomes their default.
+
+        Returns None if it worked, or the Discord ID that already has this account (which can be the same person
+        linking it twice: then the stored name is refreshed, in case they changed it since).
+        """
+        if edition not in ('java', 'bedrock'):
+            raise ValueError("edition must be 'java' or 'bedrock'")
+        if self.conn is None:
+            raise RuntimeError("Database connection is not initialized. Did you call setup()?")
+        async with self.lock:  # check and insert under one lock, as in add_osrs_account
+            try:
+                async with self.conn.execute("SELECT discord_id FROM mc_accounts WHERE uuid = ?", (uuid,)) as cursor:
+                    taken = await cursor.fetchone()
+                if taken:
+                    if taken[0] == discord_id:
+                        await self.conn.execute("UPDATE mc_accounts SET name = ? WHERE uuid = ?", (name, uuid))
+                        await self.conn.commit()
+                    return taken[0]
+                async with self.conn.execute(
+                    "SELECT COUNT(*) FROM mc_accounts WHERE discord_id = ?", (discord_id,)
+                ) as cursor:
+                    (account_count,) = await cursor.fetchone()
+                await self.conn.execute(
+                    "INSERT INTO mc_accounts (discord_id, edition, uuid, name, is_default) VALUES (?, ?, ?, ?, ?)",
+                    (discord_id, edition, uuid, name, int(account_count == 0)),
+                )
+                await self.conn.commit()
+                return None
+            except Exception as e:
+                await self.conn.rollback()
+                logging.error("Database error in add_mc_account for %s: %s", discord_id, type(e).__name__)
+                raise
+
+    async def get_mc_accounts(self, discord_id: int) -> list[McAccount]:
+        """A user's Minecraft accounts: the default first, then in the order they were linked."""
+        rows = await self._fetch_all(
+            """
+            SELECT discord_id, edition, uuid, name, is_default FROM mc_accounts
+            WHERE discord_id = ? ORDER BY is_default DESC, id
+        """,
+            (discord_id,),
+        )
+        return [McAccount(d, edition, uuid, name, bool(default)) for d, edition, uuid, name, default in rows]
+
+    async def find_mc_accounts_by_name(self, name: str) -> list[McAccount]:
+        """Every linked account with this name, ignoring upper/lower case (a Java and a Bedrock account can share
+        a name, so this can be more than one)."""
+        rows = await self._fetch_all(
+            "SELECT discord_id, edition, uuid, name, is_default FROM mc_accounts WHERE name = ? COLLATE NOCASE",
+            (name,),
+        )
+        return [McAccount(d, edition, uuid, name, bool(default)) for d, edition, uuid, name, default in rows]
+
+    async def remove_mc_account(self, discord_id: int, uuid: str) -> bool:
+        """Unlinks one of a user's accounts; if it was their default, their oldest remaining one takes over.
+        Returns False if that account isn't theirs."""
+        if self.conn is None:
+            raise RuntimeError("Database connection is not initialized. Did you call setup()?")
+        async with self.lock:
+            try:
+                cursor = await self.conn.execute(
+                    "DELETE FROM mc_accounts WHERE discord_id = ? AND uuid = ? RETURNING is_default", (discord_id, uuid)
+                )
+                removed = await cursor.fetchone()
+                await cursor.close()
+                if removed is None:
+                    return False
+                if removed[0]:
+                    await self.conn.execute(
+                        """
+                        UPDATE mc_accounts SET is_default = 1
+                        WHERE id = (SELECT MIN(id) FROM mc_accounts WHERE discord_id = ?)
+                    """,
+                        (discord_id,),
+                    )
+                await self.conn.commit()
+                return True
+            except Exception as e:
+                await self.conn.rollback()
+                logging.error("Database error in remove_mc_account for %s: %s", discord_id, type(e).__name__)
+                raise
+
+    async def set_default_mc_account(self, discord_id: int, uuid: str) -> bool:
+        """Makes one of a user's accounts their default. Returns False if they don't have it."""
+        accounts = await self.get_mc_accounts(discord_id)
+        if uuid not in (account.uuid for account in accounts):
+            return False
+        await self._execute("UPDATE mc_accounts SET is_default = (uuid = ?) WHERE discord_id = ?", (uuid, discord_id))
+        return True
+
+    async def get_mc_settings(self) -> dict[int, McSettings]:
+        """Every server's Minecraft settings, by server id. Small enough to keep in memory."""
+        rows = await self._fetch_all(
+            """
+            SELECT guild_id, marquee_channel_id, marquee_message_id, welcome_channel_id, welcome_role_id
+            FROM mc_settings
+        """
+        )
+        return {row[0]: McSettings(*row) for row in rows}
+
+    async def set_mc_marquee(self, guild_id: int, channel_id: Optional[int], message_id: Optional[int]) -> None:
+        """Where this server's marquee is. Both None = the marquee is off."""
+        await self._execute(
+            """
+            INSERT INTO mc_settings (guild_id, marquee_channel_id, marquee_message_id) VALUES (?, ?, ?)
+            ON CONFLICT(guild_id) DO UPDATE SET
+                marquee_channel_id = excluded.marquee_channel_id, marquee_message_id = excluded.marquee_message_id
+        """,
+            (guild_id, channel_id, message_id),
+        )
+
+    async def set_mc_welcome(self, guild_id: int, channel_id: Optional[int], role_id: Optional[int]) -> None:
+        """Who gets welcomed (people given role_id) and where. Both None = welcomes are off."""
+        await self._execute(
+            """
+            INSERT INTO mc_settings (guild_id, welcome_channel_id, welcome_role_id) VALUES (?, ?, ?)
+            ON CONFLICT(guild_id) DO UPDATE SET
+                welcome_channel_id = excluded.welcome_channel_id, welcome_role_id = excluded.welcome_role_id
+        """,
+            (guild_id, channel_id, role_id),
+        )
+
+    async def mark_mc_welcomed(self, guild_id: int, discord_id: int) -> bool:
+        """Records that someone was welcomed. Returns True the first time, False if they already were."""
+        rows = await self._fetch_all(
+            "INSERT OR IGNORE INTO mc_welcomed (guild_id, discord_id) VALUES (?, ?) RETURNING 1",
+            (guild_id, discord_id),
+            commit=True,
+        )
+        return bool(rows)

@@ -38,7 +38,7 @@ I don't even know why I spent so long on this README lol
 _See `DESIGNDOCUMENT.md` for information on what might come in the future_
 
 ### Main Bot Commands
-- **/help** (*New here? A quick tour of what the bot does on this server: XP and ranks, USh, the leaderboard, music, your own voice channel, games and OSRS. Only you see it, and features this server hasn't set up are left out.*)
+- **/help** (*New here? A quick tour of what the bot does on this server: XP and ranks, USh, the leaderboard, music, your own voice channel, games, OSRS and Minecraft. Only you see it, and features this server hasn't set up are left out.*)
 - **/listcommands** (*Lists the commands in the bot along with their descriptions, subcommands included (`/ladder show`, `/osrs register`, ...). VIP-only commands are left out.*)
 - **/listadmincommands** (*VIP: lists the VIP-only commands that `/listcommands` leaves out. Only you see it.*)
 - **@VideoJoker ping** (*Admins: type it as a message, mentioning the bot. It answers "pong" and the version that's running. It's not a slash command, so it stays out of the `/` menu.*)
@@ -84,6 +84,18 @@ _Link your Old School RuneScape accounts (alts welcome) and flex your drops with
 - **/osrs remove [rsn]** (*Unlinks an account.*)
 - **/osrs flexing** (*Privately shows what to paste into Dink to post your drops (and, if you want, your deaths).*)
 - **/osrs rotate-webhook** (*VIP: replaces a leaked flexing webhook and pings everyone to grab the new one.*)
+
+### Minecraft Cog Commands
+_Link your Java or Bedrock account, see who plays what, and check on the server at `mc.morganvanv.com`. Design: `docs/minecraft-design.md`._
+- **/mc register [name] [edition]** (*Links a Java or Bedrock account (looked up, so typos are caught), then shows how to join and the modes.*)
+- **/mc accounts** (*Shows your linked accounts. ⭐ default.*)
+- **/mc whois [member]** (*Shows which accounts someone plays.*)
+- **/mc who [name]** (*Shows which member plays a Minecraft name.*)
+- **/mc default [account]** (*Picks your main account.*)
+- **/mc remove [account]** (*Unlinks an account.*)
+- **/mc status** (*Is the server up, and how many are on? With a "Get me in the game" button.*)
+- **/mc marquee [channel]** (*VIP: keeps a status card in a channel, updated every couple of minutes. Empty = off.*)
+- **/mc welcome [channel] [role]** (*VIP: welcomes people once when they get the Minecraft role from onboarding. Empty = off.*)
 
 ### Rank Ladder Cog Commands
 _Every message is 1 XP and every command 5 (once a minute: more commands within the minute earn nothing), and XP never resets. Your first message makes you **LOWLY SERFS**, then **SWORN SWORDS** (250 XP) and **LORDS** (1,000 XP). Ranks only go up, and you wear one at a time. When you climb, your next slash command in that server comes with a private note (only you see it) about your new rank and what it unlocks. The bot needs Manage Roles and its role above the three ranks (SETUP_GUIDE step 5)._
