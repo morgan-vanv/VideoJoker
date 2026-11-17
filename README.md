@@ -43,13 +43,21 @@ _See `DESIGNDOCUMENT.md` for information on what might come in the future_
 - **/listadmincommands** (*VIP: lists the VIP-only commands that `/listcommands` leaves out. Only you see it.*)
 - **@VideoJoker ping** (*Admins: type it as a message, mentioning the bot. It answers "pong" and the version that's running. It's not a slash command, so it stays out of the `/` menu.*)
 
-### Permissions Cog Commands
-- **/checkpermissions** (*Checks the permissions of a user.*)
-- **/listbannedusers** (*Lists all banned users.*)
-- **/listvipusers** (*Lists all VIP users.*)
-- **/grantbanuser [user]** (*Bans a user from using the bot.*)
-- **/grantvipuser [user]** (*Grants VIP status to a user.*)
-- **/resetpermissions [user]** (*Resets permissions for a user.*)
+### Setup (VIPs only, hidden from everyone else's `/` menu)
+_Everything you set up once per server lives under `/setup`. Discord shows it only to people who can Manage Server; the owner can show it to another role in Server Settings → Integrations → VideoJoker. Every subcommand is VIP-only too._
+- **/setup show** (*Everything set up in this server, with ⚠️ on anything that stops a feature working. Only you see it.*)
+- **/setup ladder set [serfs] [swords] [lords] [swords_xp] [lords_xp]** (*Picks the three rank roles and the XP for the upper two.*)
+- **/setup ladder off** (*Stops handing out ranks. Nobody loses a role.*)
+- **/setup ladder tidy** (*Members wearing several ranks keep only their highest, and anyone with less XP than their rank needs is topped up to its minimum. Shows a preview first.*)
+- **/setup voice set [hub] [staff]** (*Picks the personal-channel lobby and (optionally) the staff role that sees everything.*)
+- **/setup voice off** (*No new personal channels. Open ones stay until they empty; everyone's saved settings are kept.*)
+- **/setup events [channel]** (*The channel for this server's event reminders. Leave it empty to switch them off.*)
+- **/setup minecraft marquee [channel]** (*Keeps a Minecraft status card in a channel, updated every couple of minutes. Empty = off.*)
+- **/setup minecraft welcome [channel] [role]** (*Welcomes people once when they get the Minecraft role from onboarding. Empty = off.*)
+- **/setup minecraft postcards [channel]** (*Posts postcards from the server: first-timers on the network, deaths and advancements on Factions. Empty = off. Needs the booth.*)
+- **/setup osrs-webhook** (*Replaces a leaked OSRS flexing webhook and pings everyone to grab the new one.*)
+- **/setup people vip | ban | reset [user]** (*Gives VIP, bans someone from the bot, or takes either away.*)
+- **/setup people check [user]** / **vips** / **banned** (*Is someone a VIP or banned; everyone with VIP; everyone banned.*)
 
 ### Games Cog Commands
 - **/coinflip** (*Flips a virtual coin, returning either "Heads" or "Tails."*)
@@ -82,7 +90,6 @@ _Link your Old School RuneScape accounts (alts welcome) and flex your drops with
 - **/osrs default [rsn]** (*Picks your main account.*)
 - **/osrs remove [rsn]** (*Unlinks an account.*)
 - **/osrs flexing** (*Privately shows what to paste into Dink to post your drops (and, if you want, your deaths).*)
-- **/osrs rotate-webhook** (*VIP: replaces a leaked flexing webhook and pings everyone to grab the new one.*)
 
 ### Minecraft Cog Commands
 _Link your Java or Bedrock account, see who plays what, and check on the server at `mc.morganvanv.com`. Design: `docs/minecraft-design.md`._
@@ -94,26 +101,16 @@ _Link your Java or Bedrock account, see who plays what, and check on the server 
 - **/mc remove [account]** (*Unlinks an account.*)
 - **/mc status** (*Is the server up, and how many are on (per mode, once the booth is wired up)? With a "Get me in the game" button.*)
 - **/mc shout [message]** (*Shouts into every awake mode's chat as `[Discord] You: message`. 50 USh to the bank (VIPs free); once every 5 minutes each, once every 30 seconds for everyone. Nobody awake to hear it = no charge. Needs the booth.*)
-- **/mc marquee [channel]** (*VIP: keeps a status card in a channel, updated every couple of minutes. Empty = off.*)
-- **/mc welcome [channel] [role]** (*VIP: welcomes people once when they get the Minecraft role from onboarding. Empty = off.*)
-- **/mc postcards [channel]** (*VIP: posts postcards from the server there: first-timers on the network, deaths and advancements on Factions. Empty = off. Needs the booth.*)
 
 ### Rank Ladder Cog Commands
 _Every message is 1 XP and every command 5 (once a minute: more commands within the minute earn nothing), and XP never resets. Your first message makes you **LOWLY SERFS**, then **SWORN SWORDS** (250 XP) and **LORDS** (1,000 XP). Ranks only go up, and you wear one at a time. When you climb, your next slash command in that server comes with a private note (only you see it) about your new rank and what it unlocks. The bot needs Manage Roles and its role above the three ranks (SETUP_GUIDE step 5)._
 - **/ladder show** (*Shows the ranks, how much XP each one needs, and where you are on it.*)
-- **/ladder setup [serfs] [swords] [lords] [swords_xp] [lords_xp]** (*VIP: picks the three rank roles and the XP for the upper two.*)
-- **/ladder off** (*VIP: stops handing out ranks. Nobody loses a role.*)
-- **/ladder tidy** (*VIP: members wearing several ranks keep only their highest, and anyone with less XP than their rank needs is topped up to its minimum. Shows a preview first.*)
 
 ### Personal Voice Channels Cog Commands
-_Join the lobby voice channel and the VJ makes you your own voice channel and moves you in. It's yours until the last person leaves. Buttons in your channel's chat (only you can use them) set it 🔓 Open, 🔒 Locked (everyone sees it, only guests join) or 👻 Hidden (only guests see it), and ➕ lets in / ➖ removes guests. Your mode and guest list are remembered for next time. The bot needs Manage Channels and Move Members in the personal channels category._
-- **/personalvc show** (*Shows the lobby, the staff role, and anything that's stopping it.*)
-- **/personalvc setup [hub] [staff]** (*VIP: picks the lobby voice channel and (optionally) the staff role that sees everything.*)
-- **/personalvc off** (*VIP: no new personal channels. Open ones stay until they empty; everyone's saved settings are kept.*)
+_Join the lobby voice channel and the VJ makes you your own voice channel and moves you in. It's yours until the last person leaves. Buttons in your channel's chat (only you can use them) set it 🔓 Open, 🔒 Locked (everyone sees it, only guests join) or 👻 Hidden (only guests see it), and ➕ lets in / ➖ removes guests. Your mode and guest list are remembered for next time. The bot needs Manage Channels and Move Members in the personal channels category. A VIP switches it on with `/setup voice set`._
 
 ### Event Alerts Cog Commands
-_Discord's own events (Events, top of the channel list) do the scheduling, weekly repeats and "Interested". The VJ adds a heads-up before each event (the day before and an hour before) pinging everyone marked Interested, and posts when an event's time or place changes or it's cancelled. No commands for any of that: it follows the events. The bot needs Send Messages and Embed Links in the alert channel. Reminder times: `EVENT_ALERT_TIMES` in `.env`._
-- **/seteventalerts [channel]** (*VIP: the channel for this server's event reminders. Leave it empty to switch them off.*)
+_Discord's own events (Events, top of the channel list) do the scheduling, weekly repeats and "Interested". The VJ adds a heads-up before each event (the day before and an hour before) pinging everyone marked Interested, and posts when an event's time or place changes or it's cancelled. No commands for any of that: it follows the events. The bot needs Send Messages and Embed Links in the alert channel. Reminder times: `EVENT_ALERT_TIMES` in `.env`. A VIP picks the channel with `/setup events`._
 
 ### Raffle Cog Commands
 _Put up a prize, people react 🎟️ on the raffle card to enter, and the winner is drawn when time's up (it survives restarts). Bots, banned users and the host can't win. One running raffle per person per server._

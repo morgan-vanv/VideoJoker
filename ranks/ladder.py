@@ -87,7 +87,7 @@ def plan_promotion(tiers: list[Tier], xp: int, role_ids: set[int]) -> Optional[R
 
 
 def plan_tidy(tiers: list[Tier], role_ids: set[int]) -> Optional[RoleChange]:
-    """For /ladder tidy: if a member wears several ladder roles (Pancake stacked them), keep only the highest.
+    """For /setup ladder tidy: if a member wears several ladder roles (Pancake stacked them), keep only the highest.
     Never adds a role and never touches the top one, so nobody's rank goes down."""
     held = held_tier(tiers, role_ids)
     if held is None:
@@ -99,7 +99,7 @@ def plan_tidy(tiers: list[Tier], role_ids: set[int]) -> Optional[RoleChange]:
 
 
 def xp_shortfall(tiers: list[Tier], role_ids: set[int], xp: int) -> int:
-    """For /ladder tidy: how much XP someone is missing for the rank they already wear (0 if none).
+    """For /setup ladder tidy: how much XP someone is missing for the rank they already wear (0 if none).
     Pancake's ranks came from Pancake's XP, so a LORD can have almost no VideoJoker XP. Topping them up to their
     rank's minimum makes the numbers match the roles, and their next promotion comes at the right time."""
     held = held_tier(tiers, role_ids)

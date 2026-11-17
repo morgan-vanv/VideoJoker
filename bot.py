@@ -19,7 +19,7 @@ class VideoJoker(commands.Bot):
         # ones (members, presences, message content). XP and USh only need to know that a message was sent,
         # not what it says, so message content stays off.
         intents = discord.Intents.default()
-        # members: the full member list, for /ladder tidy (and later welcome messages). Privileged, so it must
+        # members: the full member list, for /setup ladder tidy (and later welcome messages). Privileged, so it must
         # ALSO be switched on in the Developer Portal (Bot → Server Members Intent), or the bot can't log in.
         intents.members = True
         # Bot-wide default for who a message is allowed to ping. Commands that echo user text
@@ -54,6 +54,7 @@ class VideoJoker(commands.Bot):
             'cogs.event_alerts',
             'cogs.minecraft',
             'cogs.raffle',
+            'cogs.server_setup',
         ]
         for extension in initial_extensions:
             await self.load_extension(extension)
@@ -161,7 +162,7 @@ class VideoJoker(commands.Bot):
 
 def runnable_commands(tree: app_commands.CommandTree) -> list[app_commands.Command]:
     """Every command someone can actually run: the root ones (/listcommands), and the subcommands inside each group.
-    A group like /ladder can't be run on its own, so walk_commands() opens it up: /ladder show, /ladder setup, ..."""
+    A group like /ladder can't be run on its own, so walk_commands() opens it up: /ladder show, /setup ladder set, ..."""
     found = []
     for cmd in tree.get_commands():
         if isinstance(cmd, app_commands.Group):

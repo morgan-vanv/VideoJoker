@@ -6,6 +6,7 @@ import re
 from types import SimpleNamespace
 
 import discord
+from discord import app_commands
 from discord.ext import commands
 
 from cogs.permissions import is_vip_command
@@ -35,19 +36,32 @@ def listed_names(sent: dict) -> list[str]:
 
 async def test_vip_only_commands_are_recognised():
     real = commands_by_name(build_bot())
-    for name in ["ladder setup", "ladder off", "ladder tidy", "personalvc setup", "personalvc off"]:
+    for name in ["setup ladder set", "setup ladder off", "setup ladder tidy", "setup voice set", "setup voice off"]:
         assert is_vip_command(real[name]), name
-    for name in ["grantbanuser", "grantvipuser", "resetpermissions", "osrs rotate-webhook", "listadmincommands"]:
+    for name in [
+        "setup people ban",
+        "setup people vip",
+        "setup people reset",
+        "setup osrs-webhook",
+        "listadmincommands",
+    ]:
         assert is_vip_command(real[name]), name
 
 
 async def test_everyday_commands_are_not_vip_only():
     real = commands_by_name(build_bot())
-    for name in ["ladder show", "personalvc show", "osrs register", "help", "listcommands", "play"]:
+    for name in ["ladder show", "osrs register", "help", "listcommands", "play"]:
         assert not is_vip_command(real[name]), name
-    # Anyone (not banned) can look these up: they only read, so they're not VIP-only
-    for name in ["checkpermissions", "listvipusers", "listbannedusers"]:
-        assert not is_vip_command(real[name]), name
+
+
+async def test_every_setup_command_is_vip_only_and_hidden_from_members():
+    bot = build_bot()
+    setup = bot.tree.get_command("setup")
+    # Hidden from the / menu for anyone who can't Manage Server (Discord's own setting, on the whole group)
+    assert setup.default_permissions == discord.Permissions(manage_guild=True)
+    for command in setup.walk_commands():
+        if isinstance(command, app_commands.Command):
+            assert is_vip_command(command), command.qualified_name
 
 
 def test_a_group_on_its_own_is_not_vip_only():
@@ -64,7 +78,7 @@ async def test_the_two_lists_split_every_command_between_them():
 
     assert not set(everyone) & set(vips)  # nothing on both
     assert sorted(everyone + vips) == sorted(commands_by_name(bot))  # and nothing missing
-    assert "ladder show" in everyone and "ladder setup" in vips
+    assert "ladder show" in everyone and "setup ladder set" in vips
     assert "ladder" not in everyone  # the group itself isn't a line: its subcommands are
 
 
@@ -125,3 +139,38 @@ async def test_ping_ignores_everyone_else():
     ping = build_bot().get_command("ping")
     assert not await passes_checks(ping, ping_context(admin=False))
     assert not await passes_checks(ping, ping_context(admin=True, in_server=False))  # DMs have no admins
+
+
+async def test_every_setup_command_hands_its_work_to_a_method_that_exists():
+    """/setup's commands each call one method on a feature's cog (cogs/server_setup.py). A renamed method there
+    would only fail when a VIP runs the command, so check every call against the real cogs here."""
+    import ast  # pylint: disable=import-outside-toplevel
+
+    from cogs import server_setup  # pylint: disable=import-outside-toplevel
+    from tests.real_commands import cog_classes  # pylint: disable=import-outside-toplevel
+
+    cogs_by_name = {cog_class.__cog_name__: cog_class for cog_class in cog_classes()}
+    tree = ast.parse(inspect.getsource(server_setup))
+    calls = []
+    for function in ast.walk(tree):
+        if not isinstance(function, ast.AsyncFunctionDef):
+            continue
+        cog_name = next(
+            (
+                node.args[1].value
+                for node in ast.walk(function)
+                if isinstance(node, ast.Call) and getattr(node.func, "attr", "") == "feature"
+            ),
+            None,
+        )
+        if cog_name is None:  # /setup show: checked below, through SHOW_ORDER
+            continue
+        for node in ast.walk(function):
+            if isinstance(node, ast.Call) and getattr(getattr(node.func, "value", None), "id", "") == "cog":
+                calls.append((cog_name, node.func.attr, len(node.args)))
+    assert len(calls) >= 16
+    for cog_name, method, arg_count in calls:
+        target = getattr(cogs_by_name[cog_name], method)
+        inspect.signature(target).bind(object(), *range(arg_count))  # raises if the arguments don't fit
+    for _title, cog_name in server_setup.SHOW_ORDER:
+        assert inspect.iscoroutinefunction(cogs_by_name[cog_name].setup_summary), cog_name
