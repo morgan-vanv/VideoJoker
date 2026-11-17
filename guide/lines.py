@@ -65,6 +65,9 @@ PERSONAL_VC_TEXT = (
 GAMES_NAME = "🎲 Games and fun"
 GAMES_TEXT = "`/threecardmonte`, `/coinflip`, `/8ball`, `/roast` and friends."
 
+RAFFLE_NAME = "🎟️ Raffles"
+RAFFLE_TEXT = "Give something away with `/raffle start`: people react 🎟️ to enter, and a winner is drawn when time's up."
+
 MINECRAFT_NAME = "⛏️ Minecraft"
 MINECRAFT_TEXT = (
     "The server's back: `mc.morganvanv.com`, Java and Bedrock. "

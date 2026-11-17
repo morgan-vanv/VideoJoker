@@ -55,6 +55,9 @@ def pick_sections(loaded_cogs: Collection[str], ranks: Optional[list[str]], lobb
     if loaded("Games", "Fun"):
         sections.append(Section(lines.GAMES_NAME, lines.GAMES_TEXT))
 
+    if loaded("Raffle"):
+        sections.append(Section(lines.RAFFLE_NAME, lines.RAFFLE_TEXT))
+
     if loaded("Osrs"):
         sections.append(Section(lines.OSRS_NAME, lines.OSRS_TEXT))
 
