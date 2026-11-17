@@ -11,7 +11,6 @@ from discord.ext.commands import Cog
 from music import lines
 from music.catalogs import LinkNotReadable, TidalNotConfigured
 from music.player import GuildPlayer
-from music.queue import LoopMode
 from music.sources import TrackNotFound, fetch_tracks, log_optional_settings
 from music.ui import now_playing_embed, queue_embed
 
@@ -101,15 +100,6 @@ class Music(Cog, name="Music"):
 
     # ---- commands ------------------------------------------------------------------------------------------
 
-    @app_commands.command(name='join', description='Summons the VJ to your voice channel.')
-    async def join(self, interaction: discord.Interaction) -> None:
-        channel = self._user_channel(interaction)
-        if self._live_player(interaction.guild_id) is not None:
-            await interaction.response.send_message(lines.say(lines.ALREADY_HERE, channel=channel.name))
-            return
-        await self._player_for(interaction, connect=True)
-        await interaction.response.send_message(lines.say(lines.JOINED, channel=channel.name))
-
     @app_commands.command(name='leave', description='Sends the VJ home. Clears the queue.')
     async def leave(self, interaction: discord.Interaction) -> None:
         player = self.players.pop(interaction.guild_id, None)
@@ -160,26 +150,6 @@ class Music(Cog, name="Music"):
             reply = lines.say(lines.QUEUED, title=tracks[0].title, position=position)
         await interaction.followup.send(reply)
 
-    @app_commands.command(name='pause', description='Intermission! Pauses the current song.')
-    async def pause(self, interaction: discord.Interaction) -> None:
-        player = await self._player_for(interaction, connect=False)
-        if player.is_paused:
-            await interaction.response.send_message(lines.ALREADY_PAUSED, ephemeral=True)
-            return
-        player.pause()
-        await interaction.response.send_message(lines.PAUSED)
-        await player.refresh_now_playing()
-
-    @app_commands.command(name='resume', description='Resumes a paused song.')
-    async def resume(self, interaction: discord.Interaction) -> None:
-        player = await self._player_for(interaction, connect=False)
-        if not player.is_paused:
-            await interaction.response.send_message(lines.NOT_PAUSED, ephemeral=True)
-            return
-        player.resume()
-        await interaction.response.send_message(lines.RESUMED)
-        await player.refresh_now_playing()
-
     @app_commands.command(name='skip', description='Skips the currently playing song.')
     async def skip(self, interaction: discord.Interaction) -> None:
         player = await self._player_for(interaction, connect=False)
@@ -189,18 +159,28 @@ class Music(Cog, name="Music"):
         player.skip()
         await interaction.response.send_message(lines.say(lines.SKIPPED))
 
-    @app_commands.command(name='stop', description='Stops the music and clears the queue.')
-    async def stop(self, interaction: discord.Interaction) -> None:
-        player = await self._player_for(interaction, connect=False)
-        player.stop()
-        await interaction.response.send_message(lines.STOPPED)
-
-    @app_commands.command(name='queue', description='Shows the current music queue.')
-    @app_commands.describe(page='Page number, ten songs per page.')
-    async def queue(self, interaction: discord.Interaction, page: app_commands.Range[int, 1, 1000] = 1) -> None:
+    @app_commands.command(name='queue', description="What's coming up. Add remove to take a song out.")
+    @app_commands.describe(
+        page='Page number, ten songs per page.',
+        remove='Take out the song with this number (the number next to it in the queue).',
+    )
+    async def queue(
+        self,
+        interaction: discord.Interaction,
+        page: app_commands.Range[int, 1, 1000] = 1,
+        remove: app_commands.Range[int, 1, 10000] = None,
+    ) -> None:
         player = self._live_player(interaction.guild_id)
         if player is None:
             await interaction.response.send_message(lines.NOT_CONNECTED, ephemeral=True)
+            return
+        if remove is not None:  # what /remove used to do
+            track = player.queue.remove(remove)
+            if track is None:
+                await interaction.response.send_message(lines.say(lines.BAD_POSITION, position=remove), ephemeral=True)
+                return
+            await interaction.response.send_message(lines.say(lines.REMOVED, title=track.title))
+            await player.refresh_now_playing()
             return
         await interaction.response.send_message(embed=queue_embed(player, page))
 
@@ -225,46 +205,16 @@ class Music(Cog, name="Music"):
         await interaction.response.send_message(lines.say(lines.VOLUME_SET, volume=level))
         await player.refresh_now_playing()
 
-    @app_commands.command(name='loop', description='Loop the current song, the whole queue, or nothing.')
-    @app_commands.choices(
-        mode=[
-            app_commands.Choice(name='Off', value='off'),
-            app_commands.Choice(name='This song', value='track'),
-            app_commands.Choice(name='Whole queue', value='queue'),
-        ]
-    )
-    async def loop(self, interaction: discord.Interaction, mode: app_commands.Choice[str]) -> None:
-        player = await self._player_for(interaction, connect=False)
-        player.queue.loop = LoopMode(mode.value)
-        await interaction.response.send_message(lines.LOOP_SET[mode.value])
-        await player.refresh_now_playing()
-
-    @app_commands.command(name='shuffle', description='Shuffles the upcoming songs.')
-    async def shuffle(self, interaction: discord.Interaction) -> None:
-        player = await self._player_for(interaction, connect=False)
-        player.queue.shuffle()
-        await interaction.response.send_message(lines.SHUFFLED)
-        await player.refresh_now_playing()
-
-    @app_commands.command(name='remove', description='Removes a song from the queue by its position.')
-    @app_commands.describe(position='The number shown next to the song in /queue.')
-    async def remove(self, interaction: discord.Interaction, position: app_commands.Range[int, 1, 10000]) -> None:
-        player = await self._player_for(interaction, connect=False)
-        track = player.queue.remove(position)
-        if track is None:
-            await interaction.response.send_message(lines.say(lines.BAD_POSITION, position=position), ephemeral=True)
-            return
-        await interaction.response.send_message(lines.say(lines.REMOVED, title=track.title))
-        await player.refresh_now_playing()
-
-    @app_commands.command(name='effects', description='Applies an audio effect to the music.')
-    @app_commands.choices(
-        effect=[
-            app_commands.Choice(name='Nightcore', value='nightcore'),
-            app_commands.Choice(name='Bass Boosted', value='bass_boosted'),
-            app_commands.Choice(name='8D Audio', value='8d_audio'),
-        ]
-    )
+    # /effects is a stub (Morgan's to build), so it stays out of the / menu until it does something
+    # (Morgan, 2026-11-16: no placeholders in the menu). To bring it back, put these decorators back on:
+    # @app_commands.command(name='effects', description='Applies an audio effect to the music.')
+    # @app_commands.choices(
+    #     effect=[
+    #         app_commands.Choice(name='Nightcore', value='nightcore'),
+    #         app_commands.Choice(name='Bass Boosted', value='bass_boosted'),
+    #         app_commands.Choice(name='8D Audio', value='8d_audio'),
+    #     ]
+    # )
     async def effects(self, interaction: discord.Interaction, effect: app_commands.Choice[str]) -> None:
 
         # TODO: Implement audio effects

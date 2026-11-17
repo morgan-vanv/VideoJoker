@@ -109,7 +109,9 @@ class Economy(Cog, name="Economy"):
             allowed_mentions=discord.AllowedMentions(everyone=False, roles=False, users=[user]),
         )
 
-    @app_commands.command(name='gamble', description='Gamble your USh.')
+    # /gamble is a stub (starter work for the crew), so it stays out of the / menu until it does something
+    # (Morgan, 2026-11-16: no placeholders in the menu). To bring it back, put this decorator back on:
+    # @app_commands.command(name='gamble', description='Gamble your USh.')
     async def gamble(self, interaction: discord.Interaction, amount: int) -> None:
 
         # TODO: Implement actual gambling games

@@ -63,8 +63,8 @@ dodges the "sign in to confirm you're not a bot" wall; a SoundCloud Go+ OAuth to
 
 ## v1 scope (this PR)
 
-`/play [query] [play_next]`, `/join`, `/leave`, `/pause`, `/resume`, `/skip`, `/stop`, `/queue [page]`,
-`/nowplaying`, `/volume`, `/loop`, `/shuffle`, `/remove`. YouTube + SoundCloud + Spotify + Tidal + text search.
+`/play [query] [play_next]`, `/skip`, `/queue [page] [remove]`, `/nowplaying`, `/volume`, `/leave` (trimmed
+2026-11-16: pause/resume, stop, shuffle, loop live on the now-playing card's buttons; `/play` joins). YouTube + SoundCloud + Spotify + Tidal + text search.
 Now-playing card with Pause/Resume, Skip, Stop, Shuffle, Loop, Queue buttons. Idle for 5 minutes → VJ leaves.
 
 ## Later phases (each its own PR, in rough order)

@@ -51,7 +51,7 @@ def pick_sections(loaded_cogs: Collection[str], ranks: Optional[list[str]], lobb
     if lobby is not None and loaded("PersonalVC"):
         sections.append(Section(lines.PERSONAL_VC_NAME, lines.PERSONAL_VC_TEXT.format(lobby=lobby)))
 
-    # The games are in the Games cog, /roast is in Fun
+    # The games are in the Games cog, /curseofra is in Fun
     if loaded("Games", "Fun"):
         sections.append(Section(lines.GAMES_NAME, lines.GAMES_TEXT))
 
