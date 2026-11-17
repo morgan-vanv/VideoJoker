@@ -104,6 +104,20 @@ class McSettings(NamedTuple):
     welcome_role_id: Optional[int] = None
 
 
+class RaffleRow(NamedTuple):
+    """One raffle (a row of raffles)."""
+
+    id: int
+    guild_id: int
+    channel_id: int
+    message_id: int  # the raffle card, where people react to enter
+    host_id: int
+    prize: str
+    winners: int  # how many winners to draw
+    ends_at: int  # unix seconds (so UTC)
+    state: str  # 'running', 'drawn' or 'cancelled'
+
+
 class Database:  # pylint: disable=too-many-public-methods  # all SQL lives here on purpose, one method per query
     """
     Manages the SQLite database and provides an in-memory cache for user roles (VIP & BANNED).
@@ -296,6 +310,22 @@ class Database:  # pylint: disable=too-many-public-methods  # all SQL lives here
                 guild_id INTEGER NOT NULL,
                 discord_id INTEGER NOT NULL,
                 PRIMARY KEY (guild_id, discord_id)
+            )
+        ''')
+        # Raffles (cogs/raffle.py): one row per raffle, kept after it's drawn or cancelled. Who entered isn't stored:
+        # the entries are the reactions on the card, read when it's drawn.
+        await self.conn.execute('''
+            CREATE TABLE IF NOT EXISTS raffles (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                guild_id INTEGER NOT NULL,
+                channel_id INTEGER NOT NULL,
+                message_id INTEGER NOT NULL,
+                host_id INTEGER NOT NULL,
+                prize TEXT NOT NULL,
+                winners INTEGER NOT NULL DEFAULT 1,
+                ends_at INTEGER NOT NULL,
+                state TEXT NOT NULL DEFAULT 'running',
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
             )
         ''')
         # Added 2026-11 for the rank ladder: XP given rather than earned (see TOTAL_XP_SQL). A new column with a
@@ -1036,3 +1066,67 @@ class Database:  # pylint: disable=too-many-public-methods  # all SQL lives here
             commit=True,
         )
         return bool(rows)
+
+    # Raffle methods (raffle/rules.py has the rules; this is just storage)
+    _RAFFLE_COLUMNS = "id, guild_id, channel_id, message_id, host_id, prize, winners, ends_at, state"
+
+    async def add_raffle(  # pylint: disable=too-many-arguments, too-many-positional-arguments  # one per column
+        self, guild_id: int, channel_id: int, message_id: int, host_id: int, prize: str, winners: int, ends_at: int
+    ) -> int:
+        """Saves a new running raffle and returns its id."""
+        rows = await self._fetch_all(
+            """
+            INSERT INTO raffles (guild_id, channel_id, message_id, host_id, prize, winners, ends_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING id
+        """,
+            (guild_id, channel_id, message_id, host_id, prize, winners, ends_at),
+            commit=True,
+        )
+        return rows[0][0]
+
+    async def get_raffle(self, raffle_id: int) -> Optional[RaffleRow]:
+        rows = await self._fetch_all(f"SELECT {self._RAFFLE_COLUMNS} FROM raffles WHERE id = ?", (raffle_id,))
+        return RaffleRow(*rows[0]) if rows else None
+
+    async def get_running_raffles(self, guild_id: int) -> list[RaffleRow]:
+        """Every raffle still running in this server, the one ending soonest first."""
+        rows = await self._fetch_all(
+            f"SELECT {self._RAFFLE_COLUMNS} FROM raffles WHERE guild_id = ? AND state = 'running' ORDER BY ends_at",
+            (guild_id,),
+        )
+        return [RaffleRow(*row) for row in rows]
+
+    async def get_hosts_raffle(self, guild_id: int, host_id: int) -> Optional[RaffleRow]:
+        """The raffle this person is running in this server, if any (one at a time)."""
+        rows = await self._fetch_all(
+            f"SELECT {self._RAFFLE_COLUMNS} FROM raffles WHERE guild_id = ? AND host_id = ? AND state = 'running'",
+            (guild_id, host_id),
+        )
+        return RaffleRow(*rows[0]) if rows else None
+
+    async def get_due_raffles(self, now: int) -> list[RaffleRow]:
+        """Every running raffle (in any server) whose time is up, so it's time to draw it."""
+        rows = await self._fetch_all(
+            f"SELECT {self._RAFFLE_COLUMNS} FROM raffles WHERE state = 'running' AND ends_at <= ? ORDER BY ends_at",
+            (now,),
+        )
+        return [RaffleRow(*row) for row in rows]
+
+    async def close_raffle(self, raffle_id: int, state: str) -> bool:
+        """Moves a running raffle to 'drawn' or 'cancelled'. Returns False if it wasn't running any more: then
+        someone else got there first (say, a cancel and the draw in the same second), and only one of them goes on."""
+        if state not in ('drawn', 'cancelled'):
+            raise ValueError("state must be 'drawn' or 'cancelled'")
+        rows = await self._fetch_all(
+            "UPDATE raffles SET state = ? WHERE id = ? AND state = 'running' RETURNING id",
+            (state, raffle_id),
+            commit=True,
+        )
+        return bool(rows)
+
+    async def set_raffle_state(self, raffle_id: int, state: str) -> None:
+        """Sets a raffle's state whatever it was: 'running' puts back a draw that Discord interrupted (it's tried
+        again), 'cancelled' closes a raffle whose card is gone."""
+        if state not in ('running', 'drawn', 'cancelled'):
+            raise ValueError("state must be 'running', 'drawn' or 'cancelled'")
+        await self._execute("UPDATE raffles SET state = ? WHERE id = ?", (state, raffle_id))

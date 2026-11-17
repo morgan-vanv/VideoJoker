@@ -19,6 +19,7 @@ EVERY_COG = {
     "Osrs",
     "PersonalVC",
     "Minecraft",
+    "Raffle",
 }
 RANKS = ["LOWLY SERFS", "SWORN SWORDS", "LORDS"]
 LOBBY = "<#777>"
@@ -39,6 +40,7 @@ def test_everything_on_shows_every_section_in_order():
         lines.MUSIC_NAME,
         lines.PERSONAL_VC_NAME,
         lines.GAMES_NAME,
+        lines.RAFFLE_NAME,
         lines.OSRS_NAME,
         lines.MINECRAFT_NAME,
     ]
@@ -87,6 +89,7 @@ def test_dms_show_only_the_general_sections():
         lines.LEADERBOARD_NAME,
         lines.MUSIC_NAME,
         lines.GAMES_NAME,
+        lines.RAFFLE_NAME,
         lines.OSRS_NAME,
         lines.MINECRAFT_NAME,
     ]

@@ -24,6 +24,7 @@ on:
       - "music/**"
       - "osrs/**"
       - "personal_vc/**"
+      - "raffle/**"
       - "ranks/**"
       - "standing/**"
       - "requirements.txt"
