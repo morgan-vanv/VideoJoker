@@ -1,50 +1,41 @@
-"""The VJ's narration. Every user-facing line the music player says lives here, so the voice stays in one place.
+"""Every user-facing line the music player says, in one place. Plain on purpose (Morgan, 2026-11-17): short, clear
+lines with an emoji, like the Minecraft, event alert and raffle text.
 
-Lists get a random pick (see `say`); single strings are used as-is.
+`say` picks at random when a line is a list of options (none are right now) and fills in the {blanks}.
 """
 
 import random
 
-NOW_SHOWING = "🎬 NOW SHOWING"
-UP_NEXT = "📼 UP NEXT"
-INTERMISSION = "⏸ INTERMISSION"
+NOW_SHOWING = "🎵 Now playing"
+UP_NEXT = "🎶 Up next"
+INTERMISSION = "⏸️ Paused"
 
-QUEUED = [
-    "📼 The VJ loads the reel: **{title}**",
-    "📼 Added to tonight's programme: **{title}**",
-    "📼 **{title}** — the VJ has it on the shelf. Position {position}.",
-]
-QUEUED_NEXT = "📼 The VJ cuts in line for you: **{title}** plays next."
-QUEUED_MANY = "📼 The VJ wheels in {count} tapes from **{title}**. This will be a long night, comrades."
+QUEUED = "🎶 Added to the queue: **{title}** (position {position})"
+QUEUED_NEXT = "🎶 **{title}** plays next."
+QUEUED_MANY = "🎶 Added {count} songs from **{title}** to the queue."
 
-SKIPPED = [
-    "⏭ The VJ fast-forwards. Nobody wanted to see that part anyway.",
-    "⏭ Skipped. The VJ has seen this one already.",
-    "⏭ The tape jumps ahead. Action is coming.",
-]
-STOPPED = "🛑 The VJ ejects the tape. Movie over, comrades."
-NOTHING_PLAYING = "Nothing is playing. Load a tape with `/play`."
-QUEUE_EMPTY = "The reel has run out. Queue something with `/play`, comrade."
-QUEUE_CLEARED = "🧹 The VJ sweeps {count} tapes off the shelf."
-REMOVED = "🗑️ **{title}** is off the programme."
-BAD_POSITION = "There is no tape at position {position}, comrade. Check `/queue`."
+SKIPPED = "⏭️ Skipped."
+STOPPED = "⏹️ Stopped, and the queue is cleared."
+NOTHING_PLAYING = "Nothing is playing. Start something with `/play`."
+QUEUE_EMPTY = "The queue is empty. Add something with `/play`."
+QUEUE_CLEARED = "🧹 Cleared {count} songs from the queue."
+REMOVED = "🗑️ Removed **{title}** from the queue."
+BAD_POSITION = "There's no song at position {position}. Check `/queue`."
 VOLUME_SET = "🔊 Volume: {volume}%"
 VOLUME_SHOW = "🔊 Volume is at {volume}%."
 
-LEFT = "👋 The VJ packs up the projector. Goodnight, comrades."
-IDLE_LEFT = "The cinema has emptied. The VJ packs up the projector."
-RESTARTING = "📼 The VJ is swapping projectors (the bot is restarting). Give it a minute, then `/play` again, comrades."
-NOT_IN_VOICE = "You are not in a voice channel. The VJ cannot narrate to an empty room."
-NOT_CONNECTED = "The VJ isn't in a voice channel. Use `/play` first."
-WRONG_CHANNEL = "The VJ is showing a film in **{channel}**. Join the audience there to use the controls."
+LEFT = "👋 Left the voice channel and cleared the queue."
+IDLE_LEFT = "👋 Nothing left to play, so I've left the voice channel."
+RESTARTING = "🔄 The bot is restarting. Give it a minute, then `/play` again."
+NOT_IN_VOICE = "Join a voice channel first, then try again."
+NOT_CONNECTED = "I'm not in a voice channel. Use `/play` first."
+WRONG_CHANNEL = "I'm playing music in **{channel}**. Join that channel to use the controls."
 
-SEARCHING = "🔎 The VJ rummages through the tapes for **{query}**..."
-NOT_FOUND = "The VJ searched every shelf and found nothing for **{query}**."
-LOAD_FAILED = "The tape for **{title}** is damaged. The VJ skips it and moves on."
-TIDAL_NOT_CONFIGURED = (
-    "Tidal links need `TIDAL_CLIENT_ID` and `TIDAL_CLIENT_SECRET` in `.env`. See SETUP_GUIDE.md — it's free."
-)
-LINK_FAILED = "{service} wouldn't hand over that one. Check the link (private playlists stay private), comrade."
+SEARCHING = "🔎 Searching for **{query}**..."
+NOT_FOUND = "Couldn't find anything for **{query}**."
+LOAD_FAILED = "Couldn't play **{title}**, so I skipped it."
+TIDAL_NOT_CONFIGURED = "🎵 Tidal links aren't switched on here yet. YouTube, SoundCloud and Spotify links work."
+LINK_FAILED = "{service} wouldn't share that link. Check it (private playlists stay private)."
 
 
 def say(line: str | list[str], **kwargs) -> str:

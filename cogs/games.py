@@ -21,7 +21,7 @@ class Games(Cog, name="Games"):
     async def coinflip(self, interaction: discord.Interaction) -> None:
         """Flips a coin"""
         result = random.choice(['Heads!', 'Tails!'])
-        await interaction.response.send_message(f"{interaction.user.name} flipped a coin and got: **{result}**")
+        await interaction.response.send_message(f"{interaction.user.display_name} flipped a coin and got: **{result}**")
 
     @app_commands.command(name='roll', description='Roll dice: one six-sided die, or pick the sides and how many')
     @app_commands.describe(
@@ -37,7 +37,7 @@ class Games(Cog, name="Games"):
             await interaction.response.send_message(problem, ephemeral=True)
             return
         rolls = dice_rules.roll(sides, dice)
-        await interaction.response.send_message(dice_rules.describe(interaction.user.name, sides, rolls))
+        await interaction.response.send_message(dice_rules.describe(interaction.user.display_name, sides, rolls))
 
     @app_commands.command(name='8ball', description='Ask the magic 8 ball a question')
     # Range makes Discord itself cap the question at 300 characters (the reply must fit Discord's 2000 limit)
@@ -46,7 +46,7 @@ class Games(Cog, name="Games"):
         answer = random.choice(EIGHT_BALL_RESPONSES)
 
         await interaction.response.send_message(
-            f"{interaction.user.name} asked: '{question}'\n🎱 Magic 8 Ball says: **{answer}**"
+            f"{interaction.user.display_name} asked: '{question}'\n🎱 Magic 8 Ball says: **{answer}**"
         )
 
     @app_commands.command(name='rockpaperscissors', description='Play rock-paper-scissors against the bot')
@@ -69,7 +69,7 @@ class Games(Cog, name="Games"):
             result = "I win!"
 
         await interaction.response.send_message(
-            f"{interaction.user.name} chose **{choice.name}**. I chose **{bot_choice.capitalize()}**. {result}"
+            f"{interaction.user.display_name} chose **{choice.name}**. I chose **{bot_choice.capitalize()}**. {result}"
         )
 
     @app_commands.command(name="threecardmonte", description="Play a game of Three Card Monte with the User")

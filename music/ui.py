@@ -73,7 +73,7 @@ def now_playing_embed(player: GuildPlayer) -> discord.Embed:
 def played_embed(track: Track) -> discord.Embed:
     """What a now-playing card turns into once the track is over: compact, no buttons."""
     return discord.Embed(
-        description=f"📼 *Previously:* {_title_link(track)} `{track.pretty_duration}`",
+        description=f"✅ *Played:* {_title_link(track)} `{track.pretty_duration}`",
         colour=discord.Colour.dark_grey(),
     )
 
@@ -86,7 +86,7 @@ def queue_embed(player: GuildPlayer, page: int = 1) -> discord.Embed:
     start = (page - 1) * QUEUE_PAGE_SIZE
     chunk = tracks[start : start + QUEUE_PAGE_SIZE]
 
-    embed = discord.Embed(title="📜 Tonight's programme", colour=discord.Colour.dark_grey())
+    embed = discord.Embed(title="📜 Queue", colour=discord.Colour.dark_grey())
     if player.current:
         embed.add_field(
             name=lines.NOW_SHOWING,

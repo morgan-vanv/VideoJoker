@@ -26,7 +26,7 @@ DEATHS_QUESTION = "💀 And your deaths? Want them in {channel}, so everyone can
 DEATHS_YES = "💀 Brave. Sit respectfully."
 DEATHS_NO = "💀 Your deaths stay between you and the VJ."
 FLEX_LATER = "💰 Whenever you're ready: `/osrs flexing`."
-FLEX_NOT_SET_UP = "🚧 Flexing isn't set up on this server yet (the bot needs `OSRS_FLEXING_CHANNEL_ID`)."
+FLEX_NOT_SET_UP = "🚧 Flexing isn't set up on this server yet."
 FLEX_NO_PERMISSION = "🚫 The VJ needs the **Manage Webhooks** permission in {channel} to run flexing. Ask Morgan."
 FLEX_KIT_TITLE = (
     "## 💰 Your flexing kit\nIn RuneLite, open the **Dink** plugin's settings (install it from the Plugin Hub first):"
