@@ -3,7 +3,8 @@ What each area says lives in guide/layout.py. tests/test_guide.py fails if anyth
 slash command that doesn't exist.
 """
 
-TITLE = "🎬 Welcome to the show, comrade. I'm VideoJoker."
+# Morgan's words (2026-11-16), like the description below
+TITLE = "🎬 Welcome to the show, I'll be your VJ."
 
 # Morgan's words, word for word
 DESCRIPTION = (
