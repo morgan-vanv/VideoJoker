@@ -12,7 +12,6 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
-from cogs.permissions import is_vip
 from core.database import OsrsAccount
 from osrs import flexing, lines, wom
 from osrs.accounts import clean_rsn, rsn_key
@@ -218,8 +217,18 @@ class Osrs(commands.GroupCog, group_name="osrs", group_description="Link your OS
         flow.next_step()
         await interaction.edit_original_response(content=flow.text(), view=flow)
 
-    @app_commands.command(name="rotate-webhook", description="VIP: replace a leaked flexing webhook")
-    @is_vip()
+    # ---- the VIP side, run from /setup osrs-webhook (cogs/server_setup.py has the command; the work happens here)
+
+    async def setup_summary(self, guild: discord.Guild) -> str:
+        """Where flexing goes, for /setup show. The channels come from the bot's .env, not a command."""
+        try:
+            main, deaths = flexing.flexing_channels(self.bot)
+        except flexing.FlexingNotSetUp:
+            return "Flexing: off (`OSRS_FLEXING_CHANNEL_ID` isn't set in the bot's .env)"
+        if main.guild.id != guild.id:
+            return "Flexing: set up in another server"
+        return f"Flexing: {main.mention}" + (f", deaths in {deaths.mention}" if deaths else "")
+
     async def rotate_webhook(self, interaction: discord.Interaction) -> None:
         await interaction.response.defer(ephemeral=True)
         try:

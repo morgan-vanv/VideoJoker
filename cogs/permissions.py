@@ -52,7 +52,9 @@ class Permissions(Cog, name="Permissions"):
         logging.info("Permissions cog initialized.")
         self.bot = bot
 
-    @app_commands.command(name='checkpermissions', description='Checks the permissions of a user')
+    # Since 2026-11-16 these run from /setup people (cogs/server_setup.py), hidden from the / menu with the other
+    # server setup. The work still happens here.
+
     async def check_permissions(self, interaction: discord.Interaction, user: discord.User) -> None:
         """
         **Replies to the executing user with the permissions of the user provided**
@@ -62,7 +64,7 @@ class Permissions(Cog, name="Permissions"):
         :param user: The user whose permissions are to be checked
         :type user: discord.User
 
-        Usage Example: `/checkpermissions @SomeUser`
+        Usage Example: `/setup people check @SomeUser`
         """
 
         await interaction.response.defer()
@@ -80,17 +82,16 @@ class Permissions(Cog, name="Permissions"):
         embed = discord.Embed(title=f"Permissions for: {user.name}", description=f"Status: {status}", color=color)
         await interaction.followup.send(embed=embed)
 
-    @app_commands.command(name='listbannedusers', description='Lists all banned users')
     async def list_banned_users(self, interaction: discord.Interaction) -> None:
         """
         **Replies to the executing user with a list of all BANNED users**
 
-        Permissions Required: !BANNED
+        Permissions Required: VIP (it runs from /setup)
 
         :param interaction: The interaction object from discord
         :type interaction: discord.Interaction
 
-        Usage Example: `/listbannedusers`
+        Usage Example: `/setup people banned`
         """
 
         await interaction.response.defer()
@@ -100,17 +101,16 @@ class Permissions(Cog, name="Permissions"):
         embed = discord.Embed(title="BANNED Users", description=description, color=discord.Colour.red())
         await interaction.followup.send(embed=embed)
 
-    @app_commands.command(name='listvipusers', description='Lists all VIP users')
     async def list_vip_users(self, interaction: discord.Interaction) -> None:
         """
         **Replies to the executing user with a list of all VIP users**
 
-        Permissions Required: !BANNED
+        Permissions Required: VIP (it runs from /setup)
 
         :param interaction: The interaction object from discord
         :type interaction: discord.Interaction
 
-        Usage Example: `/listvipusers`
+        Usage Example: `/setup people vips`
         """
 
         await interaction.response.defer()
@@ -120,8 +120,6 @@ class Permissions(Cog, name="Permissions"):
         embed = discord.Embed(title="VIP Users", description=description, color=discord.Colour.green())
         await interaction.followup.send(embed=embed)
 
-    @app_commands.command(name='grantbanuser', description='Bans a user from using the bot')
-    @is_vip()
     async def grant_ban_user(self, interaction: discord.Interaction, user: discord.User) -> None:
         """
         **Grants BANNED status to the user provided**
@@ -133,7 +131,7 @@ class Permissions(Cog, name="Permissions"):
         :param user: The user to be granted BANNED status
         :type user: discord.User
 
-        Usage Example: `/grantbanuser @SomeUser`
+        Usage Example: `/setup people ban @SomeUser`
         """
 
         await interaction.response.defer()
@@ -149,8 +147,6 @@ class Permissions(Cog, name="Permissions"):
         await self.bot.db.set_user_role(user.id, 'BANNED')
         await interaction.followup.send(f"User {user.name} has been banned from the bot.")
 
-    @app_commands.command(name='grantvipuser', description='Grants VIP status to a user')
-    @is_vip()
     async def grant_vip_user(self, interaction: discord.Interaction, user: discord.User) -> None:
         """
         **Grants VIP status to the user provided**
@@ -162,7 +158,7 @@ class Permissions(Cog, name="Permissions"):
         :param user: The user to be granted VIP status
         :type user: discord.User
 
-        Usage Example: `/grantvipuser @SomeUser`
+        Usage Example: `/setup people vip @SomeUser`
         """
 
         await interaction.response.defer()
@@ -178,8 +174,6 @@ class Permissions(Cog, name="Permissions"):
         await self.bot.db.set_user_role(user.id, 'VIP')
         await interaction.followup.send(f"User {user.name} has been granted VIP status.")
 
-    @app_commands.command(name='resetpermissions', description='Resets permissions for a user')
-    @is_vip()
     async def reset_permissions(self, interaction: discord.Interaction, user: discord.User) -> None:
         """
         **Resets the permissions of the user provided**
@@ -191,7 +185,7 @@ class Permissions(Cog, name="Permissions"):
         :param user: The user to have their permissions reset
         :type user: discord.User
 
-        Usage Example: `/resetpermissions @SomeUser`
+        Usage Example: `/setup people reset @SomeUser`
         """
 
         await interaction.response.defer()

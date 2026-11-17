@@ -14,7 +14,6 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
-from cogs.permissions import is_vip
 from ranks.ladder import (
     DEFAULT_MIN_XP,
     TIER_NAMES,
@@ -32,7 +31,7 @@ from ranks.ui import ConfirmTidy
 from standing.lines import EARNING, YOU_ARE_HERE, you_are_here
 
 EMBED_COLOUR = discord.Colour.dark_gold()
-# The highest threshold /ladder setup accepts (a typo guard: nobody is posting a million messages)
+# The highest threshold /setup ladder set accepts (a typo guard: nobody is posting a million messages)
 MAX_XP = 1_000_000
 
 
@@ -47,7 +46,7 @@ def role_problems(guild: discord.Guild, tiers: list[Tier], for_log: bool = False
         name = TIER_NAMES.get(tier.number, f"Tier {tier.number}")
         role = guild.get_role(tier.role_id)
         if role is None:
-            problems.append(f"The {name} role is gone (deleted?). Run `/ladder setup` again.")
+            problems.append(f"The {name} role is gone (deleted?). Run `/setup ladder set` again.")
             continue
         label = f"'{role.name}'" if for_log else role.mention
         if role.is_default() or role.managed:
@@ -98,7 +97,7 @@ class Ranks(commands.GroupCog, group_name="ladder", group_description="The XP ra
             logging.info("Rank ladder: on in %d server(s).", len(self.ladders))
         else:
             # Hosting contract: a feature with nothing set up switches off and says so, the bot still starts
-            logging.warning("Rank ladder: off (no server has run /ladder setup yet).")
+            logging.warning("Rank ladder: off (no server has run /setup ladder set yet).")
 
     @commands.Cog.listener()
     async def on_ready(self):
@@ -134,7 +133,7 @@ class Ranks(commands.GroupCog, group_name="ladder", group_description="The XP ra
         if change is not None:
             promoted = await self.apply(member, tiers, change, reason=f"Rank ladder: reached {xp} server XP")
             if promoted:
-                # Here, not in apply(): /ladder tidy uses apply() too, and tidying isn't climbing
+                # Here, not in apply(): /setup ladder tidy uses apply() too, and tidying isn't climbing
                 await self.bot.db.save_rank_up_note(member.guild.id, member.id, change.tier.number)
 
     # ---- the rank-up note (ranks/notes.py has the wording)
@@ -206,7 +205,7 @@ class Ranks(commands.GroupCog, group_name="ladder", group_description="The XP ra
             return False
         try:
             # Add first, remove second: if Discord fails half-way, the member ends up with one rank too many
-            # (harmless, /ladder tidy fixes it), never with one too few.
+            # (harmless, /setup ladder tidy fixes it), never with one too few.
             if change.add is not None:
                 await member.add_roles(guild.get_role(change.add), reason=reason)
             if change.remove:
@@ -239,15 +238,8 @@ class Ranks(commands.GroupCog, group_name="ladder", group_description="The XP ra
         embed.set_footer(text=f"{EARNING} XP is for life. Ranks only go up, one rank at a time.")
         return embed
 
-    @app_commands.command(name="setup", description="VIP: pick the three rank roles and their XP thresholds.")
-    @app_commands.describe(
-        serfs="The first rank, earned with a member's first message",
-        swords="The middle rank",
-        lords="The top rank",
-        swords_xp=f"XP for the middle rank (default: what it is now, or {DEFAULT_MIN_XP[2]})",
-        lords_xp=f"XP for the top rank (default: what it is now, or {DEFAULT_MIN_XP[3]})",
-    )
-    @is_vip()
+    # ---- the VIP side, run from /setup ladder (cogs/server_setup.py has the commands; the work happens here)
+
     # pylint: disable=too-many-arguments, too-many-positional-arguments
     async def setup(
         self,
@@ -291,7 +283,7 @@ class Ranks(commands.GroupCog, group_name="ladder", group_description="The XP ra
         tiers = self.ladders.get(interaction.guild.id)
         if not tiers:
             await interaction.response.send_message(
-                "🎞️ No ladder on this reel yet. A VIP can start one with `/ladder setup`.", ephemeral=True
+                "🎞️ No ladder on this reel yet. A VIP can start one with `/setup ladder set`.", ephemeral=True
             )
             return
         embed = self.describe(interaction.guild, tiers)
@@ -305,21 +297,27 @@ class Ranks(commands.GroupCog, group_name="ladder", group_description="The XP ra
         )
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
-    @app_commands.command(name="off", description="VIP: stops handing out ranks here. Nobody loses a role.")
-    @is_vip()
+    async def setup_summary(self, guild: discord.Guild) -> str:
+        """This server's ladder in a line or two, for /setup show."""
+        tiers = self.ladders.get(guild.id)
+        if not tiers:
+            return "Off. `/setup ladder set` switches it on."
+        text = " → ".join(f"{rank_label(guild, tier)} ({tier.min_xp:,} XP)" for tier in tiers)
+        return text + "".join(f"\n⚠️ {problem}" for problem in role_problems(guild, tiers))
+
     async def off(self, interaction: discord.Interaction) -> None:
         await self.bot.db.clear_rank_tiers(interaction.guild.id)
         self.ladders.pop(interaction.guild.id, None)
         logging.info("Rank ladder switched off in '%s' by %s", interaction.guild.name, interaction.user.id)
         await interaction.response.send_message(
-            "📼 Ladder's off. Everyone keeps the rank they have; nobody climbs until `/ladder setup` again.",
+            "📼 Ladder's off. Everyone keeps the rank they have; nobody climbs until `/setup ladder set` again.",
             ephemeral=True,
         )
 
     async def plan_tidy_for(
         self, guild: discord.Guild, tiers: list[Tier]
     ) -> tuple[list[tuple[discord.Member, RoleChange]], list[tuple[discord.Member, int]]]:
-        """What /ladder tidy would do: (role changes, XP top-ups as (member, minimum XP)).
+        """What /setup ladder tidy would do: (role changes, XP top-ups as (member, minimum XP)).
         guild.members is the whole list thanks to the members intent (bot.py). Two jobs per ranked member:
         take off extra lower ranks, and top their XP up to the minimum for the rank they wear."""
         all_xp = await self.bot.db.get_all_total_xp()
@@ -337,13 +335,11 @@ class Ranks(commands.GroupCog, group_name="ladder", group_description="The XP ra
                 top_ups.append((member, xp + shortfall))
         return changes, top_ups
 
-    @app_commands.command(name="tidy", description="VIP: one rank each, and enough XP for the rank they wear.")
-    @is_vip()
     async def tidy(self, interaction: discord.Interaction) -> None:
         guild = interaction.guild
         tiers = self.ladders.get(guild.id)
         if not tiers:
-            await interaction.response.send_message("🎞️ Set up the ladder first: `/ladder setup`.", ephemeral=True)
+            await interaction.response.send_message("🎞️ Set up the ladder first: `/setup ladder set`.", ephemeral=True)
             return
         problems = role_problems(guild, tiers)
         if problems:
@@ -377,10 +373,12 @@ class Ranks(commands.GroupCog, group_name="ladder", group_description="The XP ra
         async def run(button_click: discord.Interaction) -> None:
             for member, minimum in top_ups:
                 await self.bot.db.top_up_xp(member.id, minimum)
-            logging.info("Rank ladder: /ladder tidy topped up XP for %d member(s) in '%s'", len(top_ups), guild.name)
+            logging.info(
+                "Rank ladder: /setup ladder tidy topped up XP for %d member(s) in '%s'", len(top_ups), guild.name
+            )
             done = 0
             for member, change in changes:
-                if await self.apply(member, tiers, change, reason=f"/ladder tidy by {interaction.user}"):
+                if await self.apply(member, tiers, change, reason=f"/setup ladder tidy by {interaction.user}"):
                     done += 1
             result = f"🎬 That's a wrap: **{done}** member(s) down to one rank, **{len(top_ups)}** XP top-up(s)."
             if done < len(changes):

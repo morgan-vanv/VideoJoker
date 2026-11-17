@@ -93,7 +93,7 @@ WELCOME = (
     "Hit the button and the VJ walks you in."
 )
 
-# ---- /mc marquee and /mc welcome (VIP)
+# ---- /setup minecraft marquee and welcome (VIP)
 MARQUEE_ON = "🎬 The marquee is up in {channel}. The VJ checks the server every couple of minutes."
 MARQUEE_OFF = "🎬 Marquee off. The old card stays where it is until someone deletes it."
 WELCOME_ON = "🎬 Anyone who gets {role} is welcomed once in {channel}."

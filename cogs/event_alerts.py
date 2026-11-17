@@ -10,7 +10,7 @@ It also notifies the Interested people when an event starts. What it doesn't do,
 2. A notice when someone edits an event in Discord and its time or location changes, or it's cancelled, pinging
    the people who were Interested. There's no command for this: the bot just watches the edits.
 
-The one command, /seteventalerts [channel], switches it on for a server (with a channel) or off (without one).
+The one command, /setup events [channel], switches it on for a server (with a channel) or off (without one).
 The reminder times are one setting for the whole bot: EVENT_ALERT_TIMES in .env (e.g. "24h,1h"), optional.
 
 Needs, in the alert channel: View Channel, Send Messages and Embed Links (for the event card). Nothing else: the
@@ -28,10 +28,8 @@ from datetime import datetime, timedelta
 from typing import Optional
 
 import discord
-from discord import app_commands
 from discord.ext import commands, tasks
 
-from cogs.permissions import is_vip
 from event_alerts import lines, rules
 from event_alerts.rules import Change, EventState
 
@@ -110,7 +108,7 @@ class EventAlerts(commands.Cog):
             )
         else:
             # Hosting contract: a feature with nothing set up switches off and says so, the bot still starts
-            logging.warning("Event alerts: off (no server has run /seteventalerts yet).")
+            logging.warning("Event alerts: off (no server has run /setup events yet).")
         self.tick.start()
 
     async def cog_unload(self):
@@ -132,23 +130,28 @@ class EventAlerts(commands.Cog):
             return None
         channel = guild.get_channel(channel_id)
         if not isinstance(channel, discord.TextChannel):
-            self.warn_once(guild, "the alert channel is gone (deleted?). Run /seteventalerts again.")
+            self.warn_once(guild, "the alert channel is gone (deleted?). Run /setup events again.")
             return None
         if needs := missing(channel):
             self.warn_once(guild, f"I need {', '.join(needs)} in #{channel.name}.")
             return None
         return channel
 
-    # ---- the command
+    # ---- the setting, run from /setup events (cogs/server_setup.py has the command; the work happens here)
 
-    @app_commands.command(
-        name="seteventalerts", description="Pick where the VJ posts event reminders. Leave it empty to switch them off."
-    )
-    @app_commands.describe(channel="Where reminders and changes to this server's events go (empty = alerts off)")
-    @app_commands.guild_only()
-    # Out of the / menu for everyone but admins (the server owner can show it to other roles in Integrations)
-    @app_commands.default_permissions(manage_guild=True)
-    @is_vip()
+    async def setup_summary(self, guild: discord.Guild) -> str:
+        """Where this server's alerts go, for /setup show."""
+        channel_id = self.channels.get(guild.id)
+        if not channel_id:
+            return "Off. `/setup events` with a channel switches them on."
+        channel = guild.get_channel(channel_id)
+        if channel is None:
+            return "⚠️ The alert channel is gone (deleted?). Run `/setup events` again."
+        text = f"{channel.mention}, {rules.describe_reminders(self.reminders)} before each event"
+        if needs := missing(channel):
+            text += f"\n⚠️ Missing in {channel.mention}: {', '.join(needs)}"
+        return text
+
     async def set_event_alerts(self, interaction: discord.Interaction, channel: Optional[discord.TextChannel] = None):
         guild = interaction.guild
         if channel is None:

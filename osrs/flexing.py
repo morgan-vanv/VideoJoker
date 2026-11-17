@@ -100,8 +100,8 @@ async def replace_webhook(
         if old_hooks[0].avatar:  # someone gave it a picture in Discord's settings: keep it
             avatar = await old_hooks[0].avatar.read()
     for hook in old_hooks:
-        await hook.delete(reason="VideoJoker: /osrs rotate-webhook")
-    return await channel.create_webhook(name=name, avatar=avatar, reason="VideoJoker: /osrs rotate-webhook")
+        await hook.delete(reason="VideoJoker: /setup osrs-webhook")
+    return await channel.create_webhook(name=name, avatar=avatar, reason="VideoJoker: /setup osrs-webhook")
 
 
 async def add_missing_avatars(bot: discord.Client) -> None:

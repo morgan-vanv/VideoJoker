@@ -3,8 +3,8 @@
 Design and the why behind it: docs/minecraft-design.md. The pieces live in minecraft/ (name rules, the account
 lookups, the server-list ping, buttons, the VJ's lines); this file turns slash commands and Discord events into
 calls to them. Three things run without anyone typing a command:
-- the marquee: a status card the VJ keeps up to date in one channel (set with /mc marquee);
-- the welcome: when someone gets the Minecraft role from onboarding, the VJ greets them once (set with /mc welcome);
+- the marquee: a status card the VJ keeps up to date in one channel (set with /setup minecraft marquee);
+- the welcome: when someone gets the Minecraft role from onboarding, the VJ greets them once (set with /setup minecraft welcome);
 - the "Get me in the game" button on both, which keeps working across restarts.
 
 Part 1 only reads public things (the server's address, Mojang, GeyserMC). Part 2 talks to the booth, a small
@@ -25,7 +25,6 @@ import discord
 from discord import app_commands
 from discord.ext import commands, tasks
 
-from cogs.permissions import is_vip
 from core.database import McAccount, McSettings
 from minecraft import lines, lookup, postcards
 from minecraft.accounts import clean_name
@@ -211,7 +210,7 @@ class Minecraft(  # pylint: disable=too-many-public-methods,too-many-instance-at
             return
         channel = guild.get_channel(settings.marquee_channel_id)
         if not isinstance(channel, discord.TextChannel):
-            self.warn_once(guild, "the marquee channel is gone (deleted?). Run /mc marquee again.")
+            self.warn_once(guild, "the marquee channel is gone (deleted?). Run /setup minecraft marquee again.")
             return
         try:
             if settings.marquee_message_id:
@@ -252,7 +251,7 @@ class Minecraft(  # pylint: disable=too-many-public-methods,too-many-instance-at
             return
         channel = after.guild.get_channel(settings.welcome_channel_id)
         if not isinstance(channel, discord.TextChannel):
-            self.warn_once(after.guild, "the welcome channel is gone (deleted?). Run /mc welcome again.")
+            self.warn_once(after.guild, "the welcome channel is gone (deleted?). Run /setup minecraft welcome again.")
             return
         if not await self.bot.db.mark_mc_welcomed(after.guild.id, after.id):
             return  # welcomed before (they had the role once already)
@@ -368,9 +367,20 @@ class Minecraft(  # pylint: disable=too-many-public-methods,too-many-instance-at
         embed = self.status_embed(await self.check_server(), await self.check_modes())
         await interaction.edit_original_response(embed=embed, view=StartView(self))
 
-    @app_commands.command(name="marquee", description="VIP: keep a Minecraft status card in a channel (empty = off)")
-    @app_commands.describe(channel="Where the card goes; leave empty to switch it off")
-    @is_vip()
+    # ---- the VIP side, run from /setup minecraft (cogs/server_setup.py has the commands; the work happens here)
+
+    async def setup_summary(self, guild: discord.Guild) -> str:
+        """This server's Minecraft settings, for /setup show."""
+        settings = self.settings.get(guild.id, McSettings(guild.id))
+        marquee = f"<#{settings.marquee_channel_id}>" if settings.marquee_channel_id else "off"
+        if settings.welcome_channel_id and settings.welcome_role_id:
+            welcome = f"<#{settings.welcome_channel_id}>, for <@&{settings.welcome_role_id}>"
+        else:
+            welcome = "off"
+        cards = f"<#{self.postcard_channels[guild.id]}>" if guild.id in self.postcard_channels else "off"
+        booth = "on" if self.booth else "off (`BOOTH_URL` / `BOOTH_TOKEN` aren't set)"
+        return f"Marquee: {marquee}\nWelcome: {welcome}\nPostcards: {cards}\nBooth (shout, postcards): {booth}"
+
     async def set_marquee(self, interaction: discord.Interaction, channel: Optional[discord.TextChannel] = None):
         if channel is None:
             await self.save_marquee(interaction.guild_id, None, None)
@@ -386,12 +396,6 @@ class Minecraft(  # pylint: disable=too-many-public-methods,too-many-instance-at
         logging.info("Minecraft marquee set up in %s by %s", interaction.guild.name, interaction.user.name)
         await interaction.edit_original_response(content=lines.MARQUEE_ON.format(channel=channel.mention))
 
-    @app_commands.command(name="welcome", description="VIP: welcome people who get the Minecraft role (empty = off)")
-    @app_commands.describe(
-        channel="Where the welcome is posted; leave empty to switch welcomes off",
-        role="The role to watch for (the onboarding question's Minecraft role)",
-    )
-    @is_vip()
     async def set_welcome(
         self,
         interaction: discord.Interaction,
@@ -499,7 +503,9 @@ class Minecraft(  # pylint: disable=too-many-public-methods,too-many-instance-at
             channel = guild.get_channel(channel_id) if guild else None
             if not isinstance(channel, discord.TextChannel):
                 if guild:
-                    self.warn_once(guild, "the postcards channel is gone (deleted?). Run /mc postcards again.")
+                    self.warn_once(
+                        guild, "the postcards channel is gone (deleted?). Run /setup minecraft postcards again."
+                    )
                 continue
             try:
                 # Names a linked member without pinging them: postcards are for reading, not for buzzing phones
@@ -558,9 +564,6 @@ class Minecraft(  # pylint: disable=too-many-public-methods,too-many-instance-at
         text += lines.SHOUT_FREE if free else lines.SHOUT_PAID.format(cost=SHOUT_COST)
         await interaction.edit_original_response(content=text, allowed_mentions=discord.AllowedMentions.none())
 
-    @app_commands.command(name="postcards", description="VIP: post Minecraft postcards in a channel (empty = off)")
-    @app_commands.describe(channel="Where postcards go; leave empty to switch them off")
-    @is_vip()
     async def set_postcards(self, interaction: discord.Interaction, channel: Optional[discord.TextChannel] = None):
         if channel is None:
             await self.bot.db.set_mc_postcards(interaction.guild_id, None)

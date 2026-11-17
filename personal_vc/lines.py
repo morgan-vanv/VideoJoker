@@ -23,7 +23,7 @@ MODE_FAILED = "🎞️ Discord wouldn't let me change your voice channel's setti
 # if a mod renames the channel
 NOT_HERE = "These buttons work in your own channel's chat, comrade. Join {hub} to get one."
 NOT_YOURS = "🎞️ Not your voice channel, comrade: it belongs to {owner}. Want your own? Join {hub}."
-SWITCHED_OFF = "🎞️ Personal channels are switched off here. A VIP can bring them back with `/personalvc setup`."
+SWITCHED_OFF = "🎞️ Personal channels are switched off here. A VIP can bring them back with `/setup voice set`."
 
 LET_IN_PROMPT = "🎟️ Who's on the guest list? Pick them below. They stay on it for next time too."
 LET_IN_PLACEHOLDER = "Pick your guests"
@@ -46,7 +46,6 @@ SETUP_NEEDS_CATEGORY = (
     "that's the only place I need the extra permissions."
 )
 SETUP_BAD_STAFF = "🎬 Cut! @everyone can't be the staff role, or every hidden channel would be on the big screen."
-NOT_SET_UP = "🎞️ No personal channels on this reel yet. A VIP can switch them on with `/personalvc setup`."
 SWITCHED_OFF_DONE = (
     "📼 Personal channels are off. Channels already open stay until they empty out, and everyone's saved mode "
     "and guest list are kept for next time."

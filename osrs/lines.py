@@ -46,7 +46,7 @@ FLEX_KIT_SETTINGS = (
 )
 FLEX_KIT_SECRET = (
     "-# 🤫 The webhook link is a key to the channel: don't share it or post it anywhere. "
-    "If it leaks, a VIP can replace it with `/osrs rotate-webhook`."
+    "If it leaks, a VIP can replace it with `/setup osrs-webhook`."
 )
 
 # ---- /osrs accounts, /osrs whois, /osrs default, /osrs remove
@@ -57,6 +57,6 @@ REMOVED = "🗑️ **{rsn}** is no longer one of your accounts."
 WHOIS_NOBODY = "{member} hasn't registered any OSRS accounts."
 ACCOUNTS_LEGEND = "⭐ default · 🏰 in the clan"
 
-# ---- /osrs rotate-webhook
+# ---- /setup osrs-webhook
 ROTATED_PING = "📽️ New flexing link: the old one no longer works. {mentions}: run `/osrs flexing` to get yours."
 ROTATED_DONE = "🔄 Done: the old webhook is gone and a fresh one is up. Pinged {count} flexer(s) in {channel}."

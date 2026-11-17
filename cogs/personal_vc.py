@@ -8,7 +8,7 @@ deletes channels, and changes their permissions.
 Needs, on the server: a category (e.g. "personal channels") holding the lobby voice channel. The controls are
 posted in each new channel's own chat, so there's no separate panel channel. In that category only, the bot needs
 Manage Channels and Move Members (and Manage Roles, View Channel, Connect and Send Messages, which it normally has
-server-wide). /personalvc setup says what's missing.
+server-wide). /setup voice set says what's missing.
 """
 
 import asyncio
@@ -17,10 +17,8 @@ import time
 from typing import Optional
 
 import discord
-from discord import app_commands
 from discord.ext import commands
 
-from cogs.permissions import is_vip
 from core.database import PersonalVcConfig
 from personal_vc import lines, rules
 from personal_vc.rules import MAX_GUESTS, Mode
@@ -50,7 +48,7 @@ def setup_problems(guild: discord.Guild, config: PersonalVcConfig) -> list[str]:
     problems = []
     hub = guild.get_channel(config.hub_channel_id)
     if not isinstance(hub, discord.VoiceChannel):
-        problems.append("The lobby voice channel is gone (deleted?). Run `/personalvc setup` again.")
+        problems.append("The lobby voice channel is gone (deleted?). Run `/setup voice set` again.")
     elif hub.category is None:
         problems.append(f"The lobby '{hub.name}' isn't in a category any more. Move it back, or run setup again.")
     elif needs := missing(hub.category, CATEGORY_PERMISSIONS):
@@ -96,10 +94,7 @@ def build_overwrites(
 
 
 # One feature with listeners, panel buttons and commands, kept together on purpose (like Database in core/)
-@app_commands.guild_only()
-class PersonalVC(  # pylint: disable=too-many-public-methods
-    commands.GroupCog, group_name="personalvc", group_description="Personal voice channels: join the lobby, get one."
-):
+class PersonalVC(commands.Cog):  # pylint: disable=too-many-public-methods
     """Personal voice channels: join the lobby to get your own, with a panel to lock it, hide it and let people in"""
 
     def __init__(self, bot):
@@ -128,7 +123,7 @@ class PersonalVC(  # pylint: disable=too-many-public-methods
             logging.info("Personal voice channels: on in %d server(s).", len(self.configs))
         else:
             # Hosting contract: a feature with nothing set up switches off and says so, the bot still starts
-            logging.warning("Personal voice channels: off (no server has run /personalvc setup yet).")
+            logging.warning("Personal voice channels: off (no server has run /setup voice set yet).")
 
     async def cog_unload(self):
         self.panel.stop()  # stops the persistent view listening, so a reloaded cog doesn't answer twice
@@ -454,7 +449,7 @@ class PersonalVC(  # pylint: disable=too-many-public-methods
         content = lines.REMOVE_DONE.format(names=lines.names_list([f"<@{user_id}>" for user_id in user_ids]))
         await interaction.edit_original_response(content=content if worked else lines.MODE_FAILED, view=None)
 
-    # ---- /personalvc commands
+    # ---- the VIP side, run from /setup voice (cogs/server_setup.py has the commands; the work happens here)
 
     async def describe(self, guild: discord.Guild, config: PersonalVcConfig) -> discord.Embed:
         """The setup as an embed, with anything that would stop it working."""
@@ -474,12 +469,6 @@ class PersonalVC(  # pylint: disable=too-many-public-methods
         embed.set_footer(text="🔓 Open · 🔒 Locked · 👻 Hidden. Everyone's mode and guest list are remembered.")
         return embed
 
-    @app_commands.command(name="setup", description="VIP: pick the lobby and the staff role.")
-    @app_commands.describe(
-        hub="The lobby: the voice channel people join to get their own. Must be in a category.",
-        staff="Moderators: they can see and join every personal channel, even hidden ones (leave out for none)",
-    )
-    @is_vip()
     async def setup(
         self,
         interaction: discord.Interaction,
@@ -505,17 +494,14 @@ class PersonalVC(  # pylint: disable=too-many-public-methods
         await interaction.followup.send(lines.SETUP_DONE, embed=await self.describe(guild, config), ephemeral=True)
         await self.serve_the_lobby(guild, config)
 
-    @app_commands.command(name="show", description="Shows where personal voice channels live, and if anything's wrong.")
-    async def show(self, interaction: discord.Interaction) -> None:
-        config = self.configs.get(interaction.guild.id)
+    async def setup_summary(self, guild: discord.Guild) -> str:
+        """This server's setup in a few lines, with anything that would stop it working, for /setup show."""
+        config = self.configs.get(guild.id)
         if config is None:
-            await interaction.response.send_message(lines.NOT_SET_UP, ephemeral=True)
-            return
-        embed = await self.describe(interaction.guild, config)
-        await interaction.response.send_message(embed=embed, ephemeral=True)
+            return "Off. `/setup voice set` switches it on."
+        embed = await self.describe(guild, config)
+        return embed.description + "".join(f"\n⚠️ {problem}" for problem in setup_problems(guild, config))
 
-    @app_commands.command(name="off", description="VIP: no new personal channels. Open ones stay until they empty.")
-    @is_vip()
     async def off(self, interaction: discord.Interaction) -> None:
         guild = interaction.guild
         self.configs.pop(guild.id, None)

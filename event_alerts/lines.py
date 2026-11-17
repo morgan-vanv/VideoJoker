@@ -57,7 +57,7 @@ def message(headline: str, pings: str, link: str = "", nobody_line: str = "") ->
     return "\n".join(part for part in (headline, who, link) if part)
 
 
-# /seteventalerts replies (only the person who ran it sees them)
+# /setup events replies (only the person who ran it sees them)
 SET = (
     "Event alerts are on. I'll post in {channel} {times} before each of this server's events, pinging everyone "
     "marked Interested, and when an event's time or location changes or it's cancelled."

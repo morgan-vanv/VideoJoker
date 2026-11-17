@@ -1,4 +1,4 @@
-"""Buttons for /ladder tidy: it shows what it would change first, and only acts once a VIP says go."""
+"""Buttons for /setup ladder tidy: it shows what it would change first, and only acts once a VIP says go."""
 
 from typing import Awaitable, Callable
 

@@ -8,7 +8,7 @@ from pathlib import Path
 
 DB_PATH = Path(__file__).resolve().parent.parent / "data" / "videojoker.db"
 
-# One XP number for everything: 1 per message, 5 per slash command, plus any bonus (e.g. /ladder tidy topping up
+# One XP number for everything: 1 per message, 5 per slash command, plus any bonus (e.g. /setup ladder tidy topping up
 # Pancake-era ranks). The xp table keeps the raw counts (server_xp = messages, bot_xp = commands), and the total
 # is worked out from them, so the columns never change meaning (a rollback runs old code on this database).
 XP_PER_MESSAGE = 1
@@ -36,7 +36,7 @@ class XpTotals(NamedTuple):
 
     messages: int  # server_xp: messages sent (1 XP each)
     commands: int  # bot_xp: slash commands run (5 XP each)
-    bonus: int  # bonus_xp: given, not earned (e.g. /ladder tidy topping up an old rank)
+    bonus: int  # bonus_xp: given, not earned (e.g. /setup ladder tidy topping up an old rank)
     total: int
 
 
@@ -544,7 +544,7 @@ class Database:  # pylint: disable=too-many-public-methods  # all SQL lives here
         return XpTotals(*rows[0]) if rows else XpTotals(0, 0, 0, 0)
 
     async def get_all_total_xp(self) -> dict[int, int]:
-        """Everyone's total XP by user id (for /ladder tidy, which looks at the whole server at once)."""
+        """Everyone's total XP by user id (for /setup ladder tidy, which looks at the whole server at once)."""
         rows = await self._fetch_all(f"SELECT user_id, {TOTAL_XP_SQL} FROM xp")
         return dict(rows)
 
