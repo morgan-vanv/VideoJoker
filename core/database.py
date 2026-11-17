@@ -312,6 +312,20 @@ class Database:  # pylint: disable=too-many-public-methods  # all SQL lives here
                 PRIMARY KEY (guild_id, discord_id)
             )
         ''')
+        # Minecraft part 2 (the booth): where each server wants postcards, and which players have had their
+        # "first time on the network" postcard. A player is keyed by name, lower case (Velocity's join line has no UUID).
+        await self.conn.execute('''
+            CREATE TABLE IF NOT EXISTS mc_postcards (
+                guild_id INTEGER PRIMARY KEY,
+                channel_id INTEGER NOT NULL
+            )
+        ''')
+        await self.conn.execute('''
+            CREATE TABLE IF NOT EXISTS mc_seen_players (
+                player_key TEXT PRIMARY KEY,
+                first_seen INTEGER NOT NULL
+            )
+        ''')
         # Raffles (cogs/raffle.py): one row per raffle, kept after it's drawn or cancelled. Who entered isn't stored:
         # the entries are the reactions on the card, read when it's drawn.
         await self.conn.execute('''
@@ -1066,6 +1080,83 @@ class Database:  # pylint: disable=too-many-public-methods  # all SQL lives here
             commit=True,
         )
         return bool(rows)
+
+    async def get_all_mc_uuids(self) -> list[str]:
+        """Every linked Minecraft account's UUID (the booth's nudge leaves these players alone)."""
+        return [uuid for (uuid,) in await self._fetch_all("SELECT uuid FROM mc_accounts")]
+
+    async def get_mc_postcards(self) -> dict[int, int]:
+        """{server id: postcards channel id} for every server that wants postcards."""
+        return dict(await self._fetch_all("SELECT guild_id, channel_id FROM mc_postcards"))
+
+    async def set_mc_postcards(self, guild_id: int, channel_id: Optional[int]) -> None:
+        """Where this server's postcards go. None = postcards off."""
+        if channel_id is None:
+            await self._execute("DELETE FROM mc_postcards WHERE guild_id = ?", (guild_id,))
+        else:
+            await self._execute(
+                """
+                INSERT INTO mc_postcards (guild_id, channel_id) VALUES (?, ?)
+                ON CONFLICT(guild_id) DO UPDATE SET channel_id = excluded.channel_id
+            """,
+                (guild_id, channel_id),
+            )
+
+    async def mark_mc_player_seen(self, player_key: str) -> bool:
+        """Records that the network has seen this player. True the first time (time for a postcard), False after."""
+        rows = await self._fetch_all(
+            "INSERT OR IGNORE INTO mc_seen_players (player_key, first_seen) VALUES (?, ?) RETURNING 1",
+            (player_key, int(time.time())),
+            commit=True,
+        )
+        return bool(rows)
+
+    async def move_ush_with_bank(  # pylint: disable=too-many-arguments,too-many-positional-arguments
+        self, user_id: int, amount: int, kind: str, to_bank: bool, guild_id: Optional[int], note: Optional[str] = None
+    ) -> bool:
+        """Moves USh between someone and the bank, with its ledger row, in one transaction (like transfer_balance).
+        to_bank=True spends (fails, returning False, if they can't afford it); to_bank=False pays them (a refund).
+        In ush_ledger the bank is NULL: a spend is (user → NULL), a refund (NULL → user)."""
+        if amount <= 0:
+            return False
+        if self.conn is None:
+            raise RuntimeError("Database connection is not initialized. Did you call setup()?")
+        async with self.lock:
+            try:
+                await self.conn.execute("BEGIN IMMEDIATE TRANSACTION")
+                if to_bank:
+                    cursor = await self.conn.execute(
+                        "UPDATE economy SET balance = balance - ? WHERE user_id = ? AND balance >= ?",
+                        (amount, user_id, amount),
+                    )
+                    if cursor.rowcount == 0:
+                        await self.conn.rollback()
+                        return False  # can't afford it
+                else:
+                    await self.conn.execute(
+                        """
+                        INSERT INTO economy (user_id, balance) VALUES (?, ?)
+                        ON CONFLICT(user_id) DO UPDATE SET balance = balance + excluded.balance
+                    """,
+                        (user_id, amount),
+                    )
+                sender, receiver = (user_id, None) if to_bank else (None, user_id)
+                await self.conn.execute(
+                    """
+                    INSERT INTO ush_ledger (from_user_id, to_user_id, amount, kind, note, guild_id, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                    (sender, receiver, amount, kind, note, guild_id, int(time.time())),
+                )
+                await self.conn.commit()
+                return True
+            except Exception as e:
+                try:
+                    await self.conn.rollback()
+                except Exception as rollback_err:  # pylint: disable=broad-exception-caught
+                    logging.error("Failed to rollback transaction: %s", rollback_err)
+                logging.error("Database error moving %d USh (%s) for %s: %s", amount, kind, user_id, e)
+                return False
 
     # Raffle methods (raffle/rules.py has the rules; this is just storage)
     _RAFFLE_COLUMNS = "id, guild_id, channel_id, message_id, host_id, prize, winners, ends_at, state"

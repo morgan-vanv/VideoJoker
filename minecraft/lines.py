@@ -3,7 +3,9 @@
 {curly} bits are filled in by the code with .format(...). The address and ports come from minecraft/server.py.
 """
 
-from minecraft.server import ADDRESS, BEDROCK_PORT
+from minecraft.server import ADDRESS, BEDROCK_PORT, MODES
+
+MODE_NAMES = dict(MODES)  # "factions" → "Factions"; a mode the bot doesn't know yet shows as its own name
 
 EDITION_NAMES = {"java": "Java", "bedrock": "Bedrock"}
 SERVICES = {"java": "Mojang", "bedrock": "Xbox (through GeyserMC)"}
@@ -98,3 +100,33 @@ WELCOME_ON = "🎬 Anyone who gets {role} is welcomed once in {channel}."
 WELCOME_OFF = "🎬 Minecraft welcomes off."
 WELCOME_NEEDS_ROLE = "🚫 Tell the VJ which role to watch for (the onboarding question's Minecraft role)."
 NO_PERMISSION = "🚫 The VJ needs {missing} in {channel}. Ask Morgan."
+
+# ---- part 2: the booth (/mc shout, postcards, mode by mode)
+STATUS_PER_MODE_NAME = "Mode by mode"
+STATUS_MODE_AWAKE = "{mode}: {online} on"
+STATUS_MODE_ASLEEP = "{mode}: asleep (joining wakes it)"
+
+SHOUT_OFF = "📡 The booth isn't wired up yet, comrade. Shouting into the game is coming soon."
+SHOUT_WAIT = "⏳ Your voice needs a rest. Shout again {when}."
+SHOUT_WAIT_EVERYONE = "⏳ Someone just shouted. Let the game chat breathe and try again {when}."
+SHOUT_BROKE = "💸 A shout costs **{cost} USh** and you've got **{balance}**. Chat a bit and come back."
+SHOUT_EMPTY = "🤐 That shout is empty once the VJ cleans it up. Try some words."
+SHOUT_DONE = "📢 {member} shouted into {modes}: {text}"
+SHOUT_PAID = "\n-# {cost} USh to the bank."
+SHOUT_FREE = "\n-# VIP: on the house."
+SHOUT_ASLEEP = " ({modes} asleep)"
+SHOUT_NOBODY = "😴 Every screen is dark right now (all modes asleep), so nobody would hear you. No USh taken."
+SHOUT_NOTE = "a shout into Minecraft"  # shows in /balance next to the payment
+SHOUT_REFUND_NOTE = "shout refund: nobody heard it"
+SHOUT_FAILED = "📡 The VJ couldn't reach the booth. No USh taken. Try again in a bit."
+
+POSTCARD_JOIN = "🎟️ **{name}** walked into the cinema for the first time. Welcome to the screening!"
+POSTCARD_DEATH = "💀 {text}. The VJ looks away."
+POSTCARD_ADVANCEMENT = "🏆 **{name}** unlocked **{title}**."
+POSTCARD_OWNER = " ({members})"
+
+POSTCARDS_ON = (
+    "📮 Postcards from the server land in {channel}: first-timers (whole network), deaths and advancements (Factions)."
+)
+POSTCARDS_OFF = "📮 Postcards off."
+POSTCARDS_NO_BOOTH = " The booth isn't wired up yet, so they'll start when it is."

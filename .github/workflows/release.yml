@@ -3,6 +3,10 @@
 #   2. builds the Docker image with that version baked in, and pushes it to GitHub's registry:
 #        ghcr.io/morgan-vanv/videojoker:v2026.10.28   and   ghcr.io/morgan-vanv/videojoker:latest
 #   3. creates a GitHub Release with notes generated from the merged PRs (titles + authors)
+#   The booth (booth/, the Minecraft side's helper) is built in the same run with the same version:
+#        ghcr.io/morgan-vanv/videojoker-booth:v2026.10.28   and   :latest
+#   It runs on the Minecraft machine, which pins it by digest: a new booth image changes nothing until the infra
+#   side moves its pin.
 # Docs-only merges don't release. To release by hand: Actions tab -> Release -> "Run workflow" (main only).
 # Once a month it also releases on its own, so security fixes in the base image and ffmpeg still ship
 # in a quiet month (same code, freshly rebuilt).
@@ -14,6 +18,7 @@ on:
     branches: [main]
     paths:
       - "bot.py"
+      - "booth/**"
       - "main.py"
       - "cogs/**"
       - "core/**"
@@ -45,6 +50,7 @@ concurrency:
 
 env:
   IMAGE: ghcr.io/morgan-vanv/videojoker
+  BOOTH_IMAGE: ghcr.io/morgan-vanv/videojoker-booth
 
 jobs:
   release:
@@ -100,7 +106,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          notes="Docker image: \`$IMAGE:${{ steps.version.outputs.version }}\`"
+          notes="Docker images: \`$IMAGE:${{ steps.version.outputs.version }}\` and \`$BOOTH_IMAGE:${{ steps.version.outputs.version }}\` (the booth)"
           if [ "${{ github.event_name }}" = "schedule" ]; then
             notes="Monthly rebuild: same jokes, fresh security patches. $notes"
           fi
@@ -109,3 +115,23 @@ jobs:
             --title "${{ steps.version.outputs.version }}" \
             --generate-notes \
             --notes "$notes"
+
+      # The booth comes last, so a problem building it can never hold up the bot's own release
+      - name: Build the booth's image
+        run: |
+          docker build \
+            --pull \
+            --provenance=false \
+            -f booth/Dockerfile \
+            --build-arg VERSION="${{ steps.version.outputs.version }}" \
+            --label org.opencontainers.image.source="${{ github.server_url }}/${{ github.repository }}" \
+            --label org.opencontainers.image.version="${{ steps.version.outputs.version }}" \
+            --label org.opencontainers.image.revision="${{ github.sha }}" \
+            -t "$BOOTH_IMAGE:${{ steps.version.outputs.version }}" \
+            -t "$BOOTH_IMAGE:latest" \
+            .
+
+      - name: Push the booth's image
+        run: |
+          docker push "$BOOTH_IMAGE:${{ steps.version.outputs.version }}"
+          docker push "$BOOTH_IMAGE:latest"

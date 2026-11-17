@@ -1,9 +1,11 @@
 # Minecraft ↔ Discord: design
 
 **Status:** part 1 (linking, status, marquee, welcome) merged in #86. Part 2 (the booth: `/mc shout`, the
-in-game Discord nudge, postcards) designed here; the infra brief for it follows the infra side's preflight
-(2026-11-16). Written 2026-11-15 by Morgan + Claude, the day the Minecraft network went live at
-`mc.morganvanv.com`; updated 2026-11-16 with the infra decision below.
+in-game Discord nudge, postcards) built in #88: the booth itself is `booth/` (its contract for the infra side:
+`booth/README.md`), the bot's side is in `cogs/minecraft.py` + `minecraft/booth.py`. Going live needs the infra
+brief (it follows the infra side's preflight, 2026-11-16) and `BOOTH_URL`/`BOOTH_TOKEN` in the bot's `.env`.
+Written 2026-11-15 by Morgan + Claude, the day the Minecraft network went live at `mc.morganvanv.com`; updated
+2026-11-16 with the infra decision below.
 
 ## Why
 
@@ -134,9 +136,19 @@ mode needs no new image), `BOOTH_TOKEN` in both `.env`s (Morgan, at the silent p
 tests, the two read-only logs mounts (Velocity, Factions), a Kuma check if wanted. The bot side gets `BOOTH_URL` and `BOOTH_TOKEN`
 (optional: off with a startup warning when missing, contract rule 7).
 
-**`/mc shout message` (part 2, bot side):** anyone; costs **50 USh** to the bank (`ush_ledger` kind `shout`),
-VIPs free; a per-person cooldown (5 min) and a global one (30 s) so the game chat isn't flooded. Shown in game as
-`[Discord] <display name>: <message>`. The amounts are one constant each, easy to change.
+**`/mc shout message` (part 2, bot side):** anyone; costs **50 USh** to the bank (`ush_ledger` kind `shout`,
+note "a shout into Minecraft"), VIPs free; a per-person cooldown (5 min) and a global one (30 s) so the game chat
+isn't flooded. Shown in game as `[Discord] <display name>: <message>`. Charged before the shout and refunded (kind
+`shout refund`) if no mode heard it or the booth didn't answer. The amounts live in `minecraft/shout.py`.
+
+**`/mc postcards [channel]` (VIP):** where postcards go (table `mc_postcards`). The bot polls `/events` every 15 s;
+a player's first join gets a card once (table `mc_seen_players`, keyed by the in-game name in lower case), deaths
+and advancements every time. Linked members are named, never pinged. First joins are counted from the day
+postcards start, so for a while some regulars get a "first time" card too. After a bot restart it skips what
+happened while it was down rather than risk posting twice.
+
+**Linked list:** the bot sends every linked UUID to the booth on each link/unlink and every 10 minutes (the booth
+keeps it in memory only).
 
 ## Discord server checklist (Morgan, by hand)
 
