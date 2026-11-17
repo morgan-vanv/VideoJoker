@@ -72,39 +72,30 @@ _Everything you set up once per server lives under `/setup`. Discord shows it on
 - **/russianroulette** (*Russian Roulette simulator.*)
 
 ### Utility Cog Commands
-- **/userinfo [user]** (*Displays information about a user, including their nickname, ID, and the date they joined Discord.*)
-- **/serverinfo** (*Displays information about the server, including its name, ID, member count, and creation date.*)
-- **/rank [user]** (*Your or another member's rank, XP, how far the next rank is, place on the server, and USh. Never pings.*)
+- **/profile [user]** (*Your or another member's card: rank and how far the next one is, the whole ladder with you pinned on it, XP and place on the server, USh and the last 3 payments, linked OSRS and Minecraft accounts, and how long they've been around. Never pings. Took over `/rank`, `/balance`, `/userinfo` and `/ladder show`.*)
 - **/leaderboard** (*The server's top 10 for XP, with a button to switch to USh. Your own place shows too, even outside the top 10.*)
 
 ### Economy Cog Commands
 _USh (Ugandan shillings) is the VJ's play money: every message earns 1. Payments are kept in a ledger, so `/balance` can show the latest ones._
-- **/balance [user]** (*Your or another member's USh and their last 5 payments. Never pings.*)
 - **/pay [user] [amount] [note]** (*Sends USh to another member, with an optional note (up to 100 characters). Pings only the person you paid.*)
 
 ### OSRS Cog Commands
 _Link your Old School RuneScape accounts (alts welcome) and flex your drops with the Dink plugin. Design: `docs/osrs-design.md`._
 - **/osrs register [rsn]** (*Links an account to your Discord, then asks about flexing, death notifications and the clan.*)
-- **/osrs accounts** (*Shows your linked accounts. ⭐ default · 🏰 in the clan.*)
+- **/osrs accounts** (*Shows your linked accounts (⭐ main · 🏰 in the clan), with dropdowns to pick your main or unlink one. Only you see it.*)
 - **/osrs whois [member]** (*Shows which accounts someone plays.*)
-- **/osrs default [rsn]** (*Picks your main account.*)
-- **/osrs remove [rsn]** (*Unlinks an account.*)
 - **/osrs flexing** (*Privately shows what to paste into Dink to post your drops (and, if you want, your deaths).*)
 
 ### Minecraft Cog Commands
 _Link your Java or Bedrock account, see who plays what, and check on the server at `mc.morganvanv.com`. Design: `docs/minecraft-design.md`._
 - **/mc register [name] [edition]** (*Links a Java or Bedrock account (looked up, so typos are caught), then shows how to join and the modes.*)
-- **/mc accounts** (*Shows your linked accounts. ⭐ default.*)
-- **/mc whois [member]** (*Shows which accounts someone plays.*)
-- **/mc who [name]** (*Shows which member plays a Minecraft name.*)
-- **/mc default [account]** (*Picks your main account.*)
-- **/mc remove [account]** (*Unlinks an account.*)
+- **/mc accounts** (*Shows your linked accounts (⭐ main), with dropdowns to pick your main or unlink one. Only you see it.*)
+- **/mc whois [member] [name]** (*Pick a member to see what they play, or type a Minecraft name to see who plays it.*)
 - **/mc status** (*Is the server up, and how many are on (per mode, once the booth is wired up)? With a "Get me in the game" button.*)
 - **/mc shout [message]** (*Shouts into every awake mode's chat as `[Discord] You: message`. 50 USh to the bank (VIPs free); once every 5 minutes each, once every 30 seconds for everyone. Nobody awake to hear it = no charge. Needs the booth.*)
 
-### Rank Ladder Cog Commands
-_Every message is 1 XP and every command 5 (once a minute: more commands within the minute earn nothing), and XP never resets. Your first message makes you **LOWLY SERFS**, then **SWORN SWORDS** (250 XP) and **LORDS** (1,000 XP). Ranks only go up, and you wear one at a time. When you climb, your next slash command in that server comes with a private note (only you see it) about your new rank and what it unlocks. The bot needs Manage Roles and its role above the three ranks (SETUP_GUIDE step 5)._
-- **/ladder show** (*Shows the ranks, how much XP each one needs, and where you are on it.*)
+### Rank Ladder
+_Every message is 1 XP and every command 5 (once a minute: more commands within the minute earn nothing), and XP never resets. Your first message makes you **LOWLY SERFS**, then **SWORN SWORDS** (250 XP) and **LORDS** (1,000 XP). Ranks only go up, and you wear one at a time. When you climb, your next slash command in that server comes with a private note (only you see it) about your new rank and what it unlocks. The bot needs Manage Roles and its role above the three ranks (SETUP_GUIDE step 5). See it on `/profile`; a VIP sets it up with `/setup ladder set`._
 
 ### Personal Voice Channels Cog Commands
 _Join the lobby voice channel and the VJ makes you your own voice channel and moves you in. It's yours until the last person leaves. Buttons in your channel's chat (only you can use them) set it 🔓 Open, 🔒 Locked (everyone sees it, only guests join) or 👻 Hidden (only guests see it), and ➕ lets in / ➖ removes guests. Your mode and guest list are remembered for next time. The bot needs Manage Channels and Move Members in the personal channels category. A VIP switches it on with `/setup voice set`._

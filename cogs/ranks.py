@@ -28,7 +28,7 @@ from ranks.ladder import (
 )
 from ranks.notes import rank_up_note, unlocked_permissions
 from ranks.ui import ConfirmTidy
-from standing.lines import EARNING, YOU_ARE_HERE, you_are_here
+from standing.lines import EARNING
 
 EMBED_COLOUR = discord.Colour.dark_gold()
 # The highest threshold /setup ladder set accepts (a typo guard: nobody is posting a million messages)
@@ -57,7 +57,7 @@ def role_problems(guild: discord.Guild, tiers: list[Tier], for_log: bool = False
 
 
 def ladder_of(bot: commands.Bot, guild: Optional[discord.Guild]) -> Optional[list[Tier]]:
-    """This server's ladder, for other cogs (/rank, /balance), or None: no server (a DM), no ladder set up, or the
+    """This server's ladder, for other cogs (/profile), or None: no server (a DM), no ladder set up, or the
     Ranks cog isn't loaded. The ladder lives in the Ranks cog's memory, so this costs no database trip."""
     ranks = bot.get_cog("Ranks")
     if guild is None or ranks is None:
@@ -77,8 +77,8 @@ def rank_label(guild: discord.Guild, tier: Tier) -> str:
     return f"<@&{tier.role_id}>" if guild.get_role(tier.role_id) else f"**{tier_name(tier)}**"
 
 
-@app_commands.guild_only()
-class Ranks(commands.GroupCog, group_name="ladder", group_description="The XP rank ladder: serfs, swords, lords."):
+# No commands of its own since 2026-11-16: VIPs set it up with /setup ladder, and members see it on /profile
+class Ranks(commands.Cog):
     """XP rank ladder: earns members LOWLY SERFS, SWORN SWORDS and LORDS as they chat"""
 
     def __init__(self, bot):
@@ -234,7 +234,7 @@ class Ranks(commands.GroupCog, group_name="ladder", group_description="The XP ra
         problems = role_problems(guild, tiers)
         if problems:
             embed.add_field(name="⚠️ The projector is jammed", value="\n".join(problems), inline=False)
-        # The earning line comes from standing/lines.py, so /rank, /balance and this footer always agree
+        # The earning line comes from standing/lines.py, so /profile and this footer always agree
         embed.set_footer(text=f"{EARNING} XP is for life. Ranks only go up, one rank at a time.")
         return embed
 
@@ -277,25 +277,6 @@ class Ranks(commands.GroupCog, group_name="ladder", group_description="The XP ra
             embed=self.describe(guild, tiers),
             ephemeral=True,
         )
-
-    @app_commands.command(name="show", description="Shows the rank ladder: which roles, and how much XP each needs.")
-    async def show(self, interaction: discord.Interaction) -> None:
-        tiers = self.ladders.get(interaction.guild.id)
-        if not tiers:
-            await interaction.response.send_message(
-                "🎞️ No ladder on this reel yet. A VIP can start one with `/setup ladder set`.", ephemeral=True
-            )
-            return
-        embed = self.describe(interaction.guild, tiers)
-        # Where the person asking stands: their rank (the role they wear), their XP and how far the next rank is
-        xp = await self.bot.db.get_xp_totals(interaction.user.id)
-        progress = rank_progress(tiers, xp.total, {role.id for role in interaction.user.roles})
-        embed.add_field(
-            name=YOU_ARE_HERE,
-            value=you_are_here(progress, lambda tier: rank_label(interaction.guild, tier)),
-            inline=False,
-        )
-        await interaction.response.send_message(embed=embed, ephemeral=True)
 
     async def setup_summary(self, guild: discord.Guild) -> str:
         """This server's ladder in a line or two, for /setup show."""
@@ -367,7 +348,7 @@ class Ranks(commands.GroupCog, group_name="ladder", group_description="The XP ra
         if top_ups:
             preview.append(
                 f"**{len(top_ups)}** member(s) have less XP than their rank needs and would be topped up to its "
-                "minimum (it shows as carried-over XP in `/rank`)."
+                "minimum (it shows as carried-over XP in `/profile`)."
             )
 
         async def run(button_click: discord.Interaction) -> None:

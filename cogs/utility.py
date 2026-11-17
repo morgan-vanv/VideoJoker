@@ -5,9 +5,10 @@ from typing import Optional
 import discord
 from discord import app_commands
 from discord.ext.commands import Cog
+from discord.utils import escape_markdown
 
 from cogs.ranks import ladder_of, rank_label
-from core.database import COMMAND_XP_COOLDOWN_SECONDS
+from core.database import COMMAND_XP_COOLDOWN_SECONDS, XpTotals
 from ranks.ladder import rank_progress
 from standing import lines
 from standing.board import Placing, place_of, placings, top_with_you
@@ -30,49 +31,6 @@ class Utility(Cog, name="Utility"):
         # When each person's last command earned XP (time.monotonic() seconds), for the command XP cooldown.
         # Only in memory: a restart forgets it, which at worst means one extra early reward.
         self.last_command_xp: dict[int, float] = {}
-
-    @app_commands.command(name='userinfo', description='Displays information about a user')
-    async def userinfo(self, interaction: discord.Interaction, user: discord.User) -> None:
-        """
-        **Displays information about a user**
-
-        :param interaction: The interaction object from discord
-        :type interaction: discord.Interaction
-        :param user: The Discord user to get information about.
-        :type user: discord.User
-
-        Usage Example: `/userinfo @SomeUser`
-        """
-        embed = discord.Embed(
-            title=f"User Info: {user.name}",
-            description=f"Nickname: {user.display_name}\n"
-            f"ID: {user.id}\n"
-            f"Joined Discord: {user.created_at.strftime('%Y-%m-%d')}",
-            color=discord.Colour.blue(),
-        )
-
-        await interaction.response.send_message(embed=embed)
-
-    @app_commands.command(name='serverinfo', description='Displays information about the server')
-    @app_commands.guild_only()
-    async def serverinfo(self, interaction: discord.Interaction) -> None:
-        """
-        **Displays information about the server**
-
-        :param interaction: The interaction object from discord
-        :type interaction: discord.Interaction
-
-        Usage Example: `/serverinfo`
-        """
-        guild = interaction.guild
-        embed = discord.Embed(
-            title=f"Server Info: {guild.name}",
-            description=f"ID: {guild.id}\n"
-            f"Member Count: {guild.member_count}\n"
-            f"Created: {guild.created_at.strftime('%Y-%m-%d')}",
-            color=discord.Colour.green(),
-        )
-        await interaction.response.send_message(embed=embed)
 
     @Cog.listener()
     async def on_message(self, message: discord.Message):
@@ -109,22 +67,25 @@ class Utility(Cog, name="Utility"):
         self.last_command_xp[user.id] = now
         return await self.bot.db.add_bot_xp(user.id, 1)
 
-    @app_commands.command(name='rank', description="Check your or another member's XP, rank and place on the server.")
-    async def rank(self, interaction: discord.Interaction, user: discord.User | None = None) -> None:
+    @app_commands.command(name='profile', description="Your XP, rank, USh, payments and game accounts (or someone's)")
+    @app_commands.describe(user="Whose profile (leave empty for yours)")
+    async def profile(self, interaction: discord.Interaction, user: discord.User | None = None) -> None:
+        """Everything about someone in one card. Took over /rank, /balance, /userinfo and /ladder show (2026-11-16)."""
         target_user = user or interaction.user
         if target_user.bot:
             await interaction.response.send_message(lines.RANK_BOT, ephemeral=True)
             return
         guild = interaction.guild  # None in DMs: then there's no ladder and no server place to show
+        member = guild.get_member(target_user.id) if guild else None  # None too if they've left this server
         xp = await self.bot.db.get_xp_totals(target_user.id)
         balance = await self.bot.db.get_balance(target_user.id)
 
         description = []
         tiers = ladder_of(self.bot, guild)
+        progress = None
         if tiers:
-            # Their rank is the ladder role they wear, so look them up as a member of this server (a plain User,
-            # e.g. someone who left, has no roles here; then rank_progress goes by their XP instead)
-            member = guild.get_member(target_user.id)
+            # Their rank is the ladder role they wear (a plain User, e.g. someone who left, has no roles here; then
+            # rank_progress goes by their XP instead)
             progress = rank_progress(tiers, xp.total, {role.id for role in member.roles} if member else set())
 
             def label(tier):
@@ -137,22 +98,55 @@ class Utility(Cog, name="Utility"):
         else:
             description.append(lines.xp_line(xp.total, None, None))
         description.append(lines.ush_line(balance))
-        description.append(f"\n{lines.RANK_POINTER}")
 
         embed = discord.Embed(
             title=lines.RANK_TITLE.format(name=target_user.display_name),
             description="\n".join(description),
             color=discord.Colour.purple(),
         )
+        embed.set_thumbnail(url=target_user.display_avatar.url)
+        if tiers:
+            embed.add_field(
+                name=lines.LADDER_HEADING, value=lines.ladder_line(tiers, progress.tier, label), inline=False
+            )
+        if plays := await self.plays(target_user.id):
+            embed.add_field(name=lines.PLAYS_HEADING, value=plays, inline=False)
+
+        await self.add_small_print(embed, target_user, member, xp)
+        embed.set_footer(text=lines.EARNING)
+        # Public, so friends can show off, but looking someone up never pings them
+        await interaction.response.send_message(embed=embed, allowed_mentions=discord.AllowedMentions.none())
+
+    async def add_small_print(
+        self, embed: discord.Embed, user: discord.abc.User, member: Optional[discord.Member], xp: XpTotals
+    ) -> None:
+        """The bottom of /profile: last payments (what /balance showed), where the XP came from, and how long
+        they've been around (what /userinfo showed)."""
+        moves = await self.bot.db.get_recent_ush_moves(user.id, limit=3)
+        payments = "\n".join(lines.move_line(move, user.id) for move in moves) or lines.NO_PAYMENTS
+        embed.add_field(name=lines.PAYMENTS_HEADING, value=f"{payments}\n{lines.PAY_HINT}", inline=False)
         if xp.total:
-            # The small print: what the XP is made of
             breakdown = f"{xp.messages:,} messages · {xp.commands:,} commands"
             if xp.bonus:
                 breakdown += f" · {xp.bonus:,} carried over from the old ranks"
             embed.add_field(name=lines.BREAKDOWN_HEADING, value=breakdown, inline=False)
-        embed.set_footer(text=lines.EARNING)
-        # Public, so friends can show off, but looking someone up never pings them
-        await interaction.response.send_message(embed=embed, allowed_mentions=discord.AllowedMentions.none())
+        joined = int(member.joined_at.timestamp()) if member and member.joined_at else None
+        embed.add_field(name=lines.AROUND_HEADING, value=lines.around_line(int(user.created_at.timestamp()), joined))
+
+    async def plays(self, user_id: int) -> str:
+        """Their linked game accounts, one line per game (main account first, with a ⭐), or "" if none."""
+        found = []
+        osrs = await self.bot.db.get_osrs_accounts(user_id)
+        if osrs:
+            names = [escape_markdown(a.rsn) + (" ⭐" if a.is_default and len(osrs) > 1 else "") for a in osrs]
+            found.append(lines.plays_line("OSRS", names))
+        minecraft = await self.bot.db.get_mc_accounts(user_id)
+        if minecraft:
+            names = [
+                escape_markdown(a.name) + (" ⭐" if a.is_default and len(minecraft) > 1 else "") for a in minecraft
+            ]
+            found.append(lines.plays_line("Minecraft", names))
+        return "\n".join(found)
 
     def board_embed(self, board: str, rows: list[Placing], viewer: discord.abc.User) -> discord.Embed:
         """One leaderboard ("xp" or "ush"): the top 10, plus the viewer's own row if they're further down."""
