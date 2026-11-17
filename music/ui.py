@@ -73,7 +73,7 @@ def now_playing_embed(player: GuildPlayer) -> discord.Embed:
 def played_embed(track: Track) -> discord.Embed:
     """What a now-playing card turns into once the track is over: compact, no buttons."""
     return discord.Embed(
-        description=f"📼 *Previously:* {_title_link(track)} `{track.pretty_duration}`",
+        description=f"✅ *Played:* {_title_link(track)} `{track.pretty_duration}`",
         colour=discord.Colour.dark_grey(),
     )
 

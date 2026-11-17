@@ -100,7 +100,7 @@ class Music(Cog, name="Music"):
 
     # ---- commands ------------------------------------------------------------------------------------------
 
-    @app_commands.command(name='leave', description='Sends the VJ home. Clears the queue.')
+    @app_commands.command(name='leave', description='Leaves the voice channel and clears the queue.')
     async def leave(self, interaction: discord.Interaction) -> None:
         player = self.players.pop(interaction.guild_id, None)
         if player is None:
@@ -184,7 +184,7 @@ class Music(Cog, name="Music"):
             return
         await interaction.response.send_message(embed=queue_embed(player, page))
 
-    @app_commands.command(name='nowplaying', description='Shows what the VJ is playing, with the controls.')
+    @app_commands.command(name='nowplaying', description="Shows what's playing, with the controls.")
     async def nowplaying(self, interaction: discord.Interaction) -> None:
         player = self._live_player(interaction.guild_id)
         if player is None or player.current is None:
