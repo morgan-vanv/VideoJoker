@@ -25,6 +25,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands, tasks
 
+from core.accounts_view import AccountChoice, AccountsView
 from core.database import McAccount, McSettings
 from minecraft import lines, lookup, postcards
 from minecraft.accounts import clean_name
@@ -285,17 +286,54 @@ class Minecraft(  # pylint: disable=too-many-public-methods,too-many-instance-at
         embed.set_footer(text=lines.ACCOUNTS_LEGEND)
         return embed
 
-    @app_commands.command(name="accounts", description="Shows the Minecraft accounts linked to your Discord")
+    @app_commands.command(name="accounts", description="Your linked Minecraft accounts: pick your main, or unlink one")
     async def accounts(self, interaction: discord.Interaction) -> None:
-        accounts = await self.bot.db.get_mc_accounts(interaction.user.id)
-        if not accounts:
-            await interaction.response.send_message(lines.NO_ACCOUNTS, ephemeral=True)
-            return
-        await interaction.response.send_message(embed=self.accounts_embed(interaction.user, accounts), ephemeral=True)
+        await interaction.response.send_message(**await self.accounts_reply(interaction.user), ephemeral=True)
 
-    @app_commands.command(name="whois", description="Shows which Minecraft accounts a server member plays")
-    @app_commands.describe(member="The person to look up")
-    async def whois(self, interaction: discord.Interaction, member: discord.Member) -> None:
+    async def accounts_reply(self, user: discord.abc.User, said: str = "") -> dict:
+        """The /mc accounts message (what's said first, if anything, then the list with its dropdowns), as the
+        arguments for sending or editing it. With no accounts left, just the "none yet" line."""
+        accounts = await self.bot.db.get_mc_accounts(user.id)
+        if not accounts:
+            return {"content": f"{said}\n{lines.NO_ACCOUNTS}".strip(), "embed": None, "view": None}
+        choices = [
+            AccountChoice(a.uuid, f"{a.name} ({lines.EDITION_NAMES[a.edition]})", a.is_default) for a in accounts
+        ]
+        view = AccountsView(choices, self.picked_main, self.picked_unlink)
+        return {"content": said or None, "embed": self.accounts_embed(user, accounts), "view": view}
+
+    async def picked_main(self, interaction: discord.Interaction, uuid: str) -> None:
+        """Someone picked "make this my main" under /mc accounts (what /mc default used to do)."""
+        found = await self.your_account(interaction.user.id, uuid)
+        if found is None or not await self.bot.db.set_default_mc_account(interaction.user.id, found.uuid):
+            said = lines.NOT_YOURS.format(name=discord.utils.escape_markdown(uuid))
+        else:
+            said = lines.NEW_DEFAULT.format(name=shown(found))
+        await interaction.response.edit_message(**await self.accounts_reply(interaction.user, said))
+
+    async def picked_unlink(self, interaction: discord.Interaction, uuid: str) -> None:
+        """Someone picked "unlink this one" under /mc accounts (what /mc remove used to do)."""
+        found = await self.your_account(interaction.user.id, uuid)
+        if found is None or not await self.bot.db.remove_mc_account(interaction.user.id, found.uuid):
+            said = lines.NOT_YOURS.format(name=discord.utils.escape_markdown(uuid))
+        else:
+            said = lines.REMOVED.format(name=shown(found))
+            self.linked_changed()  # the booth stops treating them as linked (no more nudges skipped)
+        await interaction.response.edit_message(**await self.accounts_reply(interaction.user, said))
+
+    @app_commands.command(name="whois", description="Who plays what: pick a member, or type a Minecraft name")
+    @app_commands.describe(
+        member="Whose accounts to show", name="A Java username or Xbox gamertag, to find who plays it"
+    )
+    async def whois(
+        self, interaction: discord.Interaction, member: Optional[discord.Member] = None, name: Optional[str] = None
+    ) -> None:
+        if (member is None) == (name is None):  # neither, or both
+            await interaction.response.send_message(lines.WHOIS_PICK_ONE, ephemeral=True)
+            return
+        if name is not None:
+            await self.who_plays(interaction, name)
+            return
         accounts = await self.bot.db.get_mc_accounts(member.id)
         if not accounts:
             await interaction.response.send_message(
@@ -305,9 +343,8 @@ class Minecraft(  # pylint: disable=too-many-public-methods,too-many-instance-at
             return
         await interaction.response.send_message(embed=self.accounts_embed(member, accounts))
 
-    @app_commands.command(name="who", description="Which server member plays this Minecraft name?")
-    @app_commands.describe(name="A Java username or Xbox gamertag")
-    async def who(self, interaction: discord.Interaction, name: str) -> None:
+    async def who_plays(self, interaction: discord.Interaction, name: str) -> None:
+        """/mc whois name: which members play this Minecraft name (what /mc who used to do)."""
         typed = name.strip().removeprefix(".")  # Bedrock players show up in game as ".Gamertag"
         found = await self.bot.db.find_mc_accounts_by_name(typed)
         if not found:
@@ -322,44 +359,11 @@ class Minecraft(  # pylint: disable=too-many-public-methods,too-many-instance-at
         await interaction.response.send_message(text, allowed_mentions=discord.AllowedMentions.none())
 
     async def your_account(self, user_id: int, typed: str) -> Optional[McAccount]:
-        """One of your accounts, by what autocomplete filled in (its UUID) or a name you typed yourself."""
+        """One of your accounts, by its UUID (what the dropdowns hand over) or its name."""
         for account in await self.bot.db.get_mc_accounts(user_id):
             if typed in (account.uuid, account.name) or typed.lower() == account.name.lower():
                 return account
         return None
-
-    @app_commands.command(name="default", description="Picks which of your Minecraft accounts is your main one")
-    @app_commands.describe(account="One of your linked accounts")
-    async def default(self, interaction: discord.Interaction, account: str) -> None:
-        found = await self.your_account(interaction.user.id, account)
-        if found is None or not await self.bot.db.set_default_mc_account(interaction.user.id, found.uuid):
-            text = lines.NOT_YOURS.format(name=discord.utils.escape_markdown(account))
-        else:
-            text = lines.NEW_DEFAULT.format(name=shown(found))
-        await interaction.response.send_message(text, ephemeral=True)
-
-    @app_commands.command(name="remove", description="Unlinks one of your Minecraft accounts")
-    @app_commands.describe(account="One of your linked accounts")
-    async def remove(self, interaction: discord.Interaction, account: str) -> None:
-        found = await self.your_account(interaction.user.id, account)
-        if found is None or not await self.bot.db.remove_mc_account(interaction.user.id, found.uuid):
-            text = lines.NOT_YOURS.format(name=discord.utils.escape_markdown(account))
-        else:
-            text = lines.REMOVED.format(name=shown(found))
-            self.linked_changed()
-        await interaction.response.send_message(text, ephemeral=True)
-
-    # Autocomplete shows your accounts by name, and hands the command the account's UUID: names can repeat (a Java
-    # and a Bedrock account called the same), UUIDs can't
-    @default.autocomplete("account")
-    @remove.autocomplete("account")
-    async def your_accounts(self, interaction: discord.Interaction, current: str) -> list[app_commands.Choice[str]]:
-        accounts = await self.bot.db.get_mc_accounts(interaction.user.id)
-        return [
-            app_commands.Choice(name=f"{a.name} ({lines.EDITION_NAMES[a.edition]})", value=a.uuid)
-            for a in accounts
-            if current.lower() in a.name.lower()
-        ][:25]
 
     @app_commands.command(name="status", description="Is the Minecraft server up, and how many are on?")
     async def status(self, interaction: discord.Interaction) -> None:

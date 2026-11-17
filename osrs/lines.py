@@ -11,7 +11,7 @@ INVALID_RSN = "🚫 **{rsn}** can't be an OSRS name. Names are 1–12 letters, n
 REGISTERED = "✅ **{rsn}** is now one of your accounts."
 REGISTERED_DEFAULT = " It's your default."
 ALREADY_YOURS = "👍 **{rsn}** is already one of your accounts."
-TAKEN = "🚫 **{rsn}** is already registered to {owner}. If that's wrong, ask them to `/osrs remove` it."
+TAKEN = "🚫 **{rsn}** is already registered to {owner}. If that's wrong, ask them to unlink it in `/osrs accounts`."
 
 # ---- the clan question
 CLAN_QUESTION = "🏰 Is **{rsn}** joining the clan?"
@@ -49,7 +49,7 @@ FLEX_KIT_SECRET = (
     "If it leaks, a VIP can replace it with `/setup osrs-webhook`."
 )
 
-# ---- /osrs accounts, /osrs whois, /osrs default, /osrs remove
+# ---- /osrs accounts (with its main / unlink dropdowns) and /osrs whois
 NO_ACCOUNTS = "You haven't registered any OSRS accounts yet. Start with `/osrs register`."
 NOT_YOURS = "🚫 You don't have **{rsn}** registered. `/osrs accounts` shows what you do have."
 NEW_DEFAULT = "⭐ **{rsn}** is now your default."

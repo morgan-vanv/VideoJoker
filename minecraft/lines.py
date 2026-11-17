@@ -31,7 +31,9 @@ LOOKUP_DOWN = "📡 The VJ can't reach {service} right now to check that name. T
 LINKED = "✅ **{name}** ({edition}) is now linked to you."
 LINKED_DEFAULT = " It's your default."
 ALREADY_YOURS = "👍 **{name}** ({edition}) was already yours. Welcome back to the screening."
-TAKEN = "🚫 **{name}** ({edition}) is already linked to {owner}. If that's wrong, ask them to `/mc remove` it."
+TAKEN = (
+    "🚫 **{name}** ({edition}) is already linked to {owner}. If that's wrong, ask them to unlink it in `/mc accounts`."
+)
 
 # ---- the join card, then "where to first?"
 JOIN = {
@@ -62,8 +64,9 @@ MODES = {
     ),
 }
 
-# ---- /mc accounts, /mc whois, /mc who, /mc default, /mc remove
+# ---- /mc accounts (with its main / unlink dropdowns) and /mc whois (a member or a name)
 NO_ACCOUNTS = "You haven't linked a Minecraft account yet. Start with `/mc register`."
+WHOIS_PICK_ONE = "Pick a member to see what they play, or type a Minecraft name to see who plays it (one or the other)."
 NOT_YOURS = "🚫 **{name}** isn't one of your linked accounts. `/mc accounts` shows what is."
 NEW_DEFAULT = "⭐ **{name}** is now your default."
 REMOVED = "🗑️ **{name}** is no longer linked to you."

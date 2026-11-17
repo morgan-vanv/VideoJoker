@@ -50,7 +50,7 @@ async def test_vip_only_commands_are_recognised():
 
 async def test_everyday_commands_are_not_vip_only():
     real = commands_by_name(build_bot())
-    for name in ["ladder show", "osrs register", "help", "listcommands", "play"]:
+    for name in ["profile", "osrs register", "help", "listcommands", "play"]:
         assert not is_vip_command(real[name]), name
 
 
@@ -78,8 +78,8 @@ async def test_the_two_lists_split_every_command_between_them():
 
     assert not set(everyone) & set(vips)  # nothing on both
     assert sorted(everyone + vips) == sorted(commands_by_name(bot))  # and nothing missing
-    assert "ladder show" in everyone and "setup ladder set" in vips
-    assert "ladder" not in everyone  # the group itself isn't a line: its subcommands are
+    assert "profile" in everyone and "setup ladder set" in vips
+    assert "mc" not in everyone  # the group itself isn't a line: its subcommands are
 
 
 async def test_listcommands_is_public_and_listadmincommands_only_for_you():

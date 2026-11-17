@@ -1,8 +1,8 @@
-"""The VJ's narration for XP, ranks, USh and the leaderboard. Every member-facing line for /rank, /balance, /pay
-and /leaderboard lives here, so the voice stays in one place (same idea as personal_vc/lines.py).
+"""The VJ's narration for XP, ranks, USh and the leaderboard. Every member-facing line for /profile, /pay and
+/leaderboard lives here, so the voice stays in one place (same idea as personal_vc/lines.py).
 
 The "how you earn" line is built from the numbers in core/database.py, so it can never drift from what the bot
-actually hands out: change XP_PER_COMMAND there and /rank, /balance, /leaderboard and /ladder show all follow.
+actually hands out: change XP_PER_COMMAND there and /profile, /leaderboard and /help all follow.
 """
 
 from typing import Callable, Optional
@@ -27,8 +27,8 @@ def cooldown_words(seconds: int) -> str:
 
 
 def earning_line() -> str:
-    """The one sentence that explains how XP and USh are earned (footers of /rank, /balance, /leaderboard and
-    /ladder show)."""
+    """The one sentence that explains how XP and USh are earned (footers of /profile, /leaderboard and the
+    ladder card)."""
     return (
         f"Every message: {XP_PER_MESSAGE} XP + {USH_PER_MESSAGE} USh. "
         f"Every command: {XP_PER_COMMAND} XP ({cooldown_words(COMMAND_XP_COOLDOWN_SECONDS)})."
@@ -37,19 +37,15 @@ def earning_line() -> str:
 
 EARNING = earning_line()
 
-USH_EXPLAINED = (
-    f"USh (Ugandan shillings) is the VJ's play money. Every message you send earns {USH_PER_MESSAGE}, "
-    "and `/pay` sends some to another member."
-)
-
-# ---- /rank (and the "you are here" bit of /ladder show)
+# ---- /profile (it took over /rank, /balance, /userinfo and /ladder show on 2026-11-16)
 
 RANK_TITLE = "🎬 Now showing: {name}"
 RANK_BOT = "🎞️ Bots don't climb the ladder, comrade. They just run the projector."
-RANK_POINTER = "Everyone's standings: `/leaderboard` · USh and payments: `/balance`"
 BREAKDOWN_HEADING = "Where the XP came from"
 TOP_OF_THE_LADDER = "🏆 Top of the ladder. Nowhere left to climb, comrade."
-YOU_ARE_HERE = "📍 You are here"
+LADDER_HEADING = "The ladder"
+PLAYS_HEADING = "Plays"
+AROUND_HEADING = "Around since"
 
 
 def rank_line(progress: RankProgress, label: Label) -> str:
@@ -84,22 +80,32 @@ def ush_line(balance: int) -> str:
     return f"**USh:** {balance:,}"
 
 
-def you_are_here(progress: RankProgress, label: Label) -> str:
-    """For /ladder show: your rank and XP, then how far the next rank is."""
-    return f"{rank_line(progress, label)} · {progress.xp:,} XP\n{progress_line(progress, label)}"
+def ladder_line(tiers: list[Tier], current: Optional[Tier], label: Label) -> str:
+    """Every rank from the bottom up with the XP it takes, yours in bold with a pin:
+    @LOWLY SERFS 1 XP → **@SWORN SWORDS 1,000 XP** 📍 → @LORDS 5,000 XP"""
+    steps = []
+    for tier in sorted(tiers, key=lambda tier: tier.number):
+        step = f"{label(tier)} {tier.min_xp:,} XP"
+        steps.append(f"**{step}** 📍" if current is not None and tier.number == current.number else step)
+    return " → ".join(steps)
 
 
-# ---- /balance
+def plays_line(game: str, names: list[str]) -> str:
+    """**OSRS:** Zezima ⭐, ZezIron (the names are already escaped and marked by the caller)."""
+    return f"**{game}:** {', '.join(names)}"
 
-BALANCE_TITLE = "📼 {name}'s USh"
-BALANCE_BOT = "🎞️ Bots don't carry USh, comrade. The projector runs for free."
+
+def around_line(created_at: int, joined_at: Optional[int]) -> str:
+    """On Discord since <date> · here since <date> (Discord timestamps: everyone sees their own date format)."""
+    line = f"On Discord since <t:{created_at}:D>"
+    return line + (f" · here since <t:{joined_at}:D>" if joined_at else "")
+
+
+# ---- payments (on /profile)
+
 PAYMENTS_HEADING = "Last payments"
 NO_PAYMENTS = "No payments yet."
 PAY_HINT = "Send some with `/pay`."
-
-
-def balance_line(balance: int) -> str:
-    return f"**{balance:,} USh**"
 
 
 def who(user_id: Optional[int]) -> str:
@@ -118,12 +124,6 @@ def move_line(move: UshMove, viewer_id: int) -> str:
         # escape_markdown: a note is someone else's text, so it can't turn into bold, links or a giant heading
         line += f' · "{escape_markdown(move.note)}"'
     return f"{line} · <t:{move.created_at}:R>"
-
-
-def balance_pointer(xp_total: int, rank: Optional[str]) -> str:
-    """📼 612 XP · @SWORN SWORDS · the full picture in `/rank`"""
-    parts = [f"{xp_total:,} XP"] + ([rank] if rank else [])
-    return "📼 " + " · ".join(parts) + " · the full picture in `/rank`"
 
 
 # ---- /pay

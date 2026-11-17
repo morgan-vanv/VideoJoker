@@ -33,21 +33,19 @@ RANKS_NAME = "🎖️ XP and ranks"
 def ranks_text(rank_names: list[str]) -> str:
     """The XP and ranks section, with this server's ranks from lowest to highest (LOWLY SERFS → ... → LORDS)."""
     ladder = " → ".join(rank_names)
-    return (
-        f"{XP_EARNED} XP never resets, and it moves you up the ranks: **{ladder}**. See where you stand with `/rank`."
-    )
+    return f"{XP_EARNED} XP never resets, and it moves you up the ranks: **{ladder}**. See where you stand with `/profile`."
 
 
 USH_NAME = "💰 USh, the server's play money"
 USH_TEXT = (
-    f"You get {USH_PER_MESSAGE} USh for every message. Check your wallet with `/balance`, "
+    f"You get {USH_PER_MESSAGE} USh for every message. Check your wallet with `/profile`, "
     "and send some to a friend with `/pay`."
 )
 
 LEADERBOARD_NAME = "🏆 Leaderboard"
 LEADERBOARD_TEXT = "`/leaderboard` shows the server's top 10, by XP or by USh."
 # Added to the leaderboard section when there's no ranks section to explain XP (no ladder on this server)
-XP_WITHOUT_RANKS = f"{XP_EARNED} Check yours with `/rank`."
+XP_WITHOUT_RANKS = f"{XP_EARNED} Check yours with `/profile`."
 
 MUSIC_NAME = "🎵 Music"
 MUSIC_TEXT = (

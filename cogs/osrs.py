@@ -12,6 +12,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
+from core.accounts_view import AccountChoice, AccountsView
 from core.database import OsrsAccount
 from osrs import flexing, lines, wom
 from osrs.accounts import clean_rsn, rsn_key
@@ -148,14 +149,43 @@ class Osrs(commands.GroupCog, group_name="osrs", group_description="Link your OS
         else:
             await interaction.edit_original_response(content=intro)
 
-    @app_commands.command(name="accounts", description="Shows the OSRS accounts linked to your Discord")
+    @app_commands.command(name="accounts", description="Your linked OSRS accounts: pick your main, or unlink one")
     async def accounts(self, interaction: discord.Interaction) -> None:
         await interaction.response.defer(ephemeral=True)
-        accounts = await self.bot.db.get_osrs_accounts(interaction.user.id)
+        await interaction.edit_original_response(**await self.accounts_reply(interaction.user))
+
+    async def accounts_reply(self, user: discord.abc.User, said: str = "") -> dict:
+        """The /osrs accounts message (what's said first, if anything, then the list with its dropdowns), as the
+        arguments for sending or editing it. With no accounts left, just the "none yet" line."""
+        accounts = await self.bot.db.get_osrs_accounts(user.id)
         if not accounts:
-            await interaction.edit_original_response(content=lines.NO_ACCOUNTS)
-            return
-        await interaction.edit_original_response(embed=await self.accounts_embed(interaction.user, accounts))
+            return {"content": f"{said}\n{lines.NO_ACCOUNTS}".strip(), "embed": None, "view": None}
+        choices = [AccountChoice(account.rsn_key, account.rsn, account.is_default) for account in accounts]
+        view = AccountsView(choices, self.picked_main, self.picked_unlink)
+        return {"content": said or None, "embed": await self.accounts_embed(user, accounts), "view": view}
+
+    async def picked_main(self, interaction: discord.Interaction, key: str) -> None:
+        """Someone picked "make this my main" under /osrs accounts (what /osrs default used to do)."""
+        rsn = await self.picked_name(interaction.user.id, key)
+        if await self.bot.db.set_default_osrs_account(interaction.user.id, key):
+            said = lines.NEW_DEFAULT.format(rsn=discord.utils.escape_markdown(rsn))
+        else:
+            said = lines.NOT_YOURS.format(rsn=discord.utils.escape_markdown(rsn))
+        await interaction.response.edit_message(**await self.accounts_reply(interaction.user, said))
+
+    async def picked_unlink(self, interaction: discord.Interaction, key: str) -> None:
+        """Someone picked "unlink this one" under /osrs accounts (what /osrs remove used to do)."""
+        rsn = await self.picked_name(interaction.user.id, key)
+        if await self.bot.db.remove_osrs_account(interaction.user.id, key):
+            said = lines.REMOVED.format(rsn=discord.utils.escape_markdown(rsn))
+        else:
+            said = lines.NOT_YOURS.format(rsn=discord.utils.escape_markdown(rsn))
+        await interaction.response.edit_message(**await self.accounts_reply(interaction.user, said))
+
+    async def picked_name(self, user_id: int, key: str) -> str:
+        """The account's name as they typed it, for the reply (the dropdown hands us its key)."""
+        accounts = await self.bot.db.get_osrs_accounts(user_id)
+        return next((account.rsn for account in accounts if account.rsn_key == key), key)
 
     @app_commands.command(name="whois", description="Shows which OSRS accounts a server member plays")
     @app_commands.describe(member="The person to look up")
@@ -169,41 +199,6 @@ class Osrs(commands.GroupCog, group_name="osrs", group_description="Link your OS
             )
             return
         await interaction.edit_original_response(embed=await self.accounts_embed(member, accounts))
-
-    @app_commands.command(name="default", description="Picks which of your OSRS accounts is your main one")
-    @app_commands.describe(rsn="One of your registered accounts")
-    async def default(self, interaction: discord.Interaction, rsn: str) -> None:
-        if await self.bot.db.set_default_osrs_account(interaction.user.id, rsn_key(rsn)):
-            await interaction.response.send_message(
-                lines.NEW_DEFAULT.format(rsn=discord.utils.escape_markdown(rsn)), ephemeral=True
-            )
-        else:
-            await interaction.response.send_message(
-                lines.NOT_YOURS.format(rsn=discord.utils.escape_markdown(rsn)), ephemeral=True
-            )
-
-    @app_commands.command(name="remove", description="Unlinks one of your OSRS accounts")
-    @app_commands.describe(rsn="One of your registered accounts")
-    async def remove(self, interaction: discord.Interaction, rsn: str) -> None:
-        if await self.bot.db.remove_osrs_account(interaction.user.id, rsn_key(rsn)):
-            await interaction.response.send_message(
-                lines.REMOVED.format(rsn=discord.utils.escape_markdown(rsn)), ephemeral=True
-            )
-        else:
-            await interaction.response.send_message(
-                lines.NOT_YOURS.format(rsn=discord.utils.escape_markdown(rsn)), ephemeral=True
-            )
-
-    # Autocomplete: as you type the rsn for /osrs default or /osrs remove, Discord asks the bot for
-    # suggestions, and we offer your own accounts. Stacking the two decorators hooks one function up to both.
-    @default.autocomplete("rsn")
-    @remove.autocomplete("rsn")
-    async def your_accounts(self, interaction: discord.Interaction, current: str) -> list[app_commands.Choice[str]]:
-        accounts = await self.bot.db.get_osrs_accounts(interaction.user.id)
-        typed = rsn_key(current)
-        return [
-            app_commands.Choice(name=account.rsn, value=account.rsn) for account in accounts if typed in account.rsn_key
-        ][:25]  # Discord shows at most 25 suggestions
 
     @app_commands.command(name="flexing", description="Get what to paste into Dink to flex your drops")
     async def flexing(self, interaction: discord.Interaction) -> None:
