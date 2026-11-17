@@ -123,7 +123,7 @@ SHOUT_NOTE = "a shout into Minecraft"  # shows in /balance next to the payment
 SHOUT_REFUND_NOTE = "shout refund: nobody heard it"
 SHOUT_FAILED = "📡 The VJ couldn't reach the booth. No USh taken. Try again in a bit."
 
-POSTCARD_JOIN = "🎟️ **{name}** walked into the cinema for the first time. Welcome to the screening!"
+POSTCARD_JOIN = "{name} just joined the server for the first time, welcome!"
 POSTCARD_DEATH = "💀 {text}. The VJ looks away."
 POSTCARD_ADVANCEMENT = "🏆 **{name}** unlocked **{title}**."
 POSTCARD_OWNER = " ({members})"
