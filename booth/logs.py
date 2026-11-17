@@ -13,9 +13,14 @@ import re
 from typing import AsyncIterator, Optional
 
 
-# Every log line starts with a time and a level: "[12:34:56 INFO]: ..." (console style) or
-# "[12:34:56] [Server thread/INFO]: ..." (Paper's latest.log). We want what comes after.
-_PREFIX = re.compile(r"^\[[\d:.]+(?: [A-Z]+)?\](?: \[[^\]]+\])?: (.*)$")
+# Every log line starts with a time and a level, then up to two more bracketed bits, and we want what comes after:
+#   "[12:34:56 INFO]: ..."                                    the console's style
+#   "[12:34:56] [Server thread/INFO]: ..."                   Paper's latest.log (thread/level)
+#   "[12:34:56] [Netty epoll Worker #3/INFO] [com.velocitypowered...ConnectedPlayer]: ..."
+#                                                            Velocity's latest.log (thread/level, then the logger)
+# Velocity's file layout was found by the infra side's review (2026-11-16): with only one bracketed bit allowed,
+# no Velocity line matched and first joins never reached the bot.
+_PREFIX = re.compile(r"^\[[\d:.]+(?: [A-Z]+)?\](?: \[[^\]]+\]){0,2}: (.*)$")
 _VELOCITY_JOIN = re.compile(r"^\[connected player\] (.+?) \(/[^)]*\) has connected$")
 _ADVANCEMENT = re.compile(r"^(.+?) has (?:made the advancement|completed the challenge|reached the goal) \[(.+)\]$")
 _JOINED_GAME = re.compile(r"^(.+?) joined the game$")

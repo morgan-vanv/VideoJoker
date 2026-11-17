@@ -120,10 +120,36 @@ def test_parse_list_handles_bedrock_names():
 # ---- the log readers
 
 
+# A line exactly as Velocity's latest.log writes it (its log4j2.xml layout: [%d{HH:mm:ss}] [%t/%level] [%logger]: %msg)
+VELOCITY_JOIN_LINE = (
+    "[21:04:12] [Netty epoll Worker #3/INFO] [com.velocitypowered.proxy.connection.client.ConnectedPlayer]: "
+    "[connected player] Name (/203.0.113.5:51234) has connected"
+)
+# Velocity logs this every time someone moves between servers (the hub, then Factions...): not a first join
+VELOCITY_SWITCH_LINE = (
+    "[21:04:13] [Netty epoll Worker #3/INFO] [com.velocitypowered.proxy.connection.backend.BackendPlayer]: "
+    "[server connection] Name -> hub has connected"
+)
+
+
 def test_log_prefixes():
     assert logs.message("[12:34:56 INFO]: hello") == "hello"
     assert logs.message("[12:34:56] [Server thread/INFO]: hello") == "hello"
+    assert logs.message("[12:34:56] [Netty epoll Worker #3/INFO] [com.velocitypowered.Thing]: hello") == "hello"
+    assert logs.message("[12:34:56] [Server thread/INFO]: [SomePlugin] hello") == "[SomePlugin] hello"
     assert logs.message("garbage") is None
+
+
+def test_a_real_velocity_line_gives_the_name_and_drops_the_ip():
+    name = logs.velocity_join(logs.message(VELOCITY_JOIN_LINE))
+    assert name == "Name"
+    assert "203.0.113.5" not in repr(name)
+
+
+def test_moving_between_servers_is_not_a_join():
+    msg = logs.message(VELOCITY_SWITCH_LINE)
+    assert msg == "[server connection] Name -> hub has connected"
+    assert logs.velocity_join(msg) is None
 
 
 def test_velocity_join_gives_the_name_and_never_the_ip():
@@ -277,7 +303,12 @@ async def test_factions_watcher_turns_lines_into_postcards(tmp_path):
     jobs = [asyncio.create_task(booth.watch_velocity()), asyncio.create_task(booth.watch_factions())]
     await asyncio.sleep(0.05)
     with open(velocity, "a", encoding="utf-8") as log:
-        log.write("[12:00:00 INFO]: [connected player] Notch (/198.51.100.7:1234) has connected\n")
+        # Velocity's real file layout (thread/level and the logger), then a server switch, which isn't a join
+        log.write(
+            "[12:00:00] [Netty epoll Worker #3/INFO] [com.velocitypowered.proxy.connection.client.ConnectedPlayer]: "
+            "[connected player] Notch (/198.51.100.7:1234) has connected\n"
+        )
+        log.write(VELOCITY_SWITCH_LINE.replace("Name", "Notch") + "\n")
     with open(factions, "a", encoding="utf-8") as log:
         log.write("[12:00:05] [Server thread/INFO]: Notch joined the game\n")
         log.write("[12:00:06] [Server thread/INFO]: <Notch> Notch was slain by nobody, trust me\n")
