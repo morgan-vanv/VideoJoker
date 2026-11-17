@@ -53,6 +53,7 @@ class VideoJoker(commands.Bot):
             'cogs.guide',
             'cogs.event_alerts',
             'cogs.minecraft',
+            'cogs.raffle',
         ]
         for extension in initial_extensions:
             await self.load_extension(extension)

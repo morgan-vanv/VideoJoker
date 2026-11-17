@@ -1,11 +1,11 @@
 # Minecraft ↔ Discord: design
 
 **Status:** part 1 (linking, status, marquee, welcome) merged in #86. Part 2 (the booth: `/mc shout`, the
-in-game Discord nudge, postcards) built on `feature/minecraft-booth`: the booth itself is `booth/` (its contract
-for the infra side: `booth/README.md`), the bot's side is in `cogs/minecraft.py` + `minecraft/booth.py`. Going
-live needs the infra brief (it follows the infra side's preflight, 2026-11-16) and `BOOTH_URL`/`BOOTH_TOKEN` in
-the bot's `.env`. Written 2026-11-15 by Morgan + Claude, the day the Minecraft network went live at
-`mc.morganvanv.com`; updated 2026-11-16 with the infra decision below.
+in-game Discord nudge, postcards) built in #88: the booth itself is `booth/` (its contract for the infra side:
+`booth/README.md`), the bot's side is in `cogs/minecraft.py` + `minecraft/booth.py`. Going live needs the infra
+brief (it follows the infra side's preflight, 2026-11-16) and `BOOTH_URL`/`BOOTH_TOKEN` in the bot's `.env`.
+Written 2026-11-15 by Morgan + Claude, the day the Minecraft network went live at `mc.morganvanv.com`; updated
+2026-11-16 with the infra decision below.
 
 ## Why
 

@@ -61,6 +61,7 @@ _See `DESIGNDOCUMENT.md` for information on what might come in the future_
 ### Fun Cog Commands
 - **/say [message]** (*The bot repeats the given message.*)
 - **/roast [user]** (*Roasts a user with a random humorous insult.*)
+- **/curseofra [user]** (*shut up, bozo. Curses a user with a fresh wall of hieroglyphs (the Curse of Ra meme). Pings them.*)
 - **/russianroulette** (*Russian Roulette simulator.*)
 
 ### Utility Cog Commands
@@ -115,6 +116,12 @@ _Join the lobby voice channel and the VJ makes you your own voice channel and mo
 ### Event Alerts Cog Commands
 _Discord's own events (Events, top of the channel list) do the scheduling, weekly repeats and "Interested". The VJ adds a heads-up before each event (the day before and an hour before) pinging everyone marked Interested, and posts when an event's time or place changes or it's cancelled. No commands for any of that: it follows the events. The bot needs Send Messages and Embed Links in the alert channel. Reminder times: `EVENT_ALERT_TIMES` in `.env`._
 - **/seteventalerts [channel]** (*VIP: the channel for this server's event reminders. Leave it empty to switch them off.*)
+
+### Raffle Cog Commands
+_Put up a prize, people react 🎟️ on the raffle card to enter, and the winner is drawn when time's up (it survives restarts). Bots, banned users and the host can't win. One running raffle per person per server._
+- **/raffle start [prize] [duration] [winners]** (*Starts a raffle in this channel. Duration like `30m`, `2h` or `1d 12h` (1 minute to 7 days); 1 to 5 winners.*)
+- **/raffle cancel [raffle]** (*Calls off a raffle without drawing a winner. Your own, or anyone's for VIPs.*)
+- **/raffle end [raffle]** (*Draws the winner now instead of waiting. Your own, or anyone's for VIPs.*)
 
 ### Music Cog Commands
 _Plays from YouTube, SoundCloud, Spotify and Tidal links (tracks, playlists, albums) or a search. The now-playing card has buttons._

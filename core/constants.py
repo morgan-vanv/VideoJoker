@@ -34,3 +34,9 @@ ROASTS = [
     "You are Italian (deragatory).",
     "just give it up lil bro.",
 ]
+
+# Curse of Ra: the curse is real Egyptian hieroglyphs from Unicode (U+13000 to U+1342E, the ones
+# every hieroglyph font has had since 2009), so every curse is a fresh random spell
+CURSE_OF_RA_FIRST_GLYPH = 0x13000
+CURSE_OF_RA_LAST_GLYPH = 0x1342E
+CURSE_OF_RA_LENGTH = 60  # about as long as the meme's wall of glyphs
