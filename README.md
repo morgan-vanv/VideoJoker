@@ -53,14 +53,13 @@ _See `DESIGNDOCUMENT.md` for information on what might come in the future_
 
 ### Games Cog Commands
 - **/coinflip** (*Flips a virtual coin, returning either "Heads" or "Tails."*)
-- **/diceroll [sides]** (*Rolls a virtual die with the specified number of sides (default is 6).*)
+- **/roll [sides] [dice]** (*Rolls dice: one six-sided die by default, or up to 10 dice of up to 100 sides. Frankie's `/droll` and `/diceroll` in one.*)
 - **/8ball [question]** (*Answers a yes/no question with a random response, mimicking a Magic 8-Ball.*)
 - **/rockpaperscissors [choice]** (*Plays a game of Rock-Paper-Scissors against the bot.*)
 - **/threecardmonte** (*Find the winning card among three face-down cards before the dealer packs up.*)
 
 ### Fun Cog Commands
 - **/say [message]** (*The bot repeats the given message.*)
-- **/roast [user]** (*Roasts a user with a random humorous insult.*)
 - **/curseofra [user]** (*shut up, bozo. Curses a user with a fresh wall of hieroglyphs (the Curse of Ra meme). Pings them.*)
 - **/russianroulette** (*Russian Roulette simulator.*)
 
@@ -74,7 +73,6 @@ _See `DESIGNDOCUMENT.md` for information on what might come in the future_
 _USh (Ugandan shillings) is the VJ's play money: every message earns 1. Payments are kept in a ledger, so `/balance` can show the latest ones._
 - **/balance [user]** (*Your or another member's USh and their last 5 payments. Never pings.*)
 - **/pay [user] [amount] [note]** (*Sends USh to another member, with an optional note (up to 100 characters). Pings only the person you paid.*)
-- **/gamble [amount]** *(Coming Soon)* (*Gamble your USh.*)
 
 ### OSRS Cog Commands
 _Link your Old School RuneScape accounts (alts welcome) and flex your drops with the Dink plugin. Design: `docs/osrs-design.md`._
@@ -124,20 +122,15 @@ _Put up a prize, people react 🎟️ on the raffle card to enter, and the winne
 - **/raffle end [raffle]** (*Draws the winner now instead of waiting. Your own, or anyone's for VIPs.*)
 
 ### Music Cog Commands
-_Plays from YouTube, SoundCloud, Spotify and Tidal links (tracks, playlists, albums) or a search. The now-playing card has buttons._
-- **/play [query] [play_next]** (*Plays a song from a link or search query. Playlists queue every song.*)
-- **/join** (*Summons the VJ to your voice channel.*)
-- **/leave** (*Sends the VJ home. Clears the queue.*)
-- **/pause** / **/resume** (*Intermission, and back.*)
+_Plays from YouTube, SoundCloud, Spotify and Tidal links (tracks, playlists, albums) or a search. Pause/resume, skip, stop, shuffle, loop and the queue are buttons on the now-playing card._
+- **/play [query] [play_next]** (*Plays a song from a link or search query, joining your voice channel. Playlists queue every song.*)
 - **/skip** (*Skips the currently playing song.*)
-- **/stop** (*Stops the music and clears the queue.*)
-- **/queue [page]** (*Shows the current music queue.*)
-- **/nowplaying** (*Shows what's playing, with the controls.*)
+- **/queue [page] [remove]** (*Shows what's coming up; `remove` takes out the song with that number.*)
+- **/nowplaying** (*Shows what's playing and moves the card with the buttons here.*)
 - **/volume [level]** (*Shows or sets the volume, 0–200%.*)
-- **/loop [mode]** (*Loops this song, the whole queue, or nothing.*)
-- **/shuffle** (*Shuffles the upcoming songs.*)
-- **/remove [position]** (*Removes a song from the queue.*)
-- **/effects [effect]** *(Coming Soon)* (*Applies an audio effect to the music.*)
+- **/leave** (*Sends the VJ home. Clears the queue.*)
+
+_Stubs kept out of the `/` menu until someone builds them: `/gamble` (`cogs/economy.py`) and `/effects` (`cogs/music.py`)._
 
 ## License
 

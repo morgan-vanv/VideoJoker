@@ -4,7 +4,7 @@ import discord
 from discord import app_commands
 from discord.ext.commands import Cog
 
-from core.constants import CURSE_OF_RA_FIRST_GLYPH, CURSE_OF_RA_LAST_GLYPH, CURSE_OF_RA_LENGTH, ROASTS
+from core.constants import CURSE_OF_RA_FIRST_GLYPH, CURSE_OF_RA_LAST_GLYPH, CURSE_OF_RA_LENGTH
 
 
 def curse_of_ra(target: str) -> str:
@@ -30,13 +30,6 @@ class Fun(Cog, name="Fun"):
         """Repeats the given message"""
 
         await interaction.response.send_message(message, allowed_mentions=discord.AllowedMentions.none())
-
-    @app_commands.command(name='roast', description='Roast a user')
-    async def roast(self, interaction: discord.Interaction, user: discord.User) -> None:
-        """Roasts a user"""
-        roast = random.choice(ROASTS)
-
-        await interaction.response.send_message(f"{interaction.user.name} roasted {user.name}: **{roast}**")
 
     @app_commands.command(name='curseofra', description='shut up, bozo. Curse a user with the Curse of Ra')
     async def curseofra(self, interaction: discord.Interaction, user: discord.User) -> None:

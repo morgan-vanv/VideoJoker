@@ -27,14 +27,6 @@ RPS_CHOICES = ['rock', 'paper', 'scissors']
 
 RPS_WINNING_CONDITIONS = {'rock': 'scissors', 'paper': 'rock', 'scissors': 'paper'}
 
-# Roast Options
-ROASTS = [
-    "You are a stinky smeller boy.",
-    "Everyone point and laugh!",
-    "You are Italian (deragatory).",
-    "just give it up lil bro.",
-]
-
 # Curse of Ra: the curse is real Egyptian hieroglyphs from Unicode (U+13000 to U+1342E, the ones
 # every hieroglyph font has had since 2009), so every curse is a fresh random spell
 CURSE_OF_RA_FIRST_GLYPH = 0x13000

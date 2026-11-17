@@ -37,7 +37,7 @@ handcrafted, and sentimental. **Treat it like a friend's workshop, not a codebas
 | `bot.py` | Bot class, global error handler, banned-user check, `/ping`, `/listcommands`, `/listadmincommands` |
 | `cogs/` | One cog per feature area; each ends with `async def setup(bot)` |
 | `core/database.py` | Single aiosqlite connection + in-memory VIP/BANNED cache; all SQL lives here |
-| `core/constants.py` | Static content (8-ball answers, RPS rules, roasts) |
+| `core/constants.py` | Static content (8-ball answers, RPS rules, the Curse of Ra) |
 | `core/custom_exceptions.py` | `app_commands.CheckFailure` subclasses for permissions |
 | `games/<game>/` | Multi-file games: `engine.py` (pure logic) + `ui.py` (discord Views) |
 | `booth/` | Not part of the bot: the Minecraft side's small helper service, its own image (`booth/README.md`). It never imports the bot. |

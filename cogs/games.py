@@ -6,6 +6,7 @@ from discord import app_commands
 from discord.ext.commands import Cog
 
 from core.constants import EIGHT_BALL_RESPONSES, RPS_CHOICES, RPS_WINNING_CONDITIONS
+from games import dice as dice_rules
 from games.three_card_monte import MonteView, deal_winning_card
 
 
@@ -22,50 +23,21 @@ class Games(Cog, name="Games"):
         result = random.choice(['Heads!', 'Tails!'])
         await interaction.response.send_message(f"{interaction.user.name} flipped a coin and got: **{result}**")
 
-    @app_commands.command(name='diceroll', description='Rolls an N-sided die (defaults to 6)')
-    async def diceroll(self, interaction: discord.Interaction, sides: int = 6) -> None:
-        """Rolls a die, if no argument is given, defaults to 6 sides."""
-        if sides < 1:
-            await interaction.response.send_message("A die must have at least 1 side!", ephemeral=True)
+    @app_commands.command(name='roll', description='Roll dice: one six-sided die, or pick the sides and how many')
+    @app_commands.describe(
+        sides=f'How many sides each die has (default 6, up to {dice_rules.MAX_SIDES})',
+        dice=f'How many dice to roll (default 1, up to {dice_rules.MAX_DICE})',
+    )
+    async def roll(self, interaction: discord.Interaction, sides: int = 6, dice: int = 1) -> None:
+        """Rolls dice: /roll is one d6, /roll sides:20 dice:3 is three d20s (games/dice.py has the rules).
+
+        A remux of Frankie's /droll and Morgan's /diceroll into one command (2026-11-16)."""
+        problem = dice_rules.problem(sides, dice)
+        if problem:
+            await interaction.response.send_message(problem, ephemeral=True)
             return
-
-        result = random.randint(1, sides)
-        await interaction.response.send_message(
-            f"{interaction.user.name} rolled a **{result}** on a {sides}-sided die."
-        )
-
-    @app_commands.command(name='droll', description='Roll any number of dice of one number of sides')
-    async def droll(self, interaction: discord.Interaction, dice: int = 1, sides: int = 6) -> None:
-        """
-        Rolls dice and allows user to roll multiple ones of the same dice: If no arguments are given, defaults to 1d6.
-
-        To use this command on discord, user can enter as an example "/droll 2 20" -> this would roll 2 20-sided dice.
-
-        Output will be each dice roll so with the example "/droll 2 20",
-        the output would be, for example: "You rolled: 7, 20."
-        """
-        max_dice = 10
-        max_sides = 20
-
-        if dice < 1:
-            await interaction.response.send_message("You did not roll any dice!", ephemeral=True)
-            return
-        elif dice > max_dice:
-            await interaction.response.send_message(f"You can only roll up to {max_dice} dice!", ephemeral=True)
-            return
-
-        if sides < 1:
-            await interaction.response.send_message("A die must have at least 1 side!", ephemeral=True)
-            return
-        elif sides > max_sides:
-            await interaction.response.send_message(f"Sorry, we don't have any {sides}-sided dice :(", ephemeral=True)
-            return
-
-        rolls = [random.randint(1, sides) for _ in range(dice)]
-        all_rolls = ", ".join(str(roll) for roll in rolls)
-        if dice > 1:
-            all_rolls += f" (total: {sum(rolls)})"
-        await interaction.response.send_message(f"Rolling: {dice}d{sides}\n\nYou Rolled: {all_rolls}")
+        rolls = dice_rules.roll(sides, dice)
+        await interaction.response.send_message(dice_rules.describe(interaction.user.name, sides, rolls))
 
     @app_commands.command(name='8ball', description='Ask the magic 8 ball a question')
     # Range makes Discord itself cap the question at 300 characters (the reply must fit Discord's 2000 limit)

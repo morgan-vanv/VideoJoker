@@ -23,31 +23,19 @@ SKIPPED = [
     "⏭ The tape jumps ahead. Action is coming.",
 ]
 STOPPED = "🛑 The VJ ejects the tape. Movie over, comrades."
-PAUSED = "⏸ Intermission! Go buy popcorn."
-RESUMED = "▶️ The projector whirs back to life."
-ALREADY_PAUSED = "The film is already paused, comrade."
-NOT_PAUSED = "Nothing is paused. The film is rolling."
 NOTHING_PLAYING = "Nothing is playing. Load a tape with `/play`."
 QUEUE_EMPTY = "The reel has run out. Queue something with `/play`, comrade."
 QUEUE_CLEARED = "🧹 The VJ sweeps {count} tapes off the shelf."
-SHUFFLED = "🔀 The VJ throws the tapes in the air. New order!"
 REMOVED = "🗑️ **{title}** is off the programme."
 BAD_POSITION = "There is no tape at position {position}, comrade. Check `/queue`."
-LOOP_SET = {
-    "off": "🔁 Loop off. Every film plays once, as nature intended.",
-    "track": "🔂 Looping this one film forever. Bold choice.",
-    "queue": "🔁 Looping the whole programme. The cinema never closes.",
-}
 VOLUME_SET = "🔊 Volume: {volume}%"
 VOLUME_SHOW = "🔊 Volume is at {volume}%."
 
-JOINED = "🎥 The VJ sets up the projector in **{channel}**."
 LEFT = "👋 The VJ packs up the projector. Goodnight, comrades."
 IDLE_LEFT = "The cinema has emptied. The VJ packs up the projector."
 RESTARTING = "📼 The VJ is swapping projectors (the bot is restarting). Give it a minute, then `/play` again, comrades."
-ALREADY_HERE = "The VJ is already in **{channel}**."
 NOT_IN_VOICE = "You are not in a voice channel. The VJ cannot narrate to an empty room."
-NOT_CONNECTED = "The VJ isn't in a voice channel. Use `/play` or `/join` first."
+NOT_CONNECTED = "The VJ isn't in a voice channel. Use `/play` first."
 WRONG_CHANNEL = "The VJ is showing a film in **{channel}**. Join the audience there to use the controls."
 
 SEARCHING = "🔎 The VJ rummages through the tapes for **{query}**..."
