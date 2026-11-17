@@ -232,7 +232,7 @@ async def test_welcomed_only_once(db):
 
 # ---- the guard: the VJ's Minecraft lines only point at Discord commands that exist
 
-IN_GAME_COMMANDS = {"server"}  # "/server factions" is typed in Minecraft, not Discord
+IN_GAME_COMMANDS = {"server", "lobby"}  # typed in Minecraft, not Discord ("/lobby" opens the server menu)
 MENTION = re.compile(r"(?<![\w:/])/([a-z0-9][\w-]*)(?: ([a-z0-9][\w-]*))?")
 
 
