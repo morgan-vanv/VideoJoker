@@ -35,7 +35,7 @@ def test_account_name_tells_bedrock_by_its_dot():
 def test_postcard_texts():
     assert postcards.text_for({"kind": "join", "name": "Notch"}, []) == lines.POSTCARD_JOIN.format(name="Notch")
     death = postcards.text_for({"kind": "death", "name": "Notch", "text": "Notch drowned"}, [7])
-    assert death == "💀 Notch drowned. The VJ looks away. (<@7>)"
+    assert death == "💀 Notch drowned. (<@7>)"
     advancement = postcards.text_for({"kind": "advancement", "name": "Not_ch", "title": "Stone Age"}, [])
     assert advancement == "🏆 **Not\\_ch** unlocked **Stone Age**."  # markdown in names is escaped
     assert postcards.text_for({"kind": "chat", "name": "Notch"}, []) is None

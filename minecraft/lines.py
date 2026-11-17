@@ -30,7 +30,7 @@ NOT_FOUND = {
 LOOKUP_DOWN = "📡 The VJ can't reach {service} right now to check that name. Try again in a few minutes."
 LINKED = "✅ **{name}** ({edition}) is now linked to you."
 LINKED_DEFAULT = " It's your default."
-ALREADY_YOURS = "👍 **{name}** ({edition}) was already yours. Welcome back to the screening."
+ALREADY_YOURS = "👍 **{name}** ({edition}) is already linked to you."
 TAKEN = (
     "🚫 **{name}** ({edition}) is already linked to {owner}. If that's wrong, ask them to unlink it in `/mc accounts`."
 )
@@ -40,28 +40,25 @@ JOIN = {
     "java": (
         f"## 🎬 How to get in (Java)\n"
         f"**Multiplayer → Add Server**, address `{ADDRESS}`. No port needed.\n"
-        f"You land in the hub: pick a mode from the chat menu, or type `/server factions`."
+        f"You land in the hub: type `/lobby` to pick a server."
     ),
     "bedrock": (
         f"## 🎬 How to get in (Bedrock)\n"
         f"**Play → Servers → Add Server**, address `{ADDRESS}`, port `{BEDROCK_PORT}`.\n"
-        f"You land in the hub: a menu pops up to pick a mode (or type `/server factions`)."
+        f"You land in the hub: type `/lobby` to pick a server."
     ),
 }
 WHERE_FIRST = "🗺️ Where to first?"
 MODES = {
     "factions": (
         "⚔️ **Factions**: the forever world, back from the old factions server, kingdoms and homes included. "
-        "Claim land with your crew, raid EliteMobs dungeons, level your skills. In game: `/server factions`."
+        "Claim land with your crew, raid EliteMobs dungeons, level your skills. In game: `/lobby` → Factions."
     ),
     "anarchy": (
-        "💀 **Anarchy**: pure vanilla, hard mode, no rules, no claims. Backed up against disk failure, never against "
-        "your friends: nothing gets rolled back. In game: `/server anarchy`."
+        "💀 **Anarchy**: pure vanilla, hard mode, no rules, no claims. Nothing gets rolled back, ever. "
+        "In game: `/lobby` → Anarchy."
     ),
-    "creative": (
-        "🎨 **Creative**: a plot of your own to build on. The projector's still warming up (it's waiting on its "
-        "plots plugin): the VJ will shout when it opens. Until then, Factions or Anarchy?"
-    ),
+    "creative": "🎨 **Creative**: a plot of your own to build on. Coming soon. Until then, Factions or Anarchy?",
 }
 
 # ---- /mc accounts (with its main / unlink dropdowns) and /mc whois (a member or a name)
@@ -77,23 +74,23 @@ WHO_NOBODY = "🔎 Nobody here has linked **{name}**."
 WHO_FOUND = "🎭 **{name}** ({edition}) is {member}."
 
 # ---- /mc status and the marquee
-STATUS_TITLE = f"🎬 Now showing: {ADDRESS}"
-STATUS_UP = "🟢 **Showing now.** {online}/{max} in the dark."
-STATUS_UP_EMPTY = "🟢 **Showing now.** The seats are empty: be the first in."
-STATUS_DOWN = "🔴 **Intermission.** The server isn't answering. The VJ is checking the reels."
+STATUS_TITLE = f"⛏️ {ADDRESS}"
+STATUS_UP = "🟢 **Online:** {online}/{max} players."
+STATUS_UP_EMPTY = "🟢 **Online:** nobody on right now. Be the first!"
+STATUS_DOWN = "🔴 **Offline:** the server isn't answering right now. Try again in a few minutes."
 STATUS_HOW = (
     f"**Java:** Multiplayer → Add Server → `{ADDRESS}`\n"
     f"**Bedrock:** Servers → Add Server → `{ADDRESS}`, port `{BEDROCK_PORT}`"
 )
 STATUS_HOW_NAME = "How to get in"
-STATUS_MODES_NAME = "On the screen"
+STATUS_MODES_NAME = "Modes"
 STATUS_MODES = "⚔️ Factions · 💀 Anarchy · 🎨 Creative (soon)"
-STATUS_FOOTER = "Link your account: /mc register · Checked"
+STATUS_FOOTER = "Link your account with /mc register · Last checked"
 
 # ---- the welcome (when someone gets the Minecraft role)
 WELCOME = (
-    "🎬 {member}, the Minecraft screen is back on! `{address}`, Java and Bedrock in one world. "
-    "Hit the button and the VJ walks you in."
+    "🎬 {member}, welcome! The Minecraft server is `{address}`, Java and Bedrock. "
+    "Hit the button and I'll get you set up."
 )
 
 # ---- /setup minecraft marquee and welcome (VIP)
@@ -109,7 +106,7 @@ STATUS_PER_MODE_NAME = "Mode by mode"
 STATUS_MODE_AWAKE = "{mode}: {online} on"
 STATUS_MODE_ASLEEP = "{mode}: asleep (joining wakes it)"
 
-SHOUT_OFF = "📡 The booth isn't wired up yet, comrade. Shouting into the game is coming soon."
+SHOUT_OFF = "📡 Shouting into the game isn't switched on yet."
 SHOUT_WAIT = "⏳ Your voice needs a rest. Shout again {when}."
 SHOUT_WAIT_EVERYONE = "⏳ Someone just shouted. Let the game chat breathe and try again {when}."
 SHOUT_BROKE = "💸 A shout costs **{cost} USh** and you've got **{balance}**. Chat a bit and come back."
@@ -118,13 +115,13 @@ SHOUT_DONE = "📢 {member} shouted into {modes}: {text}"
 SHOUT_PAID = "\n-# {cost} USh to the bank."
 SHOUT_FREE = "\n-# VIP: on the house."
 SHOUT_ASLEEP = " ({modes} asleep)"
-SHOUT_NOBODY = "😴 Every screen is dark right now (all modes asleep), so nobody would hear you. No USh taken."
+SHOUT_NOBODY = "😴 Every mode is asleep right now, so nobody would hear you. No USh taken."
 SHOUT_NOTE = "a shout into Minecraft"  # shows in /balance next to the payment
 SHOUT_REFUND_NOTE = "shout refund: nobody heard it"
-SHOUT_FAILED = "📡 The VJ couldn't reach the booth. No USh taken. Try again in a bit."
+SHOUT_FAILED = "📡 The VJ couldn't reach the Minecraft server. No USh taken. Try again in a bit."
 
-POSTCARD_JOIN = "🎟️ **{name}** walked into the cinema for the first time. Welcome to the screening!"
-POSTCARD_DEATH = "💀 {text}. The VJ looks away."
+POSTCARD_JOIN = "🎟️ {name} just joined the server for the first time, welcome!"
+POSTCARD_DEATH = "💀 {text}."
 POSTCARD_ADVANCEMENT = "🏆 **{name}** unlocked **{title}**."
 POSTCARD_OWNER = " ({members})"
 
