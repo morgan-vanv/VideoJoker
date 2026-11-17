@@ -34,7 +34,7 @@ handcrafted, and sentimental. **Treat it like a friend's workshop, not a codebas
 | Path | What lives there |
 |---|---|
 | `main.py` | Creates `data/` dirs, logging, loads `.env`, starts the bot |
-| `bot.py` | Bot class, global error handler, banned-user check, `/ping`, `/listcommands`, `/listadmincommands` |
+| `bot.py` | Bot class, global error handler, banned-user check, `@VideoJoker ping`, the command IDs `/help` links with |
 | `cogs/` | One cog per feature area; each ends with `async def setup(bot)` |
 | `core/database.py` | Single aiosqlite connection + in-memory VIP/BANNED cache; all SQL lives here |
 | `core/constants.py` | Static content (8-ball answers, RPS rules, the Curse of Ra) |
