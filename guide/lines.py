@@ -1,14 +1,10 @@
-"""The VJ's words for /help. Every line of the tour lives here, so the voice stays in one place (same idea as
-standing/lines.py and personal_vc/lines.py).
-
-The XP and USh numbers are built from core/database.py, so the tour can't promise more (or less) than the bot
-actually hands out. tests/test_guide.py fails if any line here mentions a slash command that doesn't exist.
+"""The VJ's words for /help that aren't about one area: the welcome, the DM line, the last line and the dropdown.
+What each area says lives in guide/layout.py. tests/test_guide.py fails if anything here or there mentions a
+slash command that doesn't exist.
 """
 
-from core.database import COMMAND_XP_COOLDOWN_SECONDS, USH_PER_MESSAGE, XP_PER_COMMAND, XP_PER_MESSAGE
-from standing.lines import cooldown_words
-
-TITLE = "🎬 Welcome to the show, comrade. I'm VideoJoker."
+# Morgan's words (2026-11-16), like the description below
+TITLE = "🎬 Welcome to the show, I'll be your VJ."
 
 # Morgan's words, word for word
 DESCRIPTION = (
@@ -18,59 +14,12 @@ DESCRIPTION = (
 # Added under the description when /help is run in DMs, where the server-only commands won't work
 IN_DMS = "🎞️ You're in my DMs, comrade: most of this only works in the server, so head back there to try it."
 
-# Morgan's words, word for word: the footer, the card's last line. (Footers can't show `code`, so no backticks.)
-LAST_LINE = "For the rest of the commands: /listcommands"
+# Morgan's last line, with /listcommands (retired 2026-11-16) swapped for the dropdown that replaced it
+LAST_LINE = "Tap a command to use it. For the rest of the commands: pick a topic below."
 
-# "Every message earns 1 XP, and every command 5 (once a minute)."
-XP_EARNED = (
-    f"Every message earns {XP_PER_MESSAGE} XP, and every command {XP_PER_COMMAND} "
-    f"({cooldown_words(COMMAND_XP_COOLDOWN_SECONDS)})."
-)
+EVERYTHING_TITLE = "📜 Every command"
 
-RANKS_NAME = "🎖️ XP and ranks"
-
-
-def ranks_text(rank_names: list[str]) -> str:
-    """The XP and ranks section, with this server's ranks from lowest to highest (LOWLY SERFS → ... → LORDS)."""
-    ladder = " → ".join(rank_names)
-    return f"{XP_EARNED} XP never resets, and it moves you up the ranks: **{ladder}**. See where you stand with `/profile`."
-
-
-USH_NAME = "💰 USh, the server's play money"
-USH_TEXT = (
-    f"You get {USH_PER_MESSAGE} USh for every message. Check your wallet with `/profile`, "
-    "and send some to a friend with `/pay`."
-)
-
-LEADERBOARD_NAME = "🏆 Leaderboard"
-LEADERBOARD_TEXT = "`/leaderboard` shows the server's top 10, by XP or by USh."
-# Added to the leaderboard section when there's no ranks section to explain XP (no ladder on this server)
-XP_WITHOUT_RANKS = f"{XP_EARNED} Check yours with `/profile`."
-
-MUSIC_NAME = "🎵 Music"
-MUSIC_TEXT = (
-    "Join a voice channel, then `/play` a song name or a YouTube, SoundCloud, Spotify or Tidal link. "
-    "The now-playing card has buttons to pause, skip and more."
-)
-
-PERSONAL_VC_NAME = "🔊 Your own voice channel"
-# {lobby} is the lobby as a channel mention (<#id>): Discord shows it as a link you can click
-PERSONAL_VC_TEXT = (
-    "Join {lobby} and I'll make you a channel of your own. "
-    "Buttons in its chat open it, lock it, hide it, or let guests in."
-)
-
-GAMES_NAME = "🎲 Games and fun"
-GAMES_TEXT = "`/threecardmonte`, `/coinflip`, `/8ball`, `/roll` and friends."
-
-RAFFLE_NAME = "🎟️ Raffles"
-RAFFLE_TEXT = "Give something away with `/raffle start`: people react 🎟️ to enter, and a winner is drawn when time's up."
-
-MINECRAFT_NAME = "⛏️ Minecraft"
-MINECRAFT_TEXT = (
-    "The server's back: `mc.morganvanv.com`, Java and Bedrock. "
-    "Link your account with `/mc register`, and see who's on with `/mc status`."
-)
-
-OSRS_NAME = "⚔️ Old School RuneScape"
-OSRS_TEXT = "Link your accounts with `/osrs register` and flex your drops."
+# The dropdown under every page
+PICK_TOPIC = "Pick a topic: every command, by area"
+TOUR_OPTION = "🎬 The tour"
+EVERYTHING_OPTION = "📜 Every command"

@@ -38,9 +38,7 @@ I don't even know why I spent so long on this README lol
 _See `DESIGNDOCUMENT.md` for information on what might come in the future_
 
 ### Main Bot Commands
-- **/help** (*New here? A quick tour of what the bot does on this server: XP and ranks, USh, the leaderboard, music, your own voice channel, games, OSRS and Minecraft. Only you see it, and features this server hasn't set up are left out.*)
-- **/listcommands** (*Lists the commands in the bot along with their descriptions, subcommands included (`/ladder show`, `/osrs register`, ...). VIP-only commands are left out.*)
-- **/listadmincommands** (*VIP: lists the VIP-only commands that `/listcommands` leaves out. Only you see it.*)
+- **/help** (*A tour of what the bot does on this server, essentials first (music, your own voice channel, OSRS, Minecraft), then the rest. A dropdown opens any area's commands, or every command at once, and the commands can be tapped to use them. Only you see it, and features this server hasn't set up are left out. Took over `/listcommands` and `/listadmincommands` on 2026-11-16; its layout lives in `guide/layout.py`.*)
 - **@VideoJoker ping** (*Admins: type it as a message, mentioning the bot. It answers "pong" and the version that's running. It's not a slash command, so it stays out of the `/` menu.*)
 
 ### Setup (VIPs only, hidden from everyone else's `/` menu)

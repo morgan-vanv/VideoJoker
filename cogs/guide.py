@@ -1,8 +1,14 @@
-"""/help: the first stop for new members (the server's onboarding guide sends them here).
+"""/help: the first stop for new members (the server's onboarding guide sends them here), and since 2026-11-16 the
+place to find every command too (it replaced /listcommands and /listadmincommands).
 
-One card, only for the person who asked, with a short tour of what the VJ does on this server. The words live in
-guide/lines.py and the "which sections to show" choice in guide/tour.py; this file only looks up what this server
-has switched on and sends the card.
+It opens on a short tour: the essentials (music, your own voice channel, OSRS, Minecraft) with headings, then the
+rest on one line each. The dropdown under it swaps the page for one area's commands, or every command at once.
+Only the person who asked sees it.
+
+It uses Discord's newer message layout ("components v2": a LayoutView holding a Container of TextDisplays and
+Separators), which can do real headings, dividers and small grey text, where an embed can't. What each page says
+comes from guide/pages.py, built from guide/layout.py; this file looks up what's switched on here and puts the
+pages on screen.
 """
 
 import logging
@@ -14,10 +20,11 @@ from discord.ext import commands
 
 from cogs.ranks import ladder_of
 from guide import lines
-from guide.tour import pick_sections
+from guide.layout import AREAS
+from guide.pages import Facts, areas_on, clickable, everything, topic, tour
 from ranks.ladder import tier_name
 
-EMBED_COLOUR = discord.Colour.dark_teal()
+ACCENT = discord.Colour.dark_teal()
 
 
 def rank_names(bot: commands.Bot, guild: Optional[discord.Guild]) -> Optional[list[str]]:
@@ -40,27 +47,67 @@ def lobby_mention(bot: commands.Bot, guild: Optional[discord.Guild]) -> Optional
     return f"<#{config.hub_channel_id}>"
 
 
+def facts_for(bot: commands.Bot, guild: Optional[discord.Guild]) -> Facts:
+    minecraft = bot.get_cog("Minecraft")
+    return Facts(
+        cogs=frozenset(bot.cogs),
+        ranks=rank_names(bot, guild),
+        lobby=lobby_mention(bot, guild),
+        booth=getattr(minecraft, "booth", None) is not None,
+    )
+
+
+class HelpView(discord.ui.LayoutView):
+    """One /help page on screen, with the topic dropdown under it. Picking a topic swaps the page in place."""
+
+    def __init__(self, blocks: list[str], facts: Facts, command_ids: dict[str, int], in_dms: bool):
+        super().__init__(timeout=600)  # ten minutes, then the dropdown stops answering (run /help again)
+        self.facts, self.command_ids, self.in_dms = facts, command_ids, in_dms
+
+        # The page: blocks of text with a divider between them, in one box with a coloured edge
+        children = []
+        for block in blocks:
+            if children:
+                children.append(discord.ui.Separator())
+            children.append(discord.ui.TextDisplay(clickable(block, command_ids)))
+        self.add_item(discord.ui.Container(*children, accent_colour=ACCENT))
+
+        options = [discord.SelectOption(label=lines.TOUR_OPTION, value="tour")]
+        options += [discord.SelectOption(label=area.name, value=area.key, emoji=area.emoji) for area in areas_on(facts)]
+        options.append(discord.SelectOption(label=lines.EVERYTHING_OPTION, value="all"))
+        picker = discord.ui.Select(placeholder=lines.PICK_TOPIC, options=options)
+
+        async def picked(interaction: discord.Interaction) -> None:
+            page = page_blocks(picker.values[0], self.facts, self.in_dms)
+            await interaction.response.edit_message(view=HelpView(page, self.facts, self.command_ids, self.in_dms))
+
+        picker.callback = picked
+        self.add_item(discord.ui.ActionRow(picker))
+
+
+def page_blocks(choice: str, facts: Facts, in_dms: bool) -> list[str]:
+    """The blocks of text for what was picked in the dropdown: the tour, one area, or every command."""
+    if choice == "all":
+        return [everything(facts)]
+    area = next((area for area in AREAS if area.key == choice), None)
+    return [topic(area, facts)] if area else tour(facts, in_dms)
+
+
 class Help(commands.Cog, name="Help"):
-    """**/help: a quick tour of the bot for new members**"""
+    """**/help: a quick tour of the bot, and every command**"""
 
     def __init__(self, bot):
         logging.info("Help cog initialized.")
         self.bot = bot
 
-    @app_commands.command(name='help', description='New here? A quick tour of what the VJ can do. Only you see it.')
+    @app_commands.command(name='help', description='New here? A tour of what the VJ can do, and every command')
     async def tour(self, interaction: discord.Interaction) -> None:
         guild = interaction.guild  # None in DMs
-        # bot.cogs is every loaded cog by name: a feature whose cog isn't running gets no section
-        sections = pick_sections(self.bot.cogs, rank_names(self.bot, guild), lobby_mention(self.bot, guild))
-
-        description = lines.DESCRIPTION if guild else f"{lines.DESCRIPTION}\n\n{lines.IN_DMS}"
-        embed = discord.Embed(title=lines.TITLE, description=description, colour=EMBED_COLOUR)
-        for section in sections:
-            embed.add_field(name=section.name, value=section.text, inline=False)
-        embed.set_footer(text=lines.LAST_LINE)
-
+        facts = facts_for(self.bot, guild)
+        # command_ids: filled in when commands sync (bot.py), so the commands on the page can be tapped
+        view = HelpView(tour(facts, in_dms=guild is None), facts, getattr(self.bot, "command_ids", {}), guild is None)
         # ephemeral: only the person who asked sees it, so #bot-commands doesn't fill up with tours
-        await interaction.response.send_message(embed=embed, ephemeral=True)
+        await interaction.response.send_message(view=view, ephemeral=True)
 
 
 async def setup(bot):

@@ -18,7 +18,7 @@ def is_vip():
 
 
 def is_vip_command(command) -> bool:
-    """True if the command has @is_vip() on it. /listcommands leaves these out and /listadmincommands shows them.
+    """True if the command has @is_vip() on it (tests/test_setup.py uses it to check /setup is VIP-only throughout).
 
     app_commands.check keeps every check of a command in command.checks, so we look for the one with our name tag.
     (A group, like /ladder, has no checks of its own: its subcommands do. getattr's [] covers that.)

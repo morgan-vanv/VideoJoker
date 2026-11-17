@@ -39,6 +39,6 @@ async def test_one_account_gets_only_the_unlink_dropdown():
 async def test_the_main_dropdown_offers_only_the_other_accounts():
     choices = [AccountChoice("zezima", "Zezima", True), AccountChoice("zeziron", "ZezIron", False)]
     view = AccountsView(choices, nothing, nothing)
-    main, unlink = list(view.children)
+    main, unlink = view.children[0], view.children[1]
     assert [option.value for option in main.options] == ["zeziron"]
     assert [option.value for option in unlink.options] == ["zezima", "zeziron"]
