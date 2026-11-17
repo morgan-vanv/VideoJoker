@@ -39,7 +39,7 @@ EARNING = earning_line()
 
 # ---- /profile (it took over /rank, /balance, /userinfo and /ladder show on 2026-11-16)
 
-RANK_TITLE = "🎬 Now showing: {name}"
+RANK_TITLE = "🎬 {name}'s profile"
 RANK_BOT = "🎞️ Bots don't climb the ladder, comrade. They just run the projector."
 BREAKDOWN_HEADING = "Where the XP came from"
 TOP_OF_THE_LADDER = "🏆 Top of the ladder. Nowhere left to climb, comrade."
@@ -131,7 +131,7 @@ def move_line(move: UshMove, viewer_id: int) -> str:
 PAY_SELF = "🎬 Cut! You can't pay yourself, comrade: that's just moving USh from one pocket to the other."
 PAY_BOT = "🎬 Cut! Bots can't hold USh, comrade: it would vanish into the projector. Pay a person instead."
 PAY_SHORT = "📼 Not enough USh, comrade: you have **{balance} USh**, and that payment needs **{amount} USh**."
-PAY_JAMMED = "🎞️ The projector jammed and no USh moved. Try again in a moment."
+PAY_JAMMED = "🎞️ Something went wrong and no USh moved. Try again in a moment."
 
 
 def pay_done(sender: str, recipient: str, amount: int, note: Optional[str]) -> str:

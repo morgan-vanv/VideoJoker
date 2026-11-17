@@ -34,16 +34,14 @@ VOLUME_SHOW = "🔊 Volume is at {volume}%."
 LEFT = "👋 The VJ packs up the projector. Goodnight, comrades."
 IDLE_LEFT = "The cinema has emptied. The VJ packs up the projector."
 RESTARTING = "📼 The VJ is swapping projectors (the bot is restarting). Give it a minute, then `/play` again, comrades."
-NOT_IN_VOICE = "You are not in a voice channel. The VJ cannot narrate to an empty room."
+NOT_IN_VOICE = "Join a voice channel first, then try again."
 NOT_CONNECTED = "The VJ isn't in a voice channel. Use `/play` first."
 WRONG_CHANNEL = "The VJ is showing a film in **{channel}**. Join the audience there to use the controls."
 
 SEARCHING = "🔎 The VJ rummages through the tapes for **{query}**..."
 NOT_FOUND = "The VJ searched every shelf and found nothing for **{query}**."
 LOAD_FAILED = "The tape for **{title}** is damaged. The VJ skips it and moves on."
-TIDAL_NOT_CONFIGURED = (
-    "Tidal links need `TIDAL_CLIENT_ID` and `TIDAL_CLIENT_SECRET` in `.env`. See SETUP_GUIDE.md — it's free."
-)
+TIDAL_NOT_CONFIGURED = "🎵 Tidal links aren't switched on here yet. YouTube, SoundCloud and Spotify links work."
 LINK_FAILED = "{service} wouldn't hand over that one. Check the link (private playlists stay private), comrade."
 
 

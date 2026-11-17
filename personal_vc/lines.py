@@ -14,10 +14,10 @@ WELCOME = "🎬 {owner}, this channel is yours until the last person walks out."
 
 MODE_SET = {
     Mode.OPEN: "🔓 Doors open. Anyone can see it, anyone can walk in.",
-    Mode.LOCKED: "🔒 Locked. Everyone can see the screen, only your guests get a seat. Whoever's inside stays.",
-    Mode.HIDDEN: "👻 Hidden. Only your guests even know this cinema exists. Very mysterious.",
+    Mode.LOCKED: "🔒 Locked. Everyone can see it, only your guests can join. Whoever's inside stays.",
+    Mode.HIDDEN: "👻 Hidden. Only your guests can see it. Very mysterious.",
 }
-MODE_FAILED = "🎞️ Discord wouldn't let me change your voice channel's settings. A mod can check the bot log."
+MODE_FAILED = "🎞️ Discord wouldn't let me change your channel. Try again, or ask Morgan if it keeps happening."
 
 # {hub} is the lobby as a channel mention (<#id>), never its name: Discord shows it as a link, and it stays right
 # if a mod renames the channel
